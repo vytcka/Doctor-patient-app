@@ -1,5 +1,4 @@
 # Doctor-patient-app
-
 # Overview
 An app that connects healthcare professionals with patients in need of non-urgent medical advice.
 
