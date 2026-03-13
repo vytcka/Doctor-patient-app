@@ -8,6 +8,7 @@ import bleach
 from cryptography.fernet import InvalidToken
 from . import sanitisationForLogs
 import logging
+from flask import jsonify
 
 
 #using fernet lib to provide symmetrical encryption
@@ -240,6 +241,113 @@ def logout():
     session.clear()
     return redirect(url_for('main.login'))
     
+    
+@main.route('/api/session', methods=['GET'])
+def api_session():
+    if 'user' not in session:
+        return jsonify({'authenticated': False}), 200
+    return jsonify({'authenticated': True, 'username': session['user'], 'role': session['role']}), 200
+
+
+@main.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    form = validation_form(data=data, meta={'csrf': False})
+
+    if not form.validate():
+        return jsonify({'errors': form.errors}), 400
+
+    query = text("SELECT * FROM user WHERE username = :username")
+    row = db.session.execute(query, {"username": form.username.data}).mappings().first()
+
+    if row is None:
+        return jsonify({'error': 'No user with that name exists'}), 401
+
+    user = db.session.get(User, row['id'])
+
+    if not user.check_hash(form.password.data):
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    session.clear()
+    session.permanent = True
+    session['user'] = user.username
+    session['role'] = user.role
+    session['bio'] = user.bio
+
+    logger.info(sanitisationForLogs(f"API login: {user.username} from {request.remote_addr}"))
+    return jsonify({'username': user.username, 'role': user.role}), 200
+
+
+@main.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.get_json()
+    form = registration_form(data=data, meta={'csrf': False})
+
+    if not form.validate():
+        return jsonify({'errors': form.errors}), 400
+
+    check = text("SELECT username FROM user WHERE username = :username")
+    row = db.session.execute(check, {"username": form.username.data}).first()
+
+    if row:
+        return jsonify({'error': 'Username already taken'}), 409
+
+    safe_bio = bleach.clean(form.bio.data,
+                            tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
+                            attributes={'a': ['href', 'title']},
+                            strip=True)
+
+    new_user = User(form.username.data, form.password.data, "user", safe_bio)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({'message': 'Registered successfully'}), 201
+
+
+@main.route('/api/dashboard', methods=['GET'])
+def api_dashboard():
+    if 'user' not in session:
+        return jsonify({'error': 'Unauthorised'}), 401
+    try:
+        bio = Decypher(session['bio']).get_text()
+        return jsonify({'username': session['user'], 'role': session['role'], 'bio': bio}), 200
+    except InvalidToken:
+        return jsonify({'error': 'Session invalid'}), 401
+
+
+@main.route('/api/change-password', methods=['POST'])
+def api_change_password():
+    if 'user' not in session:
+        return jsonify({'error': 'Unauthorised'}), 401
+
+    data = request.get_json()
+    form = password_form(data=data, meta={'csrf': False})
+
+    if not form.validate():
+        return jsonify({'errors': form.errors}), 400
+
+    query = text("SELECT * FROM user WHERE username = :username LIMIT 1")
+    row = db.session.execute(query, {"username": session['user']}).mappings().first()
+    user = db.session.get(User, row['id'])
+
+    if not user.check_hash(form.current_password.data):
+        return jsonify({'error': 'Current password is incorrect'}), 400
+
+    if form.new_password.data == form.current_password.data:
+        return jsonify({'error': 'New password must differ from current'}), 400
+
+    updated = User(username=session['user'], password=form.new_password.data, role="user", bio="dummy")
+    reset = text("UPDATE user SET password = :new_pass WHERE username = :username")
+    db.session.execute(reset, {"new_pass": updated.password, "username": session['user']})
+    db.session.commit()
+
+    return jsonify({'message': 'Password changed successfully'}), 200
+
+
+@main.route('/api/logout', methods=['POST'])
+def api_logout():
+    session.clear()
+    return jsonify({'message': 'Logged out'}), 200
 
     
 

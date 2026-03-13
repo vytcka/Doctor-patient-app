@@ -7,3 +7,4 @@ bcrypt
 dotenv
 cryptography
 flask_talisman
+flask_cors

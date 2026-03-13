@@ -7,6 +7,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import re
 import os
+from flask_cors import CORS
 
 db = SQLAlchemy()
 #definining santisation for logs
@@ -87,6 +88,7 @@ def create_app():
             user = User(username=user["username"], password=user["password"], role=user["role"], bio=user["bio"])
             db.session.add(user)
             db.session.commit()
+    CORS(app, supports_credentials=True)
 
     return app
 
