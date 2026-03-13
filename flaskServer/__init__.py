@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template 
 from flask_sqlalchemy import SQLAlchemy
-from config import Config
+from .config import Config
 from flask_wtf import CSRFProtect
 from flask_talisman import Talisman
 import logging

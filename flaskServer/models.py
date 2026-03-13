@@ -1,4 +1,4 @@
-from . import db
+from flaskServer import db
 import bcrypt;
 import os;
 from cryptography.fernet import Fernet

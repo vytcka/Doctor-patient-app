@@ -1,13 +1,30 @@
 import logo from './logo.svg';
 import './App.css';
+import { useEffect, useState } from 'react';
 
 function App() {
+
+  const [response, setResponse] = useState("");
+
+  useEffect(() => {
+    fetch("/", {
+      credentials: "include"
+    })
+      .then(res => res.text())
+      .then(data => setResponse(data))
+  }, []);
+
   return (
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
           Edit <code>src/App.js</code> and save to reload.
+        </p>
+
+        <p>
+          {/*Returns index.html, that means it works... */}
+          {(response)} hello world !!!
         </p>
         <a
           className="App-link"
