@@ -1,0 +1,9 @@
+flask
+flask-sqlalchemy
+wtforms
+flask_wtf
+bleach
+bcrypt
+dotenv
+cryptography
+flask_talisman
