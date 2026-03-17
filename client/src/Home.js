@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import myImage from './Homepage1.png';
 import myImage2 from './Homepage2.png';
 import Icon from './LogoIcon.png';
@@ -12,10 +13,18 @@ function Home() {
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
-          <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
-          <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
-          <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
-          <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+          <Link to="/" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
+          </Link>
+          <Link to="/post-request" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
+          </Link>
+          <Link to="/reviews" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
+          </Link>
+          <Link to="/login" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+          </Link>
         </div>
       </div>
 
