@@ -1,42 +1,39 @@
-import logo from './logo.svg';
-import './App.css';
 import { useEffect, useState } from 'react';
+import myImage from './Homepage1.png';
+import myImage2 from './Homepage2.png';
+import Icon from './LogoIcon.png';
 
-function App() {
-
-  const [response, setResponse] = useState("");
-
-  useEffect(() => {
-    fetch("/", {
-      credentials: "include"
-    })
-      .then(res => res.text())
-      .then(data => setResponse(data))
-  }, []);
-
+function Home() {
   return (
-    <div className="Home">
-      <header className="Home-header">
-        <img src={logo} className="Home-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+          <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
+          <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
+          <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
+          <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+        </div>
+      </div>
 
-        <p>
-          {/*Returns index.html, that means it works... */}
-          {(response)} Home page working working. !!!
-        </p>
-        <a
-          className="Home-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <div style={{ maxWidth: "800px", margin: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "80px" }}>
+          <img src={myImage2} alt="description" style={{ width: "250px", height: "250px" }} />
+          <div>
+            <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6" }}>About Us</p>
+            <p style={{ fontSize: "1rem", textAlign: "center" }}>TreatMe helps you connect with doctors for reliable health advice. Ask questions, chat securely, and get the support you need—when you need it. Real doctors. Real answers.</p>
+          </div>
+        </div>
+      </div>
+      <div style={{backgroundColor: "#dbeafe", padding: "40px"}}>
+        <h2>Features</h2>
+        <p>Some content here</p>
+      </div>
     </div>
   );
 }
 
-export default App;
+export default Home;
