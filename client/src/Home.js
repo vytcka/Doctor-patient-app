@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import myImage from './Homepage1.png';
+import myImage1 from './Homepage1.png';
 import myImage2 from './Homepage2.png';
 import Icon from './LogoIcon.png';
 
@@ -37,10 +37,28 @@ function Home() {
           </div>
         </div>
       </div>
+
       <div style={{backgroundColor: "#dbeafe", padding: "40px"}}>
-        <h2>Features</h2>
-        <p>Some content here</p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "40px" }}>
+
+        <div style={{ flex: 1}}>
+          <h2>Features</h2>
+          <ul>
+            <li><strong>Secure chat with file sharing – </strong>Send messages, images, and audio files safely within private doctor consultations</li>
+            <li><strong>Moderation & verified doctors –</strong> All doctor profiles are vetted, and content is monitored to ensure quality and safety</li>
+            <li><strong>Doctor reviews & ratings –</strong> Users can leave feedback to help others choose the right doctor</li>
+            <li><strong>Anonymous messaging & posting –</strong> Ask questions and chat with doctors while protecting your identity</li>
+            <li><strong>Appointment booking –</strong> Seamlessly book in-person appointments after consulting with a doctor</li>
+          </ul>
+        </div>
+
+        <div style={{ flex: 1, display: "flex", justifyContent: "right" }}>
+          <img src={myImage1} alt="Features" style={{ width: "250px", height: "250px" }} />
+        </div>
+        </div>
       </div>
+
+
     </div>
   );
 }
