@@ -62,10 +62,13 @@ function Home() {
         </div>
       </div>
 
+      {/* Post Request Section-------------------------------------- */}
       <div style={{backgroundColor: "#ffffff", padding: "40px", textAlign: "center"}}>
         <p style={{fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6"}}>Post a request</p>
         <p style={{ color: "#435e99"}}>Make an anonymous request to start chatting with doctors</p>
+        <Link to="/post-request" style={{ textDecoration: "none" }}>
         <button style={{backgroundColor: "#709de6", color: "#41537a", fontSize: "2rem", padding: "15px 40px"}}>Post a request now!</button>
+        </Link>      
       </div>
 
 
