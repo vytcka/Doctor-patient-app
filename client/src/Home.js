@@ -6,6 +6,7 @@ import Icon from './LogoIcon.png';
 
 function Home() {
   return (
+    //Top header: logo, buttons -------------------------------------- 
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
@@ -28,6 +29,7 @@ function Home() {
         </div>
       </div>
 
+      {/* About Us Section----------------------------------- */}
       <div style={{ maxWidth: "800px", margin: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "80px" }}>
           <img src={myImage2} alt="description" style={{ width: "250px", height: "250px" }} />
@@ -38,6 +40,8 @@ function Home() {
         </div>
       </div>
 
+
+      {/* Features Section-------------------------------------- */}
       <div style={{backgroundColor: "#dbeafe", padding: "40px"}}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "40px" }}>
 
@@ -56,6 +60,12 @@ function Home() {
           <img src={myImage1} alt="Features" style={{ width: "350px", height: "350px" }} />
         </div>
         </div>
+      </div>
+
+      <div style={{backgroundColor: "#ffffff", padding: "40px", textAlign: "center"}}>
+        <p style={{fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6"}}>Post a request</p>
+        <p style={{ color: "#435e99"}}>Make an anonymous request to start chatting with doctors</p>
+        <button style={{backgroundColor: "#709de6", color: "#41537a", fontSize: "2rem", padding: "15px 40px"}}>Post a request now!</button>
       </div>
 
 
