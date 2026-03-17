@@ -42,7 +42,7 @@ function Home() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "40px" }}>
 
         <div style={{ flex: 1}}>
-          <h2>Features</h2>
+          <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6" }}>Features</p>
           <ul>
             <li><strong>Secure chat with file sharing – </strong>Send messages, images, and audio files safely within private doctor consultations</li>
             <li><strong>Moderation & verified doctors –</strong> All doctor profiles are vetted, and content is monitored to ensure quality and safety</li>
@@ -53,7 +53,7 @@ function Home() {
         </div>
 
         <div style={{ flex: 1, display: "flex", justifyContent: "right" }}>
-          <img src={myImage1} alt="Features" style={{ width: "250px", height: "250px" }} />
+          <img src={myImage1} alt="Features" style={{ width: "350px", height: "350px" }} />
         </div>
         </div>
       </div>
