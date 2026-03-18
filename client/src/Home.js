@@ -6,13 +6,14 @@ import Icon from './LogoIcon.png';
 
 function Home() {
   return (
-    //Top header: logo, buttons -------------------------------------- 
+    //Top header layout : logo, buttons -------------------------------------- 
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-          <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+          <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>{/* App title */}
         </div>
+        {/* Buttons for: Home, PostaRequest, Reviews, Login and their colours + placements */}
         <div style={{ display: "flex", gap: "10px" }}>
           <Link to="/" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
@@ -48,6 +49,7 @@ function Home() {
         <div style={{ flex: 1}}>
           <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6" }}>Features</p>
           <ul>
+            {/*Features bullet points*/}
             <li><strong>Secure chat with file sharing – </strong>Send messages, images, and audio files safely within private doctor consultations</li>
             <li><strong>Moderation & verified doctors –</strong> All doctor profiles are vetted, and content is monitored to ensure quality and safety</li>
             <li><strong>Doctor reviews & ratings –</strong> Users can leave feedback to help others choose the right doctor</li>
@@ -62,7 +64,7 @@ function Home() {
         </div>
       </div>
 
-      {/* Post Request Section-------------------------------------- */}
+      {/* Post Request Section + Button-------------------------------------- */}
       <div style={{backgroundColor: "#ffffff", padding: "40px", textAlign: "center"}}>
         <p style={{fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6"}}>Post a request</p>
         <p style={{ color: "#435e99"}}>Make an anonymous request to start chatting with doctors</p>
