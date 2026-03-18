@@ -3,7 +3,8 @@ import Home from "./Home";
 import Check from "./Check";
 import PostRequest from './PostRequest'; 
 import Reviews from './Reviews'; 
-import Login from './Login'; 
+import Login from "./login";
+import Signup from "./signup";
 
 
 function App() {
@@ -14,7 +15,8 @@ function App() {
         <Route path="/Check" element={<Check />} />
         <Route path="/post-request" component={PostRequest} />
         <Route path="/reviews" component={Reviews} />
-        <Route path="/login" component={Login} />
+        <Route path="/Login" element={<Login />} />
+        <Route path="/Signup" element={<Signup />} />
 
       </Routes>
 
