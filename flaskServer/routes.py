@@ -59,7 +59,7 @@ def login():
 
                 
             user = db.session.get(User, row['id']) 
-            #clearing old data
+            #clearing oldd data
             session.clear()
 
             if not user.check_hash(password):
@@ -241,7 +241,58 @@ def logout():
     session.clear()
     return redirect(url_for('main.login'))
     
+@main.route('/filter', methods=['GET'])
+def getDoctor():
+    filterValues = ["location", "languange", "specialty", "gender", "min_rating"]
+    if not any(key in request.args for key in filterValues):
+        query = text("SELECT * FROM doctors")
+        doctors = db.session.execute(query).mappings()
+        return jsonify([doctors])
     
+    filters = {}
+    
+    if request.args.get('location'):
+        filters['location'] = request.args.get('location')
+
+    if request.args.get('language'):
+        filters['language'] = request.args.get('language')
+
+    if request.args.get('specialty'):
+        filters['specialty'] = request.args.get('specialty')
+
+    if request.args.get('gender'):
+        filters['gender'] = request.args.get('gender')
+
+    if request.args.get('min_rating'):
+        filters['rating'] = request.args.get('rating')
+    
+    query = " AND ".join(f"{filter} = :{filter}" for filter in filters)
+    executeQuery = text(f"SELECT * FROM doctors WHERE {query}")
+    doctors = db.session.execute(executeQuery, filters).mappings()
+    return jsonify(dict(doctors))
+
+@main.route('/cases', methods=['POST'])
+def caseSelector():
+    caseID = request.json.get('case_id')
+    action = request.json.get('action')
+    
+    caseQuery = "SELECT ID from cases WHERE id = : caseID"
+    result = db.session.execute(caseQuery, caseID).mappings()
+    
+    if not result:
+        return jsonify({"error": "case does not exist"}, 404)
+    
+    if result['status'] != "open":
+        return jsonify({"error" : "case is already taken"}, 404)
+    
+    if action == "accept":
+        query = "UPDATE case SET status = 'claimed', doctor_username = :username WHERE id = :caseID",
+        db.session.execute(query, {"username" : session['user'], "id" : caseID} )
+        db.session.commit()
 
 
-
+    
+    
+    
+        
+    
