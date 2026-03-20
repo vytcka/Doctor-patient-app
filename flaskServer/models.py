@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flaskServer import db
 import bcrypt;
 import os;
@@ -88,7 +90,7 @@ class User(db.Model):
         Args:
             role (string): a setter for the logged in person, trying to log in;
         """        
-        roles = ["user", "moderator", "admin"]
+        roles = ["patient", "doctor", "admin"]
         if role not in roles:
             self.role = "user"
         else: 
@@ -124,3 +126,27 @@ class Decypher():
         returns: decyphered biography
         """
         return self.text
+    
+class Request(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    age = db.Column(db.Integer, nullable=False)
+    symptoms = db.Column(db.Text, nullable=False)
+    symptoms_details = db.Column(db.Text)
+    family_issues = db.Column(db.Boolean, default=False)
+    family_details = db.Column(db.Text)
+    existing_issues = db.Column(db.Boolean, default=False)
+    existing_details = db.Column(db.Text)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.String(20), default='pending', nullable=False)
+
+    user = db.relationship('User', foreign_keys=[user_id])
+    doctor = db.relationship('User', foreign_keys=[doctor_id])
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'),nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)    
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

@@ -1,0 +1,108 @@
+h1, h2 {
+    text-align: center;
+    color:#2F5D96;
+}
+
+h1{
+    font-size:30px;
+    font-weight: bold;
+}
+
+h2{
+    font-weight: normal;
+    font-size: 16px;
+    color:#2F5D96;
+    margin-bottom: 20px;
+    opacity: 0.8;
+}
+
+body {
+    background: #FAFCFF;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #2F5D96;
+}
+
+.form-container {
+    max-width: 360px;
+    margin: auto;
+    padding: 10px;
+}
+
+.form{
+    display:flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    width: 100%;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+}
+
+input {
+    width:100%;
+    padding: 10px;
+    padding-right: 30vh;
+    margin: 7px;
+    font-size: 14px;
+    color: #2F5D96;
+    border-radius: 0;
+}
+
+input::placeholder {
+    color: #2F5D96;
+    opacity: 0.6;
+}
+
+button{
+    display: block; 
+    margin: 8px auto;
+    background: #BAD9FF;
+    color: #2F5D96;
+    cursor: pointer;
+    border: 0;
+    border-radius: 0;
+    padding: 7px 30px;
+    font-size: 14px;
+}
+
+button:hover {
+    background: #a3ccff;
+}
+
+.guest{
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    color: #2F5D96;
+    opacity: 0.8;
+}
+
+p {
+    text-align: center;
+    color: #2F5D96;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.error {
+    color: red;
+    text-align: center;
+    font-size: 13px;
+}
+
+.success {
+    color: green;
+    text-align: center;
+    font-size: 13px;
+}
+
+
