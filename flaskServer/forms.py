@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField,TextAreaField
-from wtforms.validators import input_required, Length, ValidationError, Email
+from wtforms import StringField, PasswordField,TextAreaField, IntegerField, SubmitField, BooleanField
+from wtforms.validators import NumberRange, Optional, input_required, Length, ValidationError, Email
 from flask  import session
 
     
@@ -132,6 +132,24 @@ class password_form(FlaskForm):
             raise ValidationError("The password cannot contain the username and the password.")
         #part B; checking for repeating charachters;
         if(repeating(new_password.data)):
-            raise ValidationError("There cannot be 3 consequtive repeating charachters in the new password ")
+            raise ValidationError("There cannot be 3 consequtive repeating characters in the new password ")
 
     
+class request_form(FlaskForm):
+    """Request form is used for submitting a medical request, users fill out a health questionnaire and submit it to the doctor, the doctor then can view the request and decide whether to accept or reject it.
+
+    Args:
+        FlaskForm (Parent Class): uses the flaskform parent class to instantiate the forms object containing the the validated fields.
+
+    Raises:
+        ValidationError: Validation error is raised when it does not meet one of the standards.
+    """
+    age = IntegerField("Age:", validators=[input_required(message="Age cannot be empty"), 
+                                           NumberRange(min=0, max=120, message="Age has to be between 0 and 120")])
+    symptoms = TextAreaField("What are your current symptoms?", validators=[input_required(message="There has to be some data within the symptoms field"), 
+                                        Length(min=10, max=1000, message="The symptoms field has to be between 10 and 1000 characters in length")])
+    symptoms_details = TextAreaField("Please provide more details about your symptoms:", validators=[input_required(message="There has to be some data within the symptoms details field"),
+                                                                                                   Length(min=10, max=1000, message="The symptoms details field has to be between 10 and 1000 characters in length")])
+    family_issues = BooleanField("Do you have any family history of medical conditions?", validators=[input_required(message="There has to be some data within the family issues field")])
+    family_details = TextAreaField("Please provide more details about your family's medical history:", validators=[Optional()])
+    submit = SubmitField("Submit Request")
