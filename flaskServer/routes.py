@@ -276,24 +276,6 @@ def view_requests():
     if not current_user.is_doctor:
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
         return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
-    
-    try:
-        requests = Request.query.filter_by(doctor_id=None).all()
-        return render_template('view_requests.html', requests=requests)
-    except Exception as e:
-        logger.error(sanitisationForLogs(f"Error retrieving medical requests for user {session.get('user')}: {str(e)}"))
-        flash('An error occurred while retrieving requests. Please try again.')
-        return render_template('view_requests.html', requests=[])
-
-@main.route('/accept-request/<int:request_id>', methods=['POST'])
-@login_required
-def accept_request(request_id):
-    if not current_user.is_doctor:
-        logger.warning(sanitisationForLogs(f"Unauthorized access attempt to accept request {request_id} by user {session.get('user')} from {request.remote_addr}"))
-        return render_template("forbidden.html", message="You need to be logged in as a doctor to perform this action."), 403
-    
-    try:
-        medical_request = Request.query.get(request_id)
 
         if not medical_request or medical_request.status != 'pending':
             flash('Request not found or already processed.')
@@ -364,3 +346,42 @@ def chat(chat_id):
                 flash('An error occurred while sending your message. Please try again.')
     messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
     return render_template('chat.html', chat=chat, messages=messages)   
+  
+@main.route('/delete_account', methods = ['GET', 'POST'])    
+def delete_account():
+    if request.method == "POST":
+
+        if 'user' not in session:
+            logger.warning(sanitisationForLogs(f"user has tried to delete an account without being logged in from the ip address {request.remote_addr}"))
+            return render_template("forbidden.html", message="you need to be logged in to view this page."), 403 
+        
+        form = password_form()
+
+        if form.validate_on_submit():
+            username = session['user']
+            logger.warning(sanitisationForLogs(f"Account deletion attempt for {username}"))
+            current_password = form.current_password.data
+
+            query = text("SELECT * FROM user WHERE username = :username LIMIT 1")
+            row = db.session.execute(query, {"username" : username}).mappings().first()
+
+            if not row:
+                session.clear()
+                return render_template('delete_account.html', form=form)
+
+            user = db.session.get(User, row['id'])
+
+            # Validating that the current pass is correct
+            if not user or not user.check_hash(current_password):
+                flash('Current password is incorrect')
+                logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
+                return render_template('delete_account.html', form=form)           
+
+            db.session.delete(user) #delete user from database
+            db.session.commit() 
+
+            flash('Account Deleted Successfully!')
+            return redirect(url_for('main.login'))
+        else:
+            session.clear()
+            return render_template('delete_account.html', form=form)
