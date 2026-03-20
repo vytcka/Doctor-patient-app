@@ -2,13 +2,14 @@ import traceback
 from flask import request, render_template, redirect, url_for, session, Blueprint, flash, abort
 from sqlalchemy import text
 from flaskServer import db
-from flaskServer.models import User, Decypher
-from flaskServer.forms import validation_form, registration_form, password_form
+from flaskServer.models import Request, User, Decypher
+from flaskServer.forms import request_form, validation_form, registration_form, password_form
 import bleach
 from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
+from flask_login import login_required, current_user
 
 
 #using fernet lib to provide symmetrical encryption
@@ -34,7 +35,7 @@ def home():
 def login():
     '''This route is responsible for logging in and checking whether the user exists that is.'''
     error = None
-    forms = validation_form();
+    forms = validation_form()
     if request.method == 'POST':
         if forms.validate_on_submit():
             #bio; we need to create a form, pass it in, and escape them in the form
@@ -87,7 +88,7 @@ def dashboard():
     if 'user' in session:
         try:
             decypher = Decypher(session['bio'])
-        #now we decrypt it vai the class;
+        #now we decrypt it via the class;
             username = session['user']
             bio = session['bio']
             return render_template('dashboard.html', username=username, bio=decypher.get_text())
@@ -240,8 +241,32 @@ def logout():
     """    
     session.clear()
     return redirect(url_for('main.login'))
-    
-    
 
+@main.route('/new-request', methods=['GET', 'POST'])
+@login_required
+def new_request():
+    form = request_form()
 
+    if form.validate_on_submit():
+        
+        new_request = Request(
+            user_id = current_user.id,
+            age = form.age.data,
+            symptoms = form.symptoms.data,
+            symptoms_details = form.symptoms_details.data,
+            family_issues = form.family_issues.data,
+            family_details = form.family_details.data
+        )
+
+        try:
+            db.session.add(new_request)
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(sanitisationForLogs(f"Error submitting medical request for user {session.get('user')}: {str(e)}"))
+            flash('An error occurred while submitting your request. Please try again.')
+            return render_template('new_request.html', form=form)
+
+    return render_template('new_request.html', form=form)
 
