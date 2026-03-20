@@ -276,20 +276,26 @@ def caseSelector():
     caseID = request.json.get('case_id')
     action = request.json.get('action')
     
-    caseQuery = "SELECT ID from cases WHERE id = : caseID"
-    result = db.session.execute(caseQuery, caseID).mappings()
-    
-    if not result:
-        return jsonify({"error": "case does not exist"}, 404)
-    
-    if result['status'] != "open":
-        return jsonify({"error" : "case is already taken"}, 404)
-    
-    if action == "accept":
-        query = "UPDATE case SET status = 'claimed', doctor_username = :username WHERE id = :caseID",
-        db.session.execute(query, {"username" : session['user'], "id" : caseID} )
-        db.session.commit()
+    if not caseID or action not in ('accept', 'reject'):
+        return jsonify({"error": "provide a case_id and action"}), 400
 
+    caseQuery = text("SELECT id, status FROM cases WHERE id = :caseID")
+    result = db.session.execute(caseQuery, {"caseID": caseID}).mappings()
+
+    if not result:
+        return jsonify({"error": "case does not exist"}), 404
+
+    if result['status'] != "open":
+        return jsonify({"error": "case is already taken"}), 404
+
+    if action == "accept":
+        query = text("UPDATE cases SET status = 'claimed', doctor_username = :username WHERE id = :caseID")
+        db.session.execute(query, {"username": session['user'], "caseID": caseID})
+        db.session.commit()
+        return jsonify({"message": "case accepted", "case_id": caseID}), 200
+
+    if action == "reject":
+        return jsonify({"message": "case skipped", "case_id": caseID}), 200
 
     
     
