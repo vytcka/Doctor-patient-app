@@ -2,7 +2,7 @@ import traceback
 from flask import request, render_template, redirect, url_for, session, Blueprint, flash, abort
 from sqlalchemy import text
 from flaskServer import db
-from flaskServer.models import Request, User, Decypher
+from flaskServer.models import Message, Request, User, Decypher
 from flaskServer.forms import request_form, validation_form, registration_form, password_form
 import bleach
 from cryptography.fernet import InvalidToken
@@ -270,3 +270,97 @@ def new_request():
 
     return render_template('new_request.html', form=form)
 
+@main.route('/view-requests')
+@login_required
+def view_requests():
+    if not current_user.is_doctor:
+        logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
+        return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
+    
+    try:
+        requests = Request.query.filter_by(doctor_id=None).all()
+        return render_template('view_requests.html', requests=requests)
+    except Exception as e:
+        logger.error(sanitisationForLogs(f"Error retrieving medical requests for user {session.get('user')}: {str(e)}"))
+        flash('An error occurred while retrieving requests. Please try again.')
+        return render_template('view_requests.html', requests=[])
+
+@main.route('/accept-request/<int:request_id>', methods=['POST'])
+@login_required
+def accept_request(request_id):
+    if not current_user.is_doctor:
+        logger.warning(sanitisationForLogs(f"Unauthorized access attempt to accept request {request_id} by user {session.get('user')} from {request.remote_addr}"))
+        return render_template("forbidden.html", message="You need to be logged in as a doctor to perform this action."), 403
+    
+    try:
+        medical_request = Request.query.get(request_id)
+
+        if not medical_request or medical_request.status != 'pending':
+            flash('Request not found or already processed.')
+            return redirect(url_for('main.view_requests'))
+        
+        medical_request.doctor_id = current_user.id
+
+        chat = Chat(
+            patient_id=medical_request.user_id,
+            doctor_id=current_user.id,
+            request_id=medical_request.id       
+        )
+
+        db.session.add(chat)
+        db.session.commit()
+
+        flash('Request accepted successfully.')
+        return redirect(url_for('main.chat', chat_id=chat.id))
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(sanitisationForLogs(f"Error accepting request {request_id} for user {session.get('user')}: {str(e)}"))
+        flash('An error occurred while accepting the request. Please try again.')
+
+    return redirect(url_for('main.view_requests'))
+
+@main.route('/reject-request/<int:request_id>', methods=['POST'])
+@login_required
+def reject_request(request_id):
+    if not current_user.is_doctor:
+        logger.warning(sanitisationForLogs(f"Unauthorized access attempt to reject request {request_id} by user {session.get('user')} from {request.remote_addr}"))
+        return render_template("forbidden.html", message="You need to be logged in as a doctor to perform this action."), 403
+    
+    try:
+        medical_request = Request.query.get(request_id)
+        if not medical_request or medical_request.status != 'pending':
+            flash('Request not found or already processed.')
+            return redirect(url_for('main.view_requests'))
+        medical_request.status = 'rejected'
+        db.session.commit()
+        flash('Request rejected successfully.')
+        return redirect(url_for('main.view_requests'))
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(sanitisationForLogs(f"Error rejecting request {request_id} for user {session.get('user')}: {str(e)}"))
+        flash('An error occurred while rejecting the request. Please try again.')
+
+    return redirect(url_for('main.view_requests'))
+
+@main.route('/chat/<int:chat_id>', methods=['GET', 'POST'])
+@login_required
+def chat(chat_id):
+    chat = Chat.query.get(chat_id)
+    if not chat or (current_user.id not in [chat.patient_id, chat.doctor_id]):
+        logger.warning(sanitisationForLogs(f"Unauthorized access attempt to chat {chat_id} by user {session.get('user')} from {request.remote_addr}"))
+        return render_template("forbidden.html", message="You do not have access to this chat."), 403   
+    if request.method == 'POST':
+        content = request.form.get('content')
+        if content:
+            new_message = Message(chat_id=chat_id, sender_id=current_user.id, receiver_id=chat.doctor_id if current_user.id == chat.patient_id else chat.patient_id, content=content)
+            try:
+                db.session.add(new_message)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logger.error(sanitisationForLogs(f"Error sending message in chat {chat_id} for user {session.get('user')}: {str(e)}"))
+                flash('An error occurred while sending your message. Please try again.')
+    messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
+    return render_template('chat.html', chat=chat, messages=messages)   
