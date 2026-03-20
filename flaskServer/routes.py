@@ -241,7 +241,44 @@ def logout():
     session.clear()
     return redirect(url_for('main.login'))
     
-    
+@main.route('/delete_account', methods = ['GET', 'POST'])    
+def delete_account():
+    if request.method == "POST":
+
+        if 'user' not in session:
+            logger.warning(sanitisationForLogs(f"user has tried to delete an account without being logged in from the ip address {request.remote_addr}"))
+            return render_template("forbidden.html", message="you need to be logged in to view this page."), 403 
+        
+        form = password_form()
+
+        if form.validate_on_submit():
+            username = session['user']
+            logger.warning(sanitisationForLogs(f"Account deletion attempt for {username}"))
+            current_password = form.current_password.data
+
+            query = text("SELECT * FROM user WHERE username = :username LIMIT 1")
+            row = db.session.execute(query, {"username" : username}).mappings().first()
+
+            if not row:
+                session.clear()
+                return render_template('delete_account.html', form=form)
+
+            user = db.session.get(User, row['id'])
+
+            # Validating that the current pass is correct
+            if not user or not user.check_hash(current_password):
+                flash('Current password is incorrect')
+                logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
+                return render_template('delete_account.html', form=form)           
+
+            db.session.delete(user) #delete user from database
+            db.session.commit() 
+
+            flash('Account Deleted Successfully!')
+            return redirect(url_for('main.login'))
+        else:
+            session.clear()
+            return render_template('delete_account.html', form=form)
 
 
 
