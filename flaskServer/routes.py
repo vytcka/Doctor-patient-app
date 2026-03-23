@@ -9,7 +9,7 @@ from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
-from flask_login import  current_user
+
 
 
 #using fernet lib to provide symmetrical encryption
