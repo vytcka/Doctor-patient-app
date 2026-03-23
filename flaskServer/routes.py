@@ -9,7 +9,7 @@ from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
-from flask_login import login_required, current_user
+from flask_login import  current_user
 
 
 #using fernet lib to provide symmetrical encryption
@@ -300,7 +300,7 @@ def caseSelector():
 
 
 @main.route('/new-request', methods=['GET', 'POST'])
-@login_required
+
 def new_request():
     form = request_form()
 
@@ -328,7 +328,6 @@ def new_request():
     return render_template('new_request.html', form=form)
 
 @main.route('/view-requests')
-@login_required
 def view_requests():
     if not current_user.is_doctor:
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
@@ -362,7 +361,6 @@ def view_requests():
     return redirect(url_for('main.view_requests'))
 
 @main.route('/reject-request/<int:request_id>', methods=['POST'])
-@login_required
 def reject_request(request_id):
     if not current_user.is_doctor:
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to reject request {request_id} by user {session.get('user')} from {request.remote_addr}"))
@@ -386,7 +384,6 @@ def reject_request(request_id):
     return redirect(url_for('main.view_requests'))
 
 @main.route('/chat/<int:chat_id>', methods=['GET', 'POST'])
-@login_required
 def chat(chat_id):
     chat = Chat.query.get(chat_id)
     if not chat or (current_user.id not in [chat.patient_id, chat.doctor_id]):
