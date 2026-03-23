@@ -277,11 +277,13 @@ def view_requests():
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
         return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
 
-        if not medical_request or medical_request.status != 'pending':
-            flash('Request not found or already processed.')
-            return redirect(url_for('main.view_requests'))
+    if not medical_request or medical_request.status != 'pending':
+        flash('Request not found or already processed.')
+        return redirect(url_for('main.view_requests'))
         
-        medical_request.doctor_id = current_user.id
+    medical_request.doctor_id = current_user.id
+    
+    try:
 
         chat = Chat(
             patient_id=medical_request.user_id,
