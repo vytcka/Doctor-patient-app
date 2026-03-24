@@ -11,13 +11,12 @@ from flask_cors import CORS
 from datetime import date
 
 db = SQLAlchemy()
-
-# defining santisation for logs — UNCHANGED
+#definining santisation for logs
 def sanitisationForLogs(val:str) -> str:
     return re.sub(r'[\n\r\t]', '_SPECIAL_CHARACTER_', str(val))
 
 def create_app():
-    #setting up logs — UNCHANGED
+    #setting up logs:
     #------------------------
     if not os.path.exists('logs'):
         os.mkdir('logs')
@@ -37,15 +36,17 @@ def create_app():
         
         logger.addHandler(fileHandler)
         logger.addHandler(consoleHandler)
+    
 
     #------------------------
+
 
     app = Flask(__name__)   
   
     csp = {
         'default-src': "'self'"
     }
-    Talisman(app, content_security_policy=csp, force_https=False)
+    Talisman(app, content_security_policy = csp, force_https=False)
     app.secret_key = Config.SECRET_KEY
     # applying CSRF protection to legitimise requests
     csrf = CSRFProtect(app)
@@ -56,7 +57,6 @@ def create_app():
     from .routes import main
     app.register_blueprint(main)
 
-    # error handlers — UNCHANGED
     @app.errorhandler(400)
     def bad_request(error):
         return render_template('badRequest.html'), 400

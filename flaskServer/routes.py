@@ -2,14 +2,13 @@ import traceback
 from flask import request, render_template, redirect, url_for, session, Blueprint, flash, abort
 from sqlalchemy import text
 from flaskServer import db
-from flaskServer.models import Message, Request, User, Decypher
-from flaskServer.forms import request_form, validation_form, registration_form, password_form
+from flaskServer.models import Message, Request, User, Doctor, Decypher
+from flaskServer.forms import request_form, validation_form, registration_form, password_form, DoctorRegistrationForm
 import bleach
 from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
-
 
 
 #using fernet lib to provide symmetrical encryption
@@ -31,109 +30,124 @@ def home():
     logger.info(sanitisationForLogs(f"Request from the address {request.remote_addr}" ))
     return render_template('home.html')
 
+
 @main.route('/login', methods=['GET', 'POST'])
 def login():
-    '''This route is responsible for logging in and checking whether the user exists that is.'''
+    """Login route is responsible for authenticating patient (user) accounts.
+    On a successful login the user's username, role, and encrypted bio are stored
+    in the session and the user is redirected to their dashboard.
+
+    Returns:
+        renders login.html on GET or failed POST, redirects to user_dashboard on success.
+    """
     error = None
     forms = validation_form()
     if request.method == 'POST':
         if forms.validate_on_submit():
             #bio; we need to create a form, pass it in, and escape them in the form
-
+            
             #making sure that the timer adds;
-            session.permanent = True
+            session.permanent =True
+            
             username = forms.username.data
             password = forms.password.data
             
             #calculate hash;
             query = text("SELECT * FROM user WHERE username = :username")
             row = db.session.execute(query, {"username": username}).mappings().first()
- 
+
             if row is None:
                 flash("no such account exists")
                 error = "No user with that name exists."
                 logging.warning(f"warning, ")
                 return render_template('login.html', forms = forms, error = error)
-            
 
-                
             user = db.session.get(User, row['id']) 
-            #clearing oldd data
+            #clearing old data
             session.clear()
- 
+
             if not user.check_hash(password):
                 flash('Login credentials are invalid, please try again')
                 logging.warning(sanitisationForLogs(f"Incorrect credentials for username: {username} from the address: {request.remote_addr}"))
                 return render_template('login.html', forms=forms)
- 
+            
             session['user'] = user.username
             session['role'] = user.role
-            session['bio']  = user.bio
+            session['bio'] = user.bio            
             logger.info(sanitisationForLogs(f"user logged in with the name: {user.username} from {request.remote_addr}"))
             return redirect(url_for('main.user_dashboard'))
- 
+    
         else:
             logger.error(sanitisationForLogs(f"incorrect submission from attempt from the address {request.remote_addr}"))
-            return render_template('login.html', forms=forms)
- 
-    return render_template('login.html', forms=forms, error=error)
+            return render_template('login.html', forms = forms)
+
+    return render_template('login.html', forms = forms, error=error)
+
+
 
 @main.route('/dashboard')
 def dashboard():
-    
-    if 'user' in session:
-        try:
-            decypher = Decypher(session['bio'])
-        #now we decrypt it via the class;
-            username = session['user']
-            bio = session['bio']
-            return render_template('dashboard.html', username=username, bio=decypher.get_text())
-        
-        except InvalidToken:
-            return redirect(url_for('main.login'))
-        
+    """Dashboard route redirects logged-in users to their role-appropriate dashboard.
+    Users go to /user-dashboard and doctors go to /doctor/dashboard.
+
+    Returns:
+        redirects to the correct dashboard based on session role,
+        or to the login page if not logged in.
+    """
+    role = session.get('role')
+    if role == 'user':
+        return redirect(url_for('main.user_dashboard'))
+    elif role == 'doctor':
+        return redirect(url_for('main.doctor_dashboard'))
     return redirect(url_for('main.login'))
+
 
 @main.route('/register', methods=['GET', 'POST'])
 def register():
+    """Register route is responsible for creating new patient (user) accounts.
+    The role is always set to 'user'. Bio is sanitised with bleach before
+    being encrypted and stored.
+
+    Returns:
+        renders register.html on GET or failed POST, redirects to login on success.
+    """
     forms = registration_form()
     if request.method == 'POST':
         
         if forms.validate_on_submit():
             session.permanent = True
-            username = forms.username.data
-            password = forms.password.data
-            bio = forms.bio.data
+            username      = forms.username.data
+            password      = forms.password.data
+            bio           = forms.bio.data
             first_name    = forms.first_name.data
             last_name     = forms.last_name.data
             date_of_birth = forms.date_of_birth.data
             location      = forms.location.data
-            role = "user"
+            role          = "user"
             
-            logger.info(sanitisationForLogs(f"Registration attempt for {username} from {request.remote_addr}"))
- 
+            logging.info(sanitisationForLogs(f"forms validated during registration for the user: {username} from the ip {request.remote_addr} "))
+
             check_query = text("SELECT username FROM user WHERE username = :username")
-            row = db.session.execute(check_query, {"username": username}).first()
- 
+            result = db.session.execute(check_query, {"username": username})
+            row = result.first()
+
             session.clear()
             if row:
-                flash('An account with that username already exists. Please use a different one.')
-                logger.info(sanitisationForLogs(f"Duplicate registration attempt for {username} from {request.remote_addr}"))
-                return render_template("register.html", forms=forms)
- 
-            safe_bio = bleach.clean(
-                bio,
-                tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
-                attributes={'a': ['href', 'title']},
-                strip=True
-            )
- 
+                flash('There already is a user registered with that username... \n Please register with a different username.')
+                logging.info(sanitisationForLogs(f"user tried to create an account with the username {username} from the ip {request.remote_addr} "))
+                return render_template("register.html", forms = forms)
+
+            safe_bio = bleach.clean(bio, 
+                                 tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
+                                 attributes={'a' : ['href', 'title']},
+                                 strip = True)
+
             db_user = User(
                 username=username, password=password, role=role, bio=safe_bio,
                 first_name=first_name, last_name=last_name,
                 date_of_birth=date_of_birth, location=location
             )
- 
+
             query = text("""
                 INSERT INTO user (username, password, role, bio, first_name, last_name, date_of_birth, location)
                 VALUES (:username, :password, :role, :bio, :first_name, :last_name, :date_of_birth, :location)
@@ -149,13 +163,13 @@ def register():
                 "location":      db_user.location,
             })
             db.session.commit()
- 
-            logger.info(sanitisationForLogs(f"User registered: {username} from {request.remote_addr}"))
+
+            logging.info(sanitisationForLogs(f"user has been registered with the name {username} from the ip {request.remote_addr}"))
             return redirect(url_for('main.login'))
         else:
-            return render_template('register.html', forms=forms)
- 
-    return render_template('register.html', forms=forms)
+            return render_template('register.html', forms = forms)
+    return render_template('register.html', forms = forms)
+
 
 
 @main.route('/user-dashboard')
@@ -168,15 +182,15 @@ def user_dashboard():
     except InvalidToken:
         return redirect(url_for('main.login'))
 
+
 @main.route('/doctor/login', methods=['GET', 'POST'])
 def doctor_login():
     """Doctor login route is responsible for authenticating doctor accounts.
-    On a successful login the doctor's username, role, NHS number, and
-    encrypted bio are stored in the session and the doctor is redirected
-    to the doctor dashboard.
- 
+    On a successful login the doctor's username, role, NHS number, and encrypted
+    bio are stored in the session and the doctor is redirected to the doctor dashboard.
+
     Returns:
-        renders doctor_login.html on GET or failed POST, redirects to doctor dashboard on success.
+        renders doctor_login.html on GET or failed POST, redirects to doctor_dashboard on success.
     """
     error = None
     forms = validation_form()
@@ -185,51 +199,50 @@ def doctor_login():
             session.permanent = True
             username = forms.username.data
             password = forms.password.data
- 
+
             query = text("SELECT * FROM doctor WHERE username = :username")
             row = db.session.execute(query, {"username": username}).mappings().first()
- 
+
             if row is None:
                 flash("No doctor account with that email exists.")
                 error = "No doctor with that email exists."
                 logger.warning(sanitisationForLogs(f"Failed doctor login for unknown user from {request.remote_addr}"))
                 return render_template('doctor_login.html', forms=forms, error=error)
- 
+
             doctor = db.session.get(Doctor, row['nhs_number'])
             session.clear()
- 
+
             if not doctor.check_password(password):
                 flash('Login credentials are invalid, please try again.')
                 logger.warning(sanitisationForLogs(f"Incorrect password for doctor: {username} from {request.remote_addr}"))
                 return render_template('doctor_login.html', forms=forms)
- 
+
             session['user']       = doctor.username
             session['role']       = doctor.role
             session['bio']        = doctor.bio
             session['nhs_number'] = doctor.nhs_number
             logger.info(sanitisationForLogs(f"Doctor logged in: {doctor.username} from {request.remote_addr}"))
             return redirect(url_for('main.doctor_dashboard'))
- 
+
         else:
             logger.error(sanitisationForLogs(f"Invalid doctor login form submission from {request.remote_addr}"))
             return render_template('doctor_login.html', forms=forms)
- 
+
     return render_template('doctor_login.html', forms=forms, error=error)
 
- 
+
 @main.route('/doctor/register', methods=['GET', 'POST'])
 def doctor_register():
     """Doctor register route is responsible for creating new doctor accounts.
     The role is always set to 'doctor'. Bio is sanitised with bleach before
     being encrypted and stored.
- 
+
     Returns:
-        renders doctor_register.html on GET or failed POST, redirects to doctor login on success.
+        renders doctor_register.html on GET or failed POST, redirects to doctor_login on success.
     """
     forms = DoctorRegistrationForm()
     if request.method == 'POST':
         if forms.validate_on_submit():
-            session.permanent = True
             nhs_number    = forms.nhs_number.data
             first_name    = forms.first_name.data
             last_name     = forms.last_name.data
@@ -241,37 +254,33 @@ def doctor_register():
             language      = forms.language.data
             bio           = forms.bio.data
             availability  = forms.availability.data
- 
+
             logger.info(sanitisationForLogs(f"Doctor registration attempt for {username} from {request.remote_addr}"))
- 
-            # check NHS number not already registered
+
             nhs_check = text("SELECT nhs_number FROM doctor WHERE nhs_number = :nhs_number")
             if db.session.execute(nhs_check, {"nhs_number": nhs_number}).first():
                 flash('A doctor with that NHS number is already registered.')
                 return render_template('doctor_register.html', forms=forms)
- 
-            # check username not already registered
+
             username_check = text("SELECT username FROM doctor WHERE username = :username")
             if db.session.execute(username_check, {"username": username}).first():
                 flash('A doctor with that email is already registered.')
                 return render_template('doctor_register.html', forms=forms)
- 
+
             session.clear()
- 
-            safe_bio = bleach.clean(
-                bio,
-                tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
-                attributes={'a': ['href', 'title']},
-                strip=True
-            )
- 
+
+            safe_bio = bleach.clean(bio,
+                                    tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
+                                    attributes={'a': ['href', 'title']},
+                                    strip=True)
+
             db_doctor = Doctor(
                 nhs_number=nhs_number, first_name=first_name, last_name=last_name,
                 username=username, password=password, date_of_birth=date_of_birth,
                 location=location, specialty=specialty, language=language,
                 bio=safe_bio, availability=availability
             )
- 
+
             query = text("""
                 INSERT INTO doctor (nhs_number, first_name, last_name, username, password, role,
                                     date_of_birth, location, specialty, language, bio, availability)
@@ -293,101 +302,110 @@ def doctor_register():
                 "availability":  db_doctor.availability,
             })
             db.session.commit()
- 
+
             logger.info(sanitisationForLogs(f"Doctor registered: {username} from {request.remote_addr}"))
             return redirect(url_for('main.doctor_login'))
         else:
             return render_template('doctor_register.html', forms=forms)
- 
+
     return render_template('doctor_register.html', forms=forms)
+
 
 @main.route('/doctor/dashboard')
 def doctor_dashboard():
     """Doctor dashboard route is the main page for logged-in doctor accounts.
     Only users with the role 'doctor' can access this page.
- 
+
     Returns:
-        renders doctor_dashboard.html if the session role is 'doctor',
-        403 forbidden otherwise, redirects to doctor login if session is invalid.
+        renders doctor_dashboard.html if the session role is 'doctor', 403 otherwise.
     """
     if session.get('role') != 'doctor':
         logger.warning(sanitisationForLogs(f"Forbidden access to doctor dashboard: role={session.get('role')} from {request.remote_addr}"))
         return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
     try:
-        decypher  = Decypher(session['bio'])
-        username  = session['user']
+        decypher = Decypher(session['bio'])
+        username = session['user']
         return render_template('doctor_dashboard.html', username=username, bio=decypher.get_text())
     except InvalidToken:
         return redirect(url_for('main.doctor_login'))
 
+
 @main.route('/change-password', methods=['GET', 'POST'])
 def change_password():
+    """Change password route allows both users and doctors to update their password.
+    It checks the session role to determine which table and password method to use.
+
+    Returns:
+        renders change_password.html on GET or failed POST, redirects to dashboard on success.
+    """
     if request.method == 'POST':
         
         if 'user' not in session:
             logger.warning(sanitisationForLogs(f"user has tried to change the password without being logged in from the ip address {request.remote_addr}"))
             return render_template("forbidden.html", message="you need to be logged in to view this page."), 403 
         
-        
         form = password_form() 
         
         if form.validate_on_submit():
-            username = session['user']
-            logger.warning(sanitisationForLogs(f"Password change attempt for {username}"))
+            username         = session['user']
+            role             = session.get('role')
             current_password = form.current_password.data
-            new_password = form.new_password.data
-            
-            query = text("SELECT * FROM user WHERE username = :username LIMIT 1")
-            row = db.session.execute(query, {"username" : username}).mappings().first()
+            new_password     = form.new_password.data
 
-            if not row:
-                session.clear()
-                return render_template('change_password.html', form=form)
+            logger.warning(sanitisationForLogs(f"Password change attempt for {username}"))
 
-            
-            user = db.session.get(User, row['id'])
+            if role == 'doctor':
+                query   = text("SELECT * FROM doctor WHERE username = :username LIMIT 1")
+                row     = db.session.execute(query, {"username": username}).mappings().first()
+                if not row:
+                    session.clear()
+                    return render_template('change_password.html', form=form)
+                account          = db.session.get(Doctor, row['nhs_number'])
+                password_correct = account.check_password(current_password) if account else False
+            else:
+                query   = text("SELECT * FROM user WHERE username = :username LIMIT 1")
+                row     = db.session.execute(query, {"username": username}).mappings().first()
+                if not row:
+                    session.clear()
+                    return render_template('change_password.html', form=form)
+                account          = db.session.get(User, row['id'])
+                password_correct = account.check_hash(current_password) if account else False
 
-            # Validating that the current pass is correct
-            if not user or not user.check_hash(current_password):
+            if not account or not password_correct:
                 flash('Current password is incorrect')
                 logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
                 return render_template('change_password.html', form=form)
 
-            # Validating that new pass is different
             if new_password == current_password:
                 flash('New password must be different from the current password')
                 return render_template('change_password.html', form=form)
 
-            
-            update_user = User(username=username, password=new_password, role="user", bio="dummy")
-            
-            # Using the new hash and inserting it to the db
-            resetQuery = text("UPDATE user SET password = :new_pass WHERE username = :username")
-            db.session.execute(
-                resetQuery, {"new_pass": update_user.password, "username": username})
+            account.set_password(new_password)
             db.session.commit()
 
             flash('Password changed successfully')
             return redirect(url_for('main.dashboard'))
         else:
-            
             return render_template('change_password.html', form=form)
 
     return render_template('change_password.html', form=password_form())
 
+
 @main.route('/logout', methods = ['GET'])
 def logout():
-    """the logout method clears the session object, and makes the user lose the ability to acsess the funcitonality of the webiste
+    """the logout method clears the session object, and makes the user lose the ability to acsess the funcitonality of the webiste.
+    Doctors are redirected to the doctor login page, users to the standard login page.
 
     Returns:
-         returns the user to the main login
-    """    
+        redirects to doctor_login if role was 'doctor', otherwise to login.
+    """
     role = session.get('role')
     session.clear()
     if role == 'doctor':
         return redirect(url_for('main.doctor_login'))
     return redirect(url_for('main.login'))
-    
+
+
 @main.route('/filter', methods=['GET'])
 def getDoctor():
     filterValues = ["location", "languange", "specialty", "gender", "min_rating"]
@@ -529,6 +547,7 @@ def reject_request(request_id):
 
     return redirect(url_for('main.view_requests'))
 
+
 @main.route('/chat/<int:chat_id>', methods=['GET', 'POST'])
 def chat(chat_id):
     chat = Chat.query.get(chat_id)
@@ -548,7 +567,8 @@ def chat(chat_id):
                 flash('An error occurred while sending your message. Please try again.')
     messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
     return render_template('chat.html', chat=chat, messages=messages)   
-  
+
+
 @main.route('/delete_account', methods = ['GET', 'POST'])    
 def delete_account():
     if request.method == "POST":
@@ -587,8 +607,3 @@ def delete_account():
         else:
             session.clear()
             return render_template('delete_account.html', form=form)
-    
-    
-    
-        
-    
