@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flaskServer import db
 import bcrypt;
 import os;
@@ -121,7 +123,11 @@ class User(db.Model):
         Args:
             role (string): the new role to assign — must be 'user' or 'doctor'.
         """        
-        self.role = role if role in VALID_ROLES else "user"
+        roles = ["patient", "doctor", "admin"]
+        if role not in roles:
+            self.role = "user"
+        else: 
+            self.role = role
 
     def set_bio(self, bio):
         self.bio = self.encrypt_bio(bio)
@@ -164,152 +170,7 @@ class Decypher():
         returns: decyphered biography
         """
         return self.text
-
-class Doctor(db.Model):
-    """Doctor model represents a doctor account in the system. The role is always
-    'doctor'. The NHS number is the primary key.
-    """
-
-    __tablename__ = 'doctor'
-
-    nhs_number    = db.Column(db.String(10),  primary_key=True, nullable=False)
-    first_name    = db.Column(db.String(50),  nullable=False)
-    last_name     = db.Column(db.String(50),  nullable=False)
-    username      = db.Column(db.String(80),  unique=True, nullable=False)
-    password      = db.Column(db.String(200), nullable=False)
-    role          = db.Column(db.String(50),  default='doctor', nullable=False)
-    date_of_birth = db.Column(db.Date,        nullable=False)
-    location      = db.Column(db.String(100), nullable=False)
-    rating        = db.Column(db.Float,       nullable=True, default=None)
-    specialty     = db.Column(db.String(60),  nullable=False)
-    language      = db.Column(db.String(60),  nullable=False)
-    availability  = db.Column(db.Boolean,     nullable=False, default=True)
-    bio           = db.Column(db.String(3000), nullable=False)
-
-    def _hash_password(self, password: str) -> str:
-        """Hash password method is responsible for hashing the doctor's password before
-        storage.
-
-        Args:
-            password (String): the plain text password to be hashed.
-
-        Returns:
-            str: a bcrypt hash string safe to store in the database.
-        """
-        peppered = password + PEPPER
-        hashed = bcrypt.hashpw(peppered.encode('utf-8'), bcrypt.gensalt(8))
-        return hashed.decode('utf-8')
-
-    def check_password(self, password: str) -> bool:
-        """Check password method verifies whether a plain text password matches
-        the stored hash for the doctor account.
-
-        Args:
-            password (String): the plain text password submitted at login.
-
-        Returns:
-            bool: True if the password matches the stored hash, False if not.
-        """
-        peppered = password + PEPPER
-        return bcrypt.checkpw(peppered.encode('utf-8'), self.password.encode('utf-8'))
-
-    def _encrypt(self, text: str) -> str:
-        """Encrypt method encrypts a plain text string using Fernet symmetric encryption
-        so it is never stored as plain text in the database.
-
-        Args:
-            text (String): the plain text string to encrypt, typically a biography.
-
-        Returns:
-            str: the encrypted string as a base64 UTF-8 string safe to store in the database.
-        """
-        fernet = Fernet(ENCRYPTIONKEY)
-        return fernet.encrypt(text.encode('utf-8')).decode('utf-8')
-
-    def __init__(self, nhs_number, first_name, last_name, username, password,
-                 date_of_birth, location, specialty, language, bio,
-                 availability=True, rating=None):
-        """Constructor for creating a Doctor object. Role is always set to 'doctor'.
-        Password is hashed and bio is encrypted on creation.
-
-        Args:
-            nhs_number (String): the doctor's 10-digit NHS number, used as the primary key.
-            first_name (String): the doctor's first name.
-            last_name (String): the doctor's last name.
-            username (String): the doctor's email address used as their login identifier.
-            password (String): the plain text password which is hashed before storage.
-            date_of_birth (Date): the doctor's date of birth as a datetime.date object.
-            location (String): the location or hospital the doctor is based at.
-            specialty (String): the doctor's medical specialty, must be from VALID_SPECIALTIES.
-            language (String): the doctor's primary spoken language.
-            bio (String): plain text biography which is encrypted before storage.
-            availability (bool): whether the doctor is available for appointments, defaults to True.
-            rating (Float): the doctor's rating between 1.0 and 5.0, defaults to None until rated.
-        """
-        self.nhs_number    = nhs_number
-        self.first_name    = first_name
-        self.last_name     = last_name
-        self.username      = username
-        self.password      = self._hash_password(password)
-        self.role          = "doctor"
-        self.date_of_birth = date_of_birth
-        self.location      = location
-        self.rating        = rating
-        self.specialty     = specialty
-        self.language      = language
-        self.availability  = availability
-        self.bio           = self._encrypt(bio)
-
-    def set_password(self, new_password: str):
-        """Set password setter updates the doctor's password. The new password is hashed
-        before being stored so plain text is never saved.
-
-        Args:
-            new_password (String): the new plain text password to replace the existing one.
-        """
-        self.password = self._hash_password(new_password)
-
-    def set_bio(self, bio: str):
-        """Set bio setter updates the doctor's biography. The new biography is encrypted
-        before being stored so plain text is never saved.
-
-        Args:
-            bio (String): the new plain text biography to replace the existing encrypted one.
-        """
-        self.bio = self._encrypt(bio)
-
-    def set_rating(self, rating: float):
-        """Set rating setter updates the doctor's rating. The value is validated to ensure
-        it falls within the acceptable range before being stored.
-
-        Args:
-            rating (Float): the new rating value, must be between 1.0 and 5.0.
-
-        Raises:
-            ValueError: raised if the rating is below 1.0 or above 5.0.
-        """
-        if not (1.0 <= rating <= 5.0):
-            raise ValueError("Rating must be between 1 and 5.")
-        self.rating = round(rating, 1)
-
-    def get_bio(self) -> str:
-        """Get bio method decrypts and returns the doctor's biography.
-
-        Returns:
-            str: the decrypted plain text biography of the doctor.
-        """
-        fernet = Fernet(ENCRYPTIONKEY)
-        return fernet.decrypt(self.bio.encode('utf-8')).decode('utf-8')
-
-    @property
-    def is_doctor(self):
-        """Property that returns True since this model always represents a doctor.
-
-        Returns:
-            bool: always True.
-        """
-        return True
-
+    
 class Request(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     age = db.Column(db.Integer, nullable=False)
@@ -325,12 +186,15 @@ class Request(db.Model):
 
     user = db.relationship('User', foreign_keys=[user_id])
     doctor = db.relationship('User', foreign_keys=[doctor_id])
-
+    
+class Chat(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'), nullable=False)
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'),nullable=False)
     content = db.Column(db.Text, nullable=False)    
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
