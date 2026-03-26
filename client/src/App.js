@@ -15,8 +15,8 @@ function App() {
         <Route path="/Check" element={<Check />} />
         <Route path="/post-request" component={PostRequest} />
         <Route path="/reviews" component={Reviews} />
-        <Route path="/Login" element={<Login />} />
-        <Route path="/Signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
       </Routes>
 
