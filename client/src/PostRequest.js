@@ -9,6 +9,7 @@ function PostRequest() {
   const [doctors, setDoctor] = useState("");
   const [message, setMessage] = useState("");
   const [gender, setGender] = useState("");
+  const [age, setAge] = useState("");
 
 
   const handleSubmit = () => {
@@ -80,6 +81,14 @@ function PostRequest() {
   </label>
 </div>
 
+<div>
+      <input
+        type="text"
+        placeholder="Age"
+        value={age}
+        onChange={(e) => setAge(e.target.value)}  style={{ width: "30px" }}
+      />
+</div>
 <select value={doctors} onChange={(e) => setDoctor(e.target.value)}>
   <option value="">Select your preferred doctor (optional)</option>
   <option value="doctorA">DoctorA</option>
