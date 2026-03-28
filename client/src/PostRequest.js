@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './LogoIcon.png';
+import TickGif from './check-green.gif';
 
+//only logged in users can post a request
 function PostRequest() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [showGif, setShowGif] = useState(false);
+  const [doctors, setDoctor] = useState("");
   const [message, setMessage] = useState("");
   const [gender, setGender] = useState("");
 
+
   const handleSubmit = () => {
-    console.log(email, password); // do something with the values
+    setShowGif(true);
+    setTimeout(() => setShowGif(false), 2000); // hides after 2 seconds
+
   };
 
   return (
     <div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "9px" }}>
               <div style={{ display: "flex", alignItems: "center" }}>
                 <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
                 <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold", marginRight: "80px" }}>TreatMe</div>{/* App title */}
@@ -39,6 +44,7 @@ function PostRequest() {
                 </Link>
               </div>
         </div>
+        <p style={{ fontSize: "1.7rem", fontWeight: "bold", color: "#040f25", textAlign:"center", textDecorationLine: 'underline' }}>Create an anonymous request</p>
         <p style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#1b4cb6", textAlign:"left" }}>Symptoms:</p>
        <textarea cols= "60" autocorrect="on"
           placeholder="Write what you're feeling..."
@@ -52,7 +58,7 @@ function PostRequest() {
           onChange={(e) => setMessage(e.target.value)}
         /> 
     <p style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#1b4cb6", textAlign:"left" }}>Gender:</p>
-    <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+  <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
     <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
     <input
       type="radio"
@@ -73,20 +79,27 @@ function PostRequest() {
     Female
   </label>
 </div>
-      <input
-        type="text"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleSubmit}>Submit</button>
-    </div>
+
+<select value={doctors} onChange={(e) => setDoctor(e.target.value)}>
+  <option value="">Select your preferred doctor (optional)</option>
+  <option value="doctorA">DoctorA</option>
+  <option value="doctorB">DoctorB</option>
+  <option value="doctorC">DoctorC</option> {/* ect add the doctors from database */}
+</select>
+
+<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+  <button onClick={handleSubmit}>Submit</button>
+
+  {showGif && (
+    <img
+      src={TickGif}
+      alt="confirmation"
+      style={{ width: "60px", height: "60px" }}
+    />
+    
+  )}
+</div>
+</div>
   );
 }
 
