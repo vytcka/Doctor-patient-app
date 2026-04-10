@@ -5,7 +5,7 @@ import PostRequest from './PostRequest';
 import Reviews from './Reviews'; 
 import Login from "./login";
 import Signup from "./signup";
-
+import Chat from "./Chat";
 
 function App() {
   return (
@@ -17,6 +17,8 @@ function App() {
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/chat" element={<Chat />} />
+
 
       </Routes>
 
