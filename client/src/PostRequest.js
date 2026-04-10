@@ -43,6 +43,9 @@ function PostRequest() {
                 <Link to="/signup" style={{ textDecoration: "none" }}>
                   <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
                 </Link>
+                <Link to="/chat" style={{ textDecoration: "none" }}>
+                  <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+                </Link>
               </div>
         </div>
         <p style={{ fontSize: "1.7rem", fontWeight: "bold", color: "#040f25", textAlign:"center", textDecorationLine: 'underline' }}>Create an anonymous request</p>
