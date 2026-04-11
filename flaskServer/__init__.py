@@ -75,7 +75,7 @@ def create_app():
         return render_template('internalServerError.html'), 500
 
     with app.app_context():
-        from .models import User, Doctor
+        from .models import User, Doctor, Review
         db.drop_all()
         db.create_all()
 

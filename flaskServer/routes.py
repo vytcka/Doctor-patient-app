@@ -9,6 +9,7 @@ from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
+from .models import Review, Report, Request, ModeratorNotification, Message, Chat
 
 
 #using fernet lib to provide symmetrical encryption
@@ -607,3 +608,130 @@ def delete_account():
         else:
             session.clear()
             return render_template('delete_account.html', form=form)
+        
+        
+@main.route('/approve_review', methods=['POST'])
+def approveReview():
+    if session.get('role') != 'moderator':
+        return render_template('forbidden.html')
+
+    review_id = request.form.get('review_id')
+
+    review = Review.query.get(review_id)
+    if review:
+        review.status = True
+        db.session.commit()
+
+    return redirect(url_for('main.reviewRequest'))
+    
+    
+@main.route('/requestAppointment', methods=['POST'])
+def requestAppointment():
+    if 'user_id' not in session:
+        return render_template('forbidden.html')
+
+    request_obj = Request(
+        age=request.form.get('age'),
+        symptoms=request.form.get('symptoms'),
+        symptoms_details=request.form.get('symptoms_details'),
+        family_issues=bool(request.form.get('family_issues')),
+        family_details=request.form.get('family_details'),
+        existing_issues=bool(request.form.get('existing_issues')),
+        existing_details=request.form.get('existing_details'),
+        user_id=session['user_id']
+    )
+
+    db.session.add(request_obj)
+    db.session.commit()
+
+    flash("Appointment request submitted")
+    return redirect(url_for('main.dashboard'))
+
+@main.route('/approveAppointment', methods=['POST'])
+
+def approveAppointment():
+    if session.get('role') != 'doctor':
+        return render_template('forbidden.html')
+
+    request_id = request.form.get('request_id')
+
+    req = Request.query.get(request_id)
+    if req:
+        req.status = 'approved'
+        req.doctor_id = session['user_id']  
+        db.session.commit()
+
+    flash("Appointment approved")
+    return redirect(url_for('main.dashboard'))
+        
+@main.route('/reviewRequest', methods=['GET', 'POST'])
+def reviewRequest():
+    if session.get('role') != 'moderator':
+        return render_template('forbidden.html')
+
+    pending_reviews = Review.query.filter_by(status=False).all()
+    pending_reports = Report.query.filter_by(status='pending').all()
+
+    return render_template(
+        'moderator_dashboard.html',
+        reviews=pending_reviews,
+        reports=pending_reports
+    )
+    
+@main.route('/approve_report', methods=['POST'])
+def approve_report():
+    if session.get('role') != 'moderator':
+        return render_template('forbidden.html')
+
+    report_id = request.form.get('report_id')
+
+    report = Report.query.get(report_id)
+    if report:
+        report.status = 'approved'
+        db.session.commit()
+
+    return redirect(url_for('main.reviewRequest'))
+
+    
+@main.route('/reportChat', methods=['POST'])
+def reportChat():
+    if 'user' not in session:
+        return render_template('forbidden.html')
+
+    message_id = request.form.get('message_id')
+    reason = request.form.get('reason')
+
+    if not reason or len(reason) > 2000:
+        flash("Reason must be between 1 and 2000 characters")
+        return redirect(request.referrer)
+
+    report = Report(
+        message_id=message_id,
+        reporter_id=session['user_id'],
+        reason=reason
+    )
+
+    db.session.add(report)
+    db.session.commit()
+
+    flash("Report submitted successfully")
+    return redirect(request.referrer)
+    
+@main.route('/filterResults', methods=['POST'])
+def filterResults():
+    specialty = request.form.get('specialty')
+    location = request.form.get('location')
+    language = request.form.get('language')
+
+    query = Doctor.query
+
+    if specialty:
+        query = query.filter_by(specialty=specialty)
+    if location:
+        query = query.filter(Doctor.location.ilike(f"%{location}%"))
+    if language:
+        query = query.filter(Doctor.language.ilike(f"%{language}%"))
+
+    results = query.all()
+
+    return render_template('search_results.html', doctors=results)

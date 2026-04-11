@@ -351,7 +351,10 @@ class Chat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
- 
+    bookedAppointment = db.Column(db.Boolean, nullable = False, default = False)
+    
+    def approveAppointment(self):
+        """_summary_: approves the appointment for between the patient and doctor."""
  
 # ─────────────────────────────────────────────
 # Message model — UNCHANGED
@@ -361,4 +364,46 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'),nullable=False)
     content = db.Column(db.Text, nullable=False)    
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc), nullable=False)
+    
+    chat = db.relationship('Chat')
+    
+    
+class Review(db.Model):
+    """The review class generates the review has to be verified and made
+    sure they work, and once its verified then it will be accounted in the
+    final rating"""
+    
+    id = db.Column(db.Integer, primary_key=True)
+    status= db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    doctor_id = db.Column(db.String(10), db.ForeignKey('doctor.nhs_number'), nullable=False)
+    rating = db.Column(db.Float, nullable=False)
+    comment = db.Column(db.String(200))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+    
+    user = db.relationship('User')
+    doctor = db.relationship('Doctor')
+    
+    def approveReview(self):
+        "Sets the apprved status of the review."
+        self.status = True
+        
+        
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reason = db.Column(db.String(2000), nullable=False)  
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='pending')  
+    
+    message = db.relationship('Message')
+    reporter = db.relationship('User')
+    
+    
+class ModeratorNotification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.String(255))
+    seen = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
