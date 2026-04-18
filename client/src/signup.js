@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import './form.css'; 
-import { Link } from 'react-router-dom';
+import './form.css';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Signup() {
+    const navigate = useNavigate();
+
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -20,20 +22,20 @@ export default function Signup() {
         });
     };
 
-    //validation and submit form data to backend
     const handleSubmit = (e) => {
         e.preventDefault();
         if (formData.password !== formData.confirmPassword) {
             setErrorMessage('Passwords do not match');
+            setSuccessMessage('');
             return;
-        }
-        else {
+        } else {
             setErrorMessage('');
             setSuccessMessage('Signup successful!');
+            // TODO: replace with real API call before redirecting
+            setTimeout(() => navigate('/Dashboard'), 1000);
         }
     };
 
-    //UI
     return (
         <div className="form-container">
             <h1>Sign Up</h1>
@@ -90,9 +92,7 @@ export default function Signup() {
 
                 <Link to="/request" className="guest">Continue as guest?</Link>
                 <p>Already have an account? <Link to="/Login">Login</Link></p>
-
             </form>
         </div>
     );
-
 }
