@@ -24,7 +24,6 @@ def repeating(input:str)->bool:
     counter = 1
     current_char = arr[0]
 
-
     for i in range(len(arr)):
         if(current_char == arr[i]):
             counter += 1
@@ -40,39 +39,36 @@ def repeating(input:str)->bool:
 
 class validation_form(FlaskForm):
     """Validation_form class is responsible for defining the fields and providing validators for those fields, the validation class is utilised for login.
+
     Args:
-        FlaskForm (Parent Class): uses the flaskform parent class to instantiate the forms object containing the the validated fields.
+        FlaskForm (Parent Class): uses the flaskform parent class to instantiate the forms object.
 
     Raises:
-        ValidationError: if the inputs do not correspond to the length of the instantiated class attributes or the validation forms, it results in raising validation error.
+        ValidationError: if the inputs do not correspond to the validators.
     """    
 
-    username = StringField('Username' ,validators=[input_required(message= "there has to be data within the username field"), 
-                                        Email(message="The username has to be a valid email address."),
-                                        Length(min=6, max= 40, message= "The username has to be between 6 and 40 charachters in length")])
+    username = StringField('Username', validators=[input_required(message="there has to be data within the username field"), 
+        Email(message="The username has to be a valid email address."),
+        Length(min=6, max=40, message="The username has to be between 6 and 40 charachters in length")])
 
-    password = PasswordField('Password' , validators=[input_required(message="The password cannot be empty"),
-                                          Length(min = 10, max= 40, message= "there password has to be between 6 and 40 chars in length")])
+    password = PasswordField('Password', validators=[input_required(message="The password cannot be empty"),
+        Length(min=10, max=40, message="there password has to be between 6 and 40 chars in length")])
     
-    def validate_username(self, username)->None:
+    def validate_username(self, username) -> None:
         if username.data in blockedList:
             raise ValidationError("Cannot register with privelaged names")
 
-
-    def validate_password(self, password)-> None:
-        """Password validatoer is responsible for making sure the password conforms with the programs standard. 
+    def validate_password(self, password) -> None:
+        """Password validator is responsible for making sure the password conforms with the programs standard.
 
         Args:
-            password (String): takes it from the request, and processes here to make sure its not common and etc. 
+            password (String): takes it from the request, and processes here to make sure its not common and etc.
 
         Raises:
             ValidationError: Validation error is raised when it does not meet one of the standards.
         """        
-        #checking if name is blacklisted;
-        
         if password.data in common_list:
             raise ValidationError("The password is too common. Please change it to a less common password.")
-        #doing checks 
         if not any(charac.isdigit() for charac in password.data):
             raise ValidationError("There has to be at least a digit stored in the password.")
         if self.username.data in password.data:
@@ -83,16 +79,14 @@ class validation_form(FlaskForm):
             raise ValidationError("Password must contain at least one lowercase letter.")
         if not any(not charac.isalnum() for charac in password.data):
             raise ValidationError(" There has to be at least a singular special charachter within the password.")
-        #part B; checking for repeating charachters;
         if(repeating(password.data)):
             raise ValidationError("There cannot be 3 consequtive repeating charachters in the password ")
-        
+
 
 
 class registration_form(validation_form):
     """registration_form is a child class of the validation class used for registering
-    new patient (user) accounts. It adds biography and patient identity fields on top
-    of the login credentials inherited from validation_form.
+    new patient (user) accounts. It adds biography and patient identity fields.
 
     Args:
         validation_form (parent class): inheriting the parent class for account registration.
@@ -101,10 +95,10 @@ class registration_form(validation_form):
         ValidationError: raised if any field fails its validation rules.
     """
 
-    bio = TextAreaField('Biography',validators=[Length(min = 20, max = 500, message= "The biography bit has to be between 20 and 500 charachters" ),
-                            input_required(message="There has to be some data within the biography")])
+    bio = TextAreaField('Biography', validators=[Length(min=20, max=500, message="The biography bit has to be between 20 and 500 charachters"),
+        input_required(message="There has to be some data within the biography")])
 
-    # new patient identity fields
+    # new paitent identity fields
     first_name = StringField('First name', validators=[
         input_required(message="First name is required."),
         Length(min=2, max=50, message="First name must be between 2 and 50 characters."),
@@ -126,7 +120,7 @@ class registration_form(validation_form):
 
     def validate_first_name(self, first_name):
         """Validate first name checks that the first name only contains characters
-        expected in a real name, rejecting digits and symbols.
+        expected in a real name.
 
         Args:
             first_name (String): the first name value submitted from the registration form.
@@ -140,7 +134,7 @@ class registration_form(validation_form):
 
     def validate_last_name(self, last_name):
         """Validate last name checks that the last name only contains characters
-        expected in a real name, rejecting digits and symbols.
+        expected in a real name.
 
         Args:
             last_name (String): the last name value submitted from the registration form.
@@ -172,8 +166,7 @@ class registration_form(validation_form):
             raise ValidationError(f"Date of birth implies an age over {MAX_AGE_YEARS} years, which is not valid.")
 
     def validate_location(self, location):
-        """Validate location checks that the location field is not filled with only
-        whitespace, which would pass input_required but be meaningless.
+        """Validate location checks that the location field is not filled with only whitespace.
 
         Args:
             location (String): the location value submitted from the registration form.
@@ -189,31 +182,32 @@ class password_form(FlaskForm):
     """Password form is used when resetting the account password.
 
     Args:
-        FlaskForm (Parent Class): uses the flaskform parent class to instantiate the forms object containing the the validated fields.
+        FlaskForm (Parent Class): uses the flaskform parent class to instantiate the forms object.
 
     Raises:
         ValidationError: Validation error is raised when it does not meet one of the standards.
     """    
-    current_password = PasswordField('Current password' , validators=[input_required(message="The password cannot be empty"),
-                                          Length(min = 10, max= 40, message= "the current password has to be between 6 and 40 chars in length")])
-    new_password = PasswordField('New password' , validators=[input_required(message="The repeated password cannot be empty"),
-                                          Length(min = 10, max= 40, message= "the new password has to be between 6 and 40 chars in length")])
+    current_password = PasswordField('Current password', validators=[
+        input_required(message="The password cannot be empty"),
+        Length(min=10, max=40, message="the current password has to be between 6 and 40 chars in length")
+    ])
+    new_password = PasswordField('New password', validators=[
+        input_required(message="The repeated password cannot be empty"),
+        Length(min=10, max=40, message="the new password has to be between 6 and 40 chars in length")
+    ])
         
     def validate_new_password(self, new_password):
-        """
-        the function validate_new_password checks whether the password conforms to the standard
+        """Validate new password checks whether the new password conforms to the standard.
+
         Args:
-            new_password (String): string input of the new password
+            new_password (String): string input of the new password.
 
         Raises:
-            ValidationError: the validate_new_password raises an issue only when the password does not conform to the standards below.
+            ValidationError: raised when the password does not conform to the standards.
         """  
-        username = session.get('user')
-        if username and username in new_password.data:
-            raise ValidationError("The password cannot contain the username.")    
+        username = session.get('user')      
         if new_password.data in common_list:
             raise ValidationError("The password is too common. Please change it to a less common password.")
-        #doing checks 
         if not any(charac.isdigit() for charac in new_password.data):
             raise ValidationError("There has to be at least a digit stored in the new password.")
         if not any(charac.isupper() for charac in new_password.data):
@@ -224,41 +218,83 @@ class password_form(FlaskForm):
             raise ValidationError(" There has to be at least a singular special charachter within the new password.")
         if username in new_password.data:
             raise ValidationError("The password cannot contain the username and the password.")
-        #part B; checking for repeating charachters;
         if(repeating(new_password.data)):
             raise ValidationError("There cannot be 3 consequtive repeating characters in the new password ")
 
 
 class request_form(FlaskForm):
-    """Request form is used for submitting a medical request, users fill out a health questionnaire and submit it to the doctor, the doctor then can view the request and decide whether to accept or reject it.
+    """Request form is used for submitting a medical request. Users fill out a health
+    questionnaire and submit it. Doctors can then view and accept or reject it.
 
     Args:
-        FlaskForm (Parent Class): uses the flaskform parent class to instantiate the forms object containing the the validated fields.
+        FlaskForm (Parent Class): uses the flaskform parent class to instantiate the forms object.
 
     Raises:
         ValidationError: Validation error is raised when it does not meet one of the standards.
     """
-    age = IntegerField("Age:", validators=[input_required(message="Age cannot be empty"), 
-                                           NumberRange(min=0, max=120, message="Age has to be between 0 and 120")])
-    symptoms = TextAreaField("What are your current symptoms?", validators=[input_required(message="There has to be some data within the symptoms field"), 
-                                        Length(min=10, max=1000, message="The symptoms field has to be between 10 and 1000 characters in length")])
-    symptoms_details = TextAreaField("Please provide more details about your symptoms:", validators=[input_required(message="There has to be some data within the symptoms details field"),
-                                                                                                   Length(min=10, max=1000, message="The symptoms details field has to be between 10 and 1000 characters in length")])
-    family_issues = BooleanField("Do you have any family history of medical conditions?", validators=[input_required(message="There has to be some data within the family issues field")])
+    age = IntegerField("Age:", validators=[
+        input_required(message="Age cannot be empty"), 
+        NumberRange(min=0, max=120, message="Age has to be between 0 and 120")
+    ])
+    symptoms = TextAreaField("What are your current symptoms?", validators=[
+        input_required(message="There has to be some data within the symptoms field"), 
+        Length(min=10, max=1000, message="The symptoms field has to be between 10 and 1000 characters in length")
+    ])
+    symptoms_details = TextAreaField("Please provide more details about your symptoms:", validators=[
+        input_required(message="There has to be some data within the symptoms details field"),
+        Length(min=10, max=1000, message="The symptoms details field has to be between 10 and 1000 characters in length")
+    ])
+    family_issues = BooleanField("Do you have any family history of medical conditions?", validators=[
+        input_required(message="There has to be some data within the family issues field")
+    ])
     family_details = TextAreaField("Please provide more details about your family's medical history:", validators=[Optional()])
     submit = SubmitField("Submit Request")
 
 
 
-class DoctorRegistrationForm(FlaskForm):
-    """DoctorRegistrationForm is responsible for collecting and validating all
-    fields required to register a new doctor account, including NHS number,
-    specialty, language, availability, and rating in addition to the standard
-    identity and login credential fields.
+class ReviewForm(FlaskForm):
+    """ReviewForm is used by patients to leave a review for a doctor after a chat.
 
     Args:
-        FlaskForm (Parent Class): uses the FlaskForm parent class to instantiate
-        the form object.
+        FlaskForm (Parent Class): uses the flaskform parent class to instantiate the forms object.
+
+    Raises:
+        ValidationError: raised if the rating or content do not meet the standards.
+    """
+    rating = FloatField('Rating (1.0 – 5.0)', validators=[
+        input_required(message="A rating is required."),
+        NumberRange(min=1.0, max=5.0, message="Rating must be between 1.0 and 5.0."),
+    ])
+    content = TextAreaField('Your review', validators=[
+        input_required(message="Review content cannot be empty."),
+        Length(min=10, max=1000, message="Review must be between 10 and 1000 characters."),
+    ])
+    submit = SubmitField("Submit Review")
+
+    def validate_rating(self, rating):
+        """Validate rating checks that the rating is a sensible value with at most
+        one decimal place.
+
+        Args:
+            rating (Float): the rating submitted from the review form.
+
+        Raises:
+            ValidationError: raised if the rating has more than one decimal place.
+        """
+        if rating.data is None:
+            return
+        # round to 1dp and check it hasn't changed — rejects values like 4.55
+        if round(rating.data, 1) != rating.data:
+            raise ValidationError("Rating can only have one decimal place, e.g. 4.5.")
+
+
+
+class DoctorRegistrationForm(FlaskForm):
+    """DoctorRegistrationForm collects and validates all fields required to register
+    a new doctor account.
+
+    Args:
+        FlaskForm (Parent Class): uses the FlaskForm parent class.
 
     Raises:
         ValidationError: raised if any field fails its validation rules.
@@ -312,11 +348,10 @@ class DoctorRegistrationForm(FlaskForm):
     ])
 
     def validate_first_name(self, first_name):
-        """Validate first name checks that the doctor's first name only contains
-        characters expected in a real name, rejecting digits and symbols.
+        """Validate first name checks that the doctor's first name only contains valid characters.
 
         Args:
-            first_name (String): the first name value submitted from the doctor registration form.
+            first_name (String): the first name value submitted.
 
         Raises:
             ValidationError: raised if the first name contains invalid characters.
@@ -326,11 +361,10 @@ class DoctorRegistrationForm(FlaskForm):
             raise ValidationError("First name may only contain letters, spaces, hyphens, or apostrophes.")
 
     def validate_last_name(self, last_name):
-        """Validate last name checks that the doctor's last name only contains
-        characters expected in a real name, rejecting digits and symbols.
+        """Validate last name checks that the doctor's last name only contains valid characters.
 
         Args:
-            last_name (String): the last name value submitted from the doctor registration form.
+            last_name (String): the last name value submitted.
 
         Raises:
             ValidationError: raised if the last name contains invalid characters.
@@ -340,8 +374,7 @@ class DoctorRegistrationForm(FlaskForm):
             raise ValidationError("Last name may only contain letters, spaces, hyphens, or apostrophes.")
 
     def validate_username(self, username):
-        """Validate username checks that the doctor is not registering with a
-        reserved privileged name.
+        """Validate username checks that the doctor is not registering with a reserved name.
 
         Args:
             username (String): the email address submitted as the username.
@@ -353,14 +386,13 @@ class DoctorRegistrationForm(FlaskForm):
             raise ValidationError("Cannot register with a privileged username.")
 
     def validate_password(self, password):
-        """Validate password checks that the doctor's password meets the programme's
-        security standard.
+        """Validate password checks that the doctor's password meets the security standard.
 
         Args:
-            password (String): the plain text password submitted from the doctor registration form.
+            password (String): the plain text password submitted.
 
         Raises:
-            ValidationError: raised if the password fails any of the strength requirements.
+            ValidationError: raised if the password fails any strength requirement.
         """
         if password.data in common_list:
             raise ValidationError("The password is too common. Please change it to a less common password.")
@@ -378,11 +410,10 @@ class DoctorRegistrationForm(FlaskForm):
             raise ValidationError("There cannot be 3 consecutive repeating characters in the password.")
 
     def validate_nhs_number(self, nhs_number):
-        """Validate NHS number checks that the submitted NHS number consists entirely
-        of digits, since NHS numbers are always purely numeric 10-digit identifiers.
+        """Validate NHS number checks that the submitted value consists only of digits.
 
         Args:
-            nhs_number (String): the NHS number value submitted from the doctor registration form.
+            nhs_number (String): the NHS number value submitted.
 
         Raises:
             ValidationError: raised if the NHS number contains any non-digit characters.
@@ -391,12 +422,10 @@ class DoctorRegistrationForm(FlaskForm):
             raise ValidationError("NHS number must contain digits only.")
 
     def validate_date_of_birth(self, date_of_birth):
-        """Validate date of birth checks that the submitted date is a plausible date
-        of birth for a practising doctor. Rejects future dates, ages over 100, and
-        ages under 18.
+        """Validate date of birth checks the date is plausible for a practising doctor.
 
         Args:
-            date_of_birth (Date): the date of birth value submitted from the doctor registration form.
+            date_of_birth (Date): the date of birth value submitted.
 
         Raises:
             ValidationError: raised if the date is invalid, implies age over 100, or under 18.
@@ -413,8 +442,7 @@ class DoctorRegistrationForm(FlaskForm):
             raise ValidationError("Doctor must be at least 18 years old.")
 
     def validate_specialty(self, specialty):
-        """Validate specialty checks that the selected specialty is one of the
-        recognised medical specialties defined in VALID_SPECIALTIES.
+        """Validate specialty checks the selected specialty is a recognised medical specialty.
 
         Args:
             specialty (String): the specialty value selected from the dropdown.
@@ -426,11 +454,10 @@ class DoctorRegistrationForm(FlaskForm):
             raise ValidationError("Please select a recognised medical specialty.")
 
     def validate_location(self, location):
-        """Validate location checks that the location field is not filled with
-        only whitespace.
+        """Validate location checks the location field is not filled with only whitespace.
 
         Args:
-            location (String): the location value submitted from the doctor registration form.
+            location (String): the location value submitted.
 
         Raises:
             ValidationError: raised if the location contains only whitespace characters.

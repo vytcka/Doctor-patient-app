@@ -37,17 +37,27 @@ VALID_SPECIALTIES = [
     "Urology",
 ]
 
- 
+# Status constants — used by models and routes so there are no magic strings
+CHAT_STATUS_ACTIVE = 'active'
+CHAT_STATUS_WITHDRAWN = 'withdrawn'
+CHAT_STATUS_CLOSED = 'closed'
+CHAT_STATUS_REPORTED = 'reported'
+
+REQUEST_STATUS_PENDING = 'pending'
+REQUEST_STATUS_ACCEPTED = 'accepted'
+REQUEST_STATUS_REJECTED = 'rejected'
+
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.String(50), default='user', nullable=False)
+    id = db.Column(db.Integer,      primary_key=True)
+    username = db.Column(db.String(80),   unique=True, nullable=False)
+    password = db.Column(db.String(100),  nullable=False)
+    role = db.Column(db.String(50),   default='user', nullable=False)
     bio = db.Column(db.String(3000), nullable=False)
-    first_name    = db.Column(db.String(50),  nullable=False)
-    last_name     = db.Column(db.String(50),  nullable=False)
-    date_of_birth = db.Column(db.Date,        nullable=False)
-    location      = db.Column(db.String(100), nullable=False)
+    first_name = db.Column(db.String(50),   nullable=False)
+    last_name = db.Column(db.String(50),   nullable=False)
+    date_of_birth = db.Column(db.Date,         nullable=False)
+    location = db.Column(db.String(100),  nullable=False)
+    points = db.Column(db.Integer,      default=0, nullable=False)
  
     def hash_password(self, password:str)-> str:
         """Hash password method is responsble for hashing the methods and storing them in the database
@@ -109,14 +119,15 @@ class User(db.Model):
             date_of_birth (Date): the user's date of birth as a datetime.date object.
             location (String): the user's location, e.g. a city or region.
         """
-        self.username      = username
-        self.password      = self.hash_password(password)
-        self.role          = role if role in VALID_ROLES else "user"
-        self.bio           = self.encrypt_bio(bio)
-        self.first_name    = first_name
-        self.last_name     = last_name
+        self.username = username
+        self.password = self.hash_password(password)
+        self.role = role if role in VALID_ROLES else "user"
+        self.bio = self.encrypt_bio(bio)
+        self.first_name = first_name
+        self.last_name = last_name
         self.date_of_birth = date_of_birth
-        self.location      = location
+        self.location = location
+        self.points = 0
  
     def set_password(self, password):
         """ Password setter
@@ -137,6 +148,14 @@ class User(db.Model):
  
     def set_bio(self, bio):
         self.bio = self.encrypt_bio(bio)
+
+    def add_points(self, amount: int):
+        """Add points to the user's total. Called when a message or review is submitted (FR23).
+
+        Args:
+            amount (int): the number of points to add.
+        """
+        self.points += amount
  
     @property
     def is_doctor(self):
@@ -147,7 +166,6 @@ class User(db.Model):
             bool: True if role is 'doctor', False otherwise.
         """
         return self.role == "doctor"
-
 
 class Decypher():
     def decypher_text(self, encrptionText) -> str:
@@ -177,7 +195,6 @@ class Decypher():
         """
         return self.text
 
- 
 class Doctor(db.Model):
     """Doctor model represents a doctor account in the system. The role is always
     'doctor'. Passwords are hashed with bcrypt and a pepper, and biographies are
@@ -186,19 +203,19 @@ class Doctor(db.Model):
  
     __tablename__ = 'doctor'
  
-    nhs_number    = db.Column(db.String(10),  primary_key=True, nullable=False)
-    first_name    = db.Column(db.String(50),  nullable=False)
-    last_name     = db.Column(db.String(50),  nullable=False)
-    username      = db.Column(db.String(80),  unique=True, nullable=False)
-    password      = db.Column(db.String(200), nullable=False)
-    role          = db.Column(db.String(50),  default='doctor', nullable=False)
+    nhs_number = db.Column(db.String(10),  primary_key=True, nullable=False)
+    first_name = db.Column(db.String(50),  nullable=False)
+    last_name = db.Column(db.String(50),  nullable=False)
+    username = db.Column(db.String(80),  unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(50),  default='doctor', nullable=False)
     date_of_birth = db.Column(db.Date,        nullable=False)
-    location      = db.Column(db.String(100), nullable=False)
-    rating        = db.Column(db.Float,       nullable=True, default=None)
-    specialty     = db.Column(db.String(60),  nullable=False)
-    language      = db.Column(db.String(60),  nullable=False)
-    availability  = db.Column(db.Boolean,     nullable=False, default=True)
-    bio           = db.Column(db.String(3000), nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+    rating = db.Column(db.Float,       nullable=True, default=None)
+    specialty = db.Column(db.String(60),  nullable=False)
+    language = db.Column(db.String(60),  nullable=False)
+    availability = db.Column(db.Boolean,     nullable=False, default=True)
+    bio = db.Column(db.String(3000), nullable=False)
  
     def _hash_password(self, password: str) -> str:
         """Hash password method is responsible for hashing the doctor's password before
@@ -261,19 +278,19 @@ class Doctor(db.Model):
             availability (bool): whether the doctor is available for appointments, defaults to True.
             rating (Float): the doctor's rating between 1.0 and 5.0, defaults to None until rated.
         """
-        self.nhs_number    = nhs_number
-        self.first_name    = first_name
-        self.last_name     = last_name
-        self.username      = username
-        self.password      = self._hash_password(password)
-        self.role          = "doctor"
+        self.nhs_number = nhs_number
+        self.first_name = first_name
+        self.last_name = last_name
+        self.username = username
+        self.password = self._hash_password(password)
+        self.role = "doctor"
         self.date_of_birth = date_of_birth
-        self.location      = location
-        self.rating        = rating
-        self.specialty     = specialty
-        self.language      = language
-        self.availability  = availability
-        self.bio           = self._encrypt(bio)
+        self.location = location
+        self.rating = rating
+        self.specialty = specialty
+        self.language = language
+        self.availability = availability
+        self.bio = self._encrypt(bio)
  
     def set_password(self, new_password: str):
         """Set password setter updates the doctor's password. The new password is hashed
@@ -325,7 +342,6 @@ class Doctor(db.Model):
         """
         return True
 
-
 class Request(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     age = db.Column(db.Integer, nullable=False)
@@ -337,28 +353,123 @@ class Request(db.Model):
     existing_details = db.Column(db.Text)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    status = db.Column(db.String(20), default='pending', nullable=False)
+    status = db.Column(db.String(20), default=REQUEST_STATUS_PENDING, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
  
     user = db.relationship('User', foreign_keys=[user_id])
     doctor = db.relationship('User', foreign_keys=[doctor_id])
- 
- 
-# ─────────────────────────────────────────────
-# Chat model — UNCHANGED
-# ─────────────────────────────────────────────
- 
+
 class Chat(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
- 
- 
-# ─────────────────────────────────────────────
-# Message model — UNCHANGED
-# ─────────────────────────────────────────────
- 
+    id = db.Column(db.Integer,  primary_key=True)
+    sender_id = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
+    bookedAppointment = db.Column(db.Boolean,  nullable=False, default=False)
+    status = db.Column(db.String(20), default=CHAT_STATUS_ACTIVE, nullable=False)
+    message_count = db.Column(db.Integer,  default=0, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    last_activity = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    withdrawn_at = db.Column(db.DateTime, nullable=True)
+
+    messages = db.relationship('Message', backref='chat', lazy='dynamic',
+                               cascade='all, delete-orphan')
+    
+    def approveAppointment(self):
+        """Approves the appointment between the patient and doctor."""
+        self.bookedAppointment = True
+
+    def increment_message_count(self):
+        """Increment the message count and update the last activity timestamp.
+        Called every time a new message is added to this chat.
+        """
+        self.message_count += 1
+        self.last_activity = datetime.utcnow()
+
+    def can_be_withdrawn(self) -> bool:
+        """Check whether this chat can still be withdrawn.
+
+        Returns:
+            bool: True if the user message count is 3 or fewer and the chat is active.
+        """
+        user_messages = Message.query.filter_by(
+            chat_id=self.id, sender_type='user'
+        ).count()
+        return self.status == CHAT_STATUS_ACTIVE and user_messages <= 3
+
+    def can_be_restored(self) -> bool:
+        """Check whether this chat can be restored after withdrawal.
+
+        Returns:
+            bool: True if the chat was withdrawn less than 10 minutes ago.
+        """
+        if self.status != CHAT_STATUS_WITHDRAWN or self.withdrawn_at is None:
+            return False
+        elapsed = (datetime.utcnow() - self.withdrawn_at).total_seconds()
+        return elapsed <= 600
+
+    def is_inactive(self) -> bool:
+        """Check whether this chat has been inactive for more than 10 minutes.
+
+        Returns:
+            bool: True if last activity was more than 10 minutes ago.
+        """
+        elapsed = (datetime.utcnow() - self.last_activity).total_seconds()
+        return elapsed > 600
+
+    def user_can_review(self) -> bool:
+        """Check whether the patient is eligible to leave a review.
+
+        Returns:
+            bool: True if the user has sent more than 5 messages and did not withdraw early.
+        """
+        user_messages = Message.query.filter_by(
+            chat_id=self.id, sender_type='user'
+        ).count()
+        withdrew_early = (self.status == CHAT_STATUS_WITHDRAWN and user_messages <= 3)
+        return user_messages > 5 and not withdrew_early
+
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'),nullable=False)
-    content = db.Column(db.Text, nullable=False)    
+    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'), nullable=False)
+    sender_id = db.Column(db.String(20), nullable=False)
+    sender_type = db.Column(db.String(10), nullable=False)
+    content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class Review(db.Model):
+    """The review class generates the review has to be verified and made
+    sure they work, and once its verified then it will be accounted in the
+    final rating"""
+    
+    id = db.Column(db.Integer, primary_key=True)
+    status = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),             nullable=False)
+    doctor_id = db.Column(db.String(10), db.ForeignKey('doctor.nhs_number'),   nullable=False)
+    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'),             nullable=True)
+    rating = db.Column(db.Float, nullable=False)
+    comment = db.Column(db.String(200))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User')
+    doctor = db.relationship('Doctor')
+    
+    def approveReview(self):
+        """Sets the approved status of the review."""
+        self.status = True
+
+
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reason = db.Column(db.String(2000), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='pending')
+
+    message = db.relationship('Message')
+    reporter = db.relationship('User')
+
+class ModeratorNotification(db.Model):
+    id = db.Column(db.Integer,    primary_key=True)
+    message = db.Column(db.String(255))
+    seen = db.Column(db.Boolean,   default=False)
+    created_at = db.Column(db.DateTime,  default=datetime.utcnow)

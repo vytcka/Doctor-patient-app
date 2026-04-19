@@ -57,25 +57,23 @@ def create_app():
     from .routes import main
     app.register_blueprint(main)
 
+
     @app.errorhandler(400)
     def bad_request(error):
         return render_template('badRequest.html'), 400
-
     @app.errorhandler(403)
     def forbidden(error):
         return render_template('forbidden.html', message="Access Denied"), 403
-
     @app.errorhandler(404)
     def not_found(error):
         return render_template('notFound.html'), 404
-
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
         return render_template('internalServerError.html'), 500
 
     with app.app_context():
-        from .models import User, Doctor
+        from .models import User, Doctor, Request, Chat, Message, Review
         db.drop_all()
         db.create_all()
 
