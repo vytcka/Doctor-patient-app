@@ -7,7 +7,6 @@ from datetime import date
 
 load_dotenv()
 
-
 #part g load the secret vars;
 PEPPER = os.getenv("SECRET_PEPPER")
 #converting the stored value to byte string
