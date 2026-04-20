@@ -326,19 +326,128 @@ class Request(db.Model):
     family_details = db.Column(db.Text)
     existing_issues = db.Column(db.Boolean, default=False)
     existing_details = db.Column(db.Text)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    doctor_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    status = db.Column(db.String(20), default='pending', nullable=False)
-
-
-    user = db.relationship('User', foreign_keys=[user_id])
+    user_id          = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
+    doctor_id        = db.Column(db.Integer,  db.ForeignKey('user.id'))
+    status           = db.Column(db.String(20), default=REQUEST_STATUS_PENDING, nullable=False)
+    created_at       = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+ 
+    user   = db.relationship('User', foreign_keys=[user_id])
     doctor = db.relationship('User', foreign_keys=[doctor_id])
 
 
+class Chat(db.Model):
+    id                = db.Column(db.Integer,  primary_key=True)
+    sender_id         = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
+    receiver_id       = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
+    bookedAppointment = db.Column(db.Boolean,  nullable=False, default=False)
+    status            = db.Column(db.String(20), default=CHAT_STATUS_ACTIVE, nullable=False)
+    message_count     = db.Column(db.Integer,  default=0, nullable=False)
+    created_at        = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    last_activity     = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    withdrawn_at      = db.Column(db.DateTime, nullable=True)
+ 
+    messages = db.relationship('Message', backref='chat', lazy='dynamic',
+                               cascade='all, delete-orphan')
+    
+    def approveAppointment(self):
+        """Approves the appointment between the patient and doctor."""
+        self.bookedAppointment = True
+ 
+    def increment_message_count(self):
+        """Increment the message count and update the last activity timestamp.
+        Called every time a new message is added to this chat.
+        """
+        self.message_count += 1
+        self.last_activity = datetime.utcnow()
+ 
+    def can_be_withdrawn(self) -> bool:
+        """Check whether this chat can still be withdrawn.
+ 
+        Returns:
+            bool: True if the user message count is 3 or fewer and the chat is active.
+        """
+        user_messages = Message.query.filter_by(
+            chat_id=self.id, sender_type='user'
+        ).count()
+        return self.status == CHAT_STATUS_ACTIVE and user_messages <= 3
+ 
+    def can_be_restored(self) -> bool:
+        """Check whether this chat can be restored after withdrawal.
+ 
+        Returns:
+            bool: True if the chat was withdrawn less than 10 minutes ago.
+        """
+        if self.status != CHAT_STATUS_WITHDRAWN or self.withdrawn_at is None:
+            return False
+        elapsed = (datetime.utcnow() - self.withdrawn_at).total_seconds()
+        return elapsed <= 600
+ 
+    def is_inactive(self) -> bool:
+        """Check whether this chat has been inactive for more than 10 minutes.
+ 
+        Returns:
+            bool: True if last activity was more than 10 minutes ago.
+        """
+        elapsed = (datetime.utcnow() - self.last_activity).total_seconds()
+        return elapsed > 600
+ 
+    def user_can_review(self) -> bool:
+        """Check whether the patient is eligible to leave a review.
+ 
+        Returns:
+            bool: True if the user has sent more than 5 messages and did not withdraw early.
+        """
+        user_messages = Message.query.filter_by(
+            chat_id=self.id, sender_type='user'
+        ).count()
+        withdrew_early = (self.status == CHAT_STATUS_WITHDRAWN and user_messages <= 3)
+        return user_messages > 5 and not withdrew_early
+ 
+ 
 class Message(db.Model):
+    id          = db.Column(db.Integer,    primary_key=True)
+    chat_id     = db.Column(db.Integer,    db.ForeignKey('chat.id'), nullable=False)
+    sender_id   = db.Column(db.String(20), nullable=False)
+    sender_type = db.Column(db.String(10), nullable=False)
+    content     = db.Column(db.Text,       nullable=False)
+    timestamp   = db.Column(db.DateTime,   default=datetime.utcnow, nullable=False)
+    
+    
+class Review(db.Model):
+    """The review class generates the review has to be verified and made
+    sure they work, and once its verified then it will be accounted in the
+    final rating"""
+    
     id = db.Column(db.Integer, primary_key=True)
-    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'), nullable=False)
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    content = db.Column(db.Text, nullable=False)    
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    status= db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    doctor_id = db.Column(db.String(10), db.ForeignKey('doctor.nhs_number'), nullable=False)
+    rating = db.Column(db.Float, nullable=False)
+    comment = db.Column(db.String(200))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+    
+    user = db.relationship('User')
+    doctor = db.relationship('Doctor')
+    
+    def approveReview(self):
+        "Sets the apprved status of the review."
+        self.status = True
+        
+        
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reason = db.Column(db.String(2000), nullable=False)  
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='pending')  
+    
+    message = db.relationship('Message')
+    reporter = db.relationship('User')
+    
+    
+class ModeratorNotification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.String(255))
+    seen = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

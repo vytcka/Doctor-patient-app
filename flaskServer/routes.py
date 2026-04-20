@@ -19,6 +19,13 @@ from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
 
+#using fernet lib to provide symmetrical encryption
+
+#Ensure passwords are stored using a strong, one way hashing approach.
+#bcrypt.generate_password_hash
+
+
+#use hashing via bcrypt and put hashed valeus in the db, and then hash the input with the same salt and compare them, if equal then give out token;
 
 main = Blueprint('main', __name__)
 logger = logging.getLogger()
@@ -43,6 +50,7 @@ def get_current_doctor():
     if session.get('role') != 'doctor':
         return None
     return Doctor.query.filter_by(username=session['user']).first()
+
 
 
 @main.route('/')
@@ -85,9 +93,9 @@ def login():
                 logging.warning(sanitisationForLogs(f"Incorrect credentials for username: {username} from the address: {request.remote_addr}"))
                 return render_template('login.html', forms=forms)
             
-            session['user'] = user.username
-            session['role'] = user.role
-            session['bio'] = user.bio
+            session['user']    = user.username
+            session['role']    = user.role
+            session['bio']     = user.bio
             session['user_id'] = user.id
             logger.info(sanitisationForLogs(f"user logged in with the name: {user.username} from {request.remote_addr}"))
             return redirect(url_for('main.user_dashboard'))
@@ -115,6 +123,8 @@ def dashboard():
         return redirect(url_for('main.doctor_dashboard'))
     return redirect(url_for('main.login'))
 
+
+
 @main.route('/register', methods=['GET', 'POST'])
 def register():
     """Register route is responsible for creating new patient (user) accounts.
@@ -129,14 +139,14 @@ def register():
         
         if forms.validate_on_submit():
             session.permanent = True
-            username = forms.username.data
-            password = forms.password.data
-            bio = forms.bio.data
-            first_name = forms.first_name.data
-            last_name = forms.last_name.data
+            username      = forms.username.data
+            password      = forms.password.data
+            bio           = forms.bio.data
+            first_name    = forms.first_name.data
+            last_name     = forms.last_name.data
             date_of_birth = forms.date_of_birth.data
-            location = forms.location.data
-            role = "user"
+            location      = forms.location.data
+            role          = "user"
             
             logging.info(sanitisationForLogs(f"forms validated during registration for the user: {username} from the ip {request.remote_addr} "))
 
@@ -166,14 +176,14 @@ def register():
                 VALUES (:username, :password, :role, :bio, :first_name, :last_name, :date_of_birth, :location, 0)
             """)
             db.session.execute(query, {
-                "username": db_user.username,
-                "password": db_user.password,
-                "role": "user",
-                "bio": db_user.bio,
-                "first_name": db_user.first_name,
-                "last_name": db_user.last_name,
+                "username":      db_user.username,
+                "password":      db_user.password,
+                "role":          "user",
+                "bio":           db_user.bio,
+                "first_name":    db_user.first_name,
+                "last_name":     db_user.last_name,
                 "date_of_birth": db_user.date_of_birth,
-                "location": db_user.location,
+                "location":      db_user.location,
             })
             db.session.commit()
 
@@ -246,11 +256,11 @@ def doctor_login():
                 logger.warning(sanitisationForLogs(f"Incorrect password for doctor: {username} from {request.remote_addr}"))
                 return render_template('doctor_login.html', forms=forms)
 
-            session['user'] = doctor.username
-            session['role'] = doctor.role
-            session['bio'] = doctor.bio
+            session['user']       = doctor.username
+            session['role']       = doctor.role
+            session['bio']        = doctor.bio
             session['nhs_number'] = doctor.nhs_number
-            session['user_id'] = doctor.nhs_number
+            session['user_id']    = doctor.nhs_number
             logger.info(sanitisationForLogs(f"Doctor logged in: {doctor.username} from {request.remote_addr}"))
             return redirect(url_for('main.doctor_dashboard'))
 
@@ -273,17 +283,17 @@ def doctor_register():
     forms = DoctorRegistrationForm()
     if request.method == 'POST':
         if forms.validate_on_submit():
-            nhs_number = forms.nhs_number.data
-            first_name = forms.first_name.data
-            last_name = forms.last_name.data
-            username = forms.username.data
-            password = forms.password.data
+            nhs_number    = forms.nhs_number.data
+            first_name    = forms.first_name.data
+            last_name     = forms.last_name.data
+            username      = forms.username.data
+            password      = forms.password.data
             date_of_birth = forms.date_of_birth.data
-            location = forms.location.data
-            specialty = forms.specialty.data
-            language = forms.language.data
-            bio = forms.bio.data
-            availability = forms.availability.data
+            location      = forms.location.data
+            specialty     = forms.specialty.data
+            language      = forms.language.data
+            bio           = forms.bio.data
+            availability  = forms.availability.data
 
             logger.info(sanitisationForLogs(f"Doctor registration attempt for {username} from {request.remote_addr}"))
 
@@ -318,18 +328,18 @@ def doctor_register():
                         :date_of_birth, :location, :specialty, :language, :bio, :availability)
             """)
             db.session.execute(query, {
-                "nhs_number": db_doctor.nhs_number,
-                "first_name": db_doctor.first_name,
-                "last_name": db_doctor.last_name,
-                "username": db_doctor.username,
-                "password": db_doctor.password,
-                "role": "doctor",
+                "nhs_number":    db_doctor.nhs_number,
+                "first_name":    db_doctor.first_name,
+                "last_name":     db_doctor.last_name,
+                "username":      db_doctor.username,
+                "password":      db_doctor.password,
+                "role":          "doctor",
                 "date_of_birth": db_doctor.date_of_birth,
-                "location": db_doctor.location,
-                "specialty": db_doctor.specialty,
-                "language": db_doctor.language,
-                "bio": db_doctor.bio,
-                "availability": db_doctor.availability,
+                "location":      db_doctor.location,
+                "specialty":     db_doctor.specialty,
+                "language":      db_doctor.language,
+                "bio":           db_doctor.bio,
+                "availability":  db_doctor.availability,
             })
             db.session.commit()
 
@@ -355,7 +365,7 @@ def doctor_dashboard():
         doctor = get_current_doctor()
         decypher = Decypher(session['bio'])
 
-        active_chats = Chat.query.filter_by(receiver_id=doctor.nhs_number, status=CHAT_STATUS_ACTIVE).all()
+        active_chats     = Chat.query.filter_by(receiver_id=doctor.nhs_number, status=CHAT_STATUS_ACTIVE).all()
         pending_requests = Request.query.filter_by(status=REQUEST_STATUS_PENDING).all()
 
         return render_template(
@@ -370,7 +380,6 @@ def doctor_dashboard():
         )
     except InvalidToken:
         return redirect(url_for('main.doctor_login'))
-
 
 @main.route('/change-password', methods=['GET', 'POST'])
 def change_password():
@@ -402,15 +411,15 @@ def change_password():
                 if not row:
                     session.clear()
                     return render_template('change_password.html', form=form)
-                account = db.session.get(Doctor, row['nhs_number'])
+                account          = db.session.get(Doctor, row['nhs_number'])
                 password_correct = account.check_password(current_password) if account else False
             else:
-                query = text("SELECT * FROM user WHERE username = :username LIMIT 1")
-                row = db.session.execute(query, {"username": username}).mappings().first()
+                query   = text("SELECT * FROM user WHERE username = :username LIMIT 1")
+                row     = db.session.execute(query, {"username": username}).mappings().first()
                 if not row:
                     session.clear()
                     return render_template('change_password.html', form=form)
-                account = db.session.get(User, row['id'])
+                account          = db.session.get(User, row['id'])
                 password_correct = account.check_hash(current_password) if account else False
 
             if not account or not password_correct:
@@ -501,6 +510,7 @@ def caseSelector():
         return jsonify({"message": "case skipped", "case_id": caseID}), 200
 
 
+
 @main.route('/new-request', methods=['GET', 'POST'])
 def new_request():
     """New request route allows a patient to submit a health questionnaire.
@@ -515,16 +525,16 @@ def new_request():
     user = get_current_user()
 
     if form.validate_on_submit():
-        new_req = Request(
-            user_id = user.id,
-            age = form.age.data,
-            symptoms = form.symptoms.data,
+        new_request = Request(
+            user_id          = user.id,
+            age              = form.age.data,
+            symptoms         = form.symptoms.data,
             symptoms_details = form.symptoms_details.data,
-            family_issues = form.family_issues.data,
-            family_details = form.family_details.data,
+            family_issues    = form.family_issues.data,
+            family_details   = form.family_details.data,
         )
         try:
-            db.session.add(new_req)
+            db.session.add(new_request)
             db.session.commit()
             flash('Your request has been submitted successfully.')
             return redirect(url_for('main.user_dashboard'))
@@ -551,9 +561,11 @@ def view_requests():
     return render_template('view_requests.html', requests=pending_requests)
 
 
+
 @main.route('/accept-request/<int:request_id>', methods=['POST'])
 def accept_request(request_id):
     """Accept request route allows a doctor to accept a pending patient request.
+    A Chat is created linking the doctor and patient.
 
     Args:
         request_id (int): the ID of the Request to accept.
@@ -572,11 +584,11 @@ def accept_request(request_id):
         return redirect(url_for('main.view_requests'))
 
     try:
-        medical_request.status = REQUEST_STATUS_ACCEPTED
+        medical_request.status    = REQUEST_STATUS_ACCEPTED
         medical_request.doctor_id = doctor.nhs_number
 
         chat = Chat(
-            sender_id = medical_request.user_id,
+            sender_id   = medical_request.user_id,
             receiver_id = medical_request.user_id,  # doctor contact via nhs in session
         )
         db.session.add(chat)
@@ -591,6 +603,7 @@ def accept_request(request_id):
         logger.error(sanitisationForLogs(f"Error accepting request {request_id} by {session.get('user')}: {str(e)}"))
         flash('An error occurred while accepting the request. Please try again.')
         return redirect(url_for('main.view_requests'))
+
 
 @main.route('/reject-request/<int:request_id>', methods=['POST'])
 def reject_request(request_id):
@@ -643,6 +656,7 @@ def chat(chat_id):
 
     role = session.get('role')
 
+    # FR9 — only the two participants can access this chat
     if role == 'user':
         if chat_obj.sender_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by user {session.get('user')} from {request.remote_addr}"))
@@ -658,6 +672,7 @@ def chat(chat_id):
     else:
         return render_template("forbidden.html", message="You do not have access to this chat."), 403
 
+    # FR32 — auto-close if inactive for more than 10 minutes
     if chat_obj.status == CHAT_STATUS_ACTIVE and chat_obj.is_inactive():
         chat_obj.status = CHAT_STATUS_CLOSED
         db.session.commit()
@@ -676,6 +691,7 @@ def chat(chat_id):
                 db.session.add(new_message)
                 chat_obj.increment_message_count()
 
+                # award 1 point to the patient for each message sent
                 if sender_type == 'user':
                     patient = db.session.get(User, chat_obj.sender_id)
                     if patient:
@@ -729,6 +745,7 @@ def withdraw_chat(chat_id):
     return redirect(url_for('main.user_dashboard'))
 
 
+
 @main.route('/restore-chat/<int:chat_id>', methods=['POST'])
 def restore_chat(chat_id):
     """Restore chat route allows a patient to restore a withdrawn chat within 10 minutes.
@@ -765,6 +782,7 @@ def restore_chat(chat_id):
         return redirect(url_for('main.user_dashboard'))
 
 
+
 @main.route('/review/<int:chat_id>', methods=['GET', 'POST'])
 def submit_review(chat_id):
     """Submit review route allows a patient to leave a review after a chat.
@@ -786,6 +804,7 @@ def submit_review(chat_id):
         flash('Chat not found.')
         return redirect(url_for('main.user_dashboard'))
 
+    # FR26/FR29 — eligibility check
     if not chat_obj.user_can_review():
         flash('You are not eligible to leave a review for this chat.')
         return redirect(url_for('main.user_dashboard'))
@@ -807,15 +826,16 @@ def submit_review(chat_id):
             doctor_nhs = linked_request.doctor_id if linked_request else None
 
             review = Review(
-                user_id = user.id,
+                user_id   = user.id,
                 doctor_id = doctor_nhs,
-                chat_id = chat_id,
-                rating = form.rating.data,
-                comment = form.content.data,
-                status = False,  # pending until moderator approves (FR13)
+                chat_id   = chat_id,
+                rating    = form.rating.data,
+                comment   = form.content.data,
+                status    = False,  # pending until moderator approves (FR13)
             )
             db.session.add(review)
 
+            # award 5 points for submitting a review
             user.add_points(5)
 
             db.session.commit()
@@ -829,6 +849,7 @@ def submit_review(chat_id):
             flash('An error occurred while submitting your review. Please try again.')
 
     return render_template('review.html', form=form, chat=chat_obj)
+
 
 
 @main.route('/delete_account', methods=['GET', 'POST'])
