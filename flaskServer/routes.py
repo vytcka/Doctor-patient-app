@@ -1051,3 +1051,46 @@ def filterResults():
 
     results = query.all()
     return render_template('search_results.html', doctors=results)
+
+@main.route('/edit_review/<int:review_id>', methods=['GET', 'POST'])
+def edit_review(review_id):
+    """Edit review route allows a user to edit a pending review within five minutes of submission.
+
+    Args:
+        review_id (int): the ID of the Review to edit.
+
+    Returns:
+        renders edit_review.html or redirects to user_dashboard.
+    """
+    if session.get('role') != 'user':
+        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+
+    review = db.session.get(Review, review_id)
+    user = get_current_user()
+
+    if not review or review.user_id != user.id:
+        flash('Review not found.')
+        return redirect(url_for('main.user_dashboard'))
+    
+    time_limit = review.created_at + timedelta(minutes=5)
+
+    if datetime.utcnow() > time_limit:
+        flash('The edit window for this review has expired.')
+        return redirect(url_for('main.user_dashboard'))
+    
+    form = ReviewForm(obj=review)
+
+    if form.validate_on_submit():
+        try:
+            review.rating = form.rating.data
+            review.comment = form.content.data
+            db.session.commit()
+            flash('Your review has been updated.')
+            logger.info(sanitisationForLogs(f"Review {review_id} edited by {user.username}"))
+            return redirect(url_for('main.user_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            logger.error(sanitisationForLogs(f"Error editing review {review_id} by {user.username}: {str(e)}"))
+            flash('An error occurred while updating your review. Please try again.')
+            
+    return redirect(url_for('main.user_dashboard'))
