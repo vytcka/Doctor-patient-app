@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './form.css';
 
 export default function Login() {
+    const navigate = useNavigate();
+
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -20,25 +22,25 @@ export default function Login() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.email || !formData.password){
+        if (!formData.email || !formData.password) {
             setErrorMessage('Please fill in all fields');
             setSuccessMessage('');
             return;
-        }
-        else {
+        } else {
             setErrorMessage('');
             setSuccessMessage('Login successful!');
+            // TODO: replace with real auth check before redirecting
+            setTimeout(() => navigate('/Dashboard'), 1000);
         }
     };
 
-    //UI
     return (
-        <div className="form-container"> 
+        <div className="form-container">
             <h1>Login</h1>
             <h2>Welcome back! Please login to your account</h2>
             <form className="form" onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <input 
+                    <input
                         type="email"
                         id="email"
                         name="email"
@@ -48,7 +50,7 @@ export default function Login() {
                         required
                     />
                 </div>
-                <div className="form-group"> 
+                <div className="form-group">
                     <input
                         type="password"
                         id="password"
@@ -66,10 +68,7 @@ export default function Login() {
 
                 <Link to="/request" className="guest">Continue as guest?</Link>
                 <p>Don't have an account yet? <Link to="/Signup">Sign up</Link></p>
-
             </form>
-        
         </div>
-       
-        )
+    );
 }
