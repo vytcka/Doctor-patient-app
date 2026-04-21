@@ -735,3 +735,113 @@ def filterResults():
     results = query.all()
 
     return render_template('search_results.html', doctors=results)
+
+@main.route('/submit-review/<string:nhs_number>', methods=['GET', 'POST'])
+def submit_review(nhs_number):
+    """Submit review route allows logged-in patients to leave a review for a doctor
+    they have chatted with. Reviews require at least 5 messages exchanged and go
+    into a pending moderation queue before being published.
+
+    Args:
+        nhs_number (str): the NHS number of the doctor being reviewed.
+
+    Returns:
+        renders submit_review.html on GET or failed POST,
+        redirects to user_dashboard on success.
+    """
+    if session.get('role') != 'user':
+        logger.warning(sanitisationForLogs(
+            f"Forbidden review attempt: role={session.get('role')} from {request.remote_addr}"
+        ))
+        return render_template("forbidden.html", 
+            message="You must be logged in as a patient to leave a review."), 403
+
+    doctor = db.session.get(Doctor, nhs_number)
+    if not doctor:
+        abort(404)
+
+    username = session.get('user')
+    user_row = db.session.execute(
+        text("SELECT id FROM user WHERE username = :username"),
+        {"username": username}
+    ).mappings().first()
+
+    if not user_row:
+        session.clear()
+        return redirect(url_for('main.login'))
+
+    user_id = user_row['id']
+
+    # Count messages in any chat where this user is the sender
+    # and the chat is linked to the target doctor via the Request table
+    chat = Chat.query.filter_by(sender_id=user_id).first()
+    message_count = 0
+    if chat:
+        message_count = Message.query.filter_by(
+            chat_id=chat.id,
+            sender_id=user_id
+        ).count()
+
+    if message_count < 5:
+        flash("You can only review a doctor after sending at least 5 messages in a chat.")
+        logger.warning(sanitisationForLogs(
+            f"User {username} attempted to review doctor {nhs_number} "
+            f"with only {message_count} messages from {request.remote_addr}"
+        ))
+        return redirect(url_for('main.user_dashboard'))
+
+    # Check for an existing review so the user can update it (FR12)
+    existing_review = Review.query.filter_by(
+        user_id=user_id,
+        doctor_id=nhs_number
+    ).first()
+
+    if request.method == 'POST':
+        rating_raw = request.form.get('rating')
+        comment = request.form.get('comment', '').strip()
+
+        try:
+            rating = float(rating_raw)
+            if not (1.0 <= rating <= 5.0):
+                raise ValueError
+        except (TypeError, ValueError):
+            flash("Rating must be a number between 1 and 5.")
+            return render_template('submit_review.html', 
+                doctor=doctor, existing_review=existing_review)
+
+        safe_comment = bleach.clean(comment, tags=[], strip=True)
+
+        if len(safe_comment) > 200:
+            flash("Comment must be 200 characters or fewer.")
+            return render_template('submit_review.html', 
+                doctor=doctor, existing_review=existing_review)
+
+        if existing_review:
+            # Update and return to moderation queue (FR12)
+            existing_review.rating = rating
+            existing_review.comment = safe_comment
+            existing_review.status = False
+            db.session.commit()
+            logger.info(sanitisationForLogs(
+                f"User {username} updated review for doctor {nhs_number}"
+            ))
+            flash("Your review has been updated and is pending moderation.")
+        else:
+            new_review = Review(
+                user_id=user_id,
+                doctor_id=nhs_number,
+                rating=rating,
+                comment=safe_comment,
+                status=False
+            )
+            db.session.add(new_review)
+            db.session.commit()
+            logger.info(sanitisationForLogs(
+                f"User {username} submitted review for doctor {nhs_number}"
+            ))
+            flash("Your review has been submitted and is pending moderation.")
+
+        return redirect(url_for('main.user_dashboard'))
+
+    return render_template('submit_review.html', 
+        doctor=doctor, existing_review=existing_review)
