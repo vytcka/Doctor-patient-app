@@ -252,6 +252,16 @@ def doctor_login():
             query = text("SELECT * FROM doctor WHERE username = :username")
             row = db.session.execute(query, {"username": username}).mappings().first()
 
+            if doctor.is_banned:
+                flash('Your account has been banned.')
+                logging.warning(sanitisationForLogs(f"Banned doctor {username} attempted to log in from {request.remote_addr}"))
+                return render_template('doctor_login.html', forms=forms, error="Your account is banned.")
+            
+            if doctor.is_suspended:
+                flash(f'Your account is suspended. Reason: {doctor.suspension_reason}')
+                logging.warning(sanitisationForLogs(f"Suspended doctor {username} attempted to log in from {request.remote_addr}. Reason: {doctor.suspension_reason}"))
+                return render_template('doctor_login.html', forms=forms, error="Your account is suspended.")
+
             if row is None:
                 flash("No doctor account with that email exists.")
                 error = "No doctor with that email exists."
