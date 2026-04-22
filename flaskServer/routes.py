@@ -1073,6 +1073,43 @@ def filterResults():
     results = query.all()
     return render_template('search_results.html', doctors=results)
 
+@main.route('/moderate_user', methods=['POST'])
+def moderate_user():
+    """Moderate user route allows a moderator to take action on a user.
+
+    Returns:
+        redirects to reviewRequest.
+    """
+    if session.get('role') != 'moderator':
+        return render_template('forbidden.html')
+
+    user_id = request.form.get('user_id')
+    action = request.form.get('action')
+    reason = request.form.get('reason')
+
+    user = db.session.get(User, user_id)
+
+    if user:
+        if action == 'ban':
+            user.is_banned = True
+            user.suspension_reason = reason
+            
+        elif action == 'suspend':
+            user.is_suspended = True
+            user.suspension_reason = reason
+
+        elif action == 'unban':
+            user.is_banned = False
+            user.suspension_reason = None
+
+        elif action == 'unsuspend':
+            user.is_suspended = False
+            user.suspension_reason = None
+
+        db.session.commit()
+
+    return redirect(url_for('main.reviewRequest'))
+
 @main.route('/edit_review/<int:review_id>', methods=['GET', 'POST'])
 def edit_review(review_id):
     """Edit review route allows a user to edit a pending review within five minutes of submission.
