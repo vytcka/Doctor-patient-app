@@ -88,6 +88,16 @@ def login():
             user = db.session.get(User, row['id'])
             session.clear()
 
+            if user.is_banned:
+                flash('Your account has been banned.')
+                logging.warning(sanitisationForLogs(f"Banned user {username} attempted to log in from {request.remote_addr}"))
+                return render_template('login.html', forms=forms, error="Your account is banned.")
+            
+            if user.is_suspended:
+                flash(f'Your account is suspended. Reason: {user.suspension_reason}')
+                logging.warning(sanitisationForLogs(f"Suspended user {username} attempted to log in from {request.remote_addr}. Reason: {user.suspension_reason}"))
+                return render_template('login.html', forms=forms, error="Your account is suspended.")
+
             if not user.check_hash(password):
                 flash('Login credentials are invalid, please try again')
                 logging.warning(sanitisationForLogs(f"Incorrect credentials for username: {username} from the address: {request.remote_addr}"))
@@ -639,7 +649,7 @@ def reject_request(request_id):
 
 @main.route('/chat/<int:chat_id>', methods=['GET', 'POST'])
 def chat(chat_id):
-    """Chat route allows a patient and their doctor to exchange messages.
+    """Chat route allows a patient and their doctor to exchange messages, images and voice uploads.
 
     Args:
         chat_id (int): the ID of the Chat to view.
@@ -680,6 +690,7 @@ def chat(chat_id):
 
     if request.method == 'POST' and chat_obj.status == CHAT_STATUS_ACTIVE:
         content = request.form.get('content', '').strip()
+        file = request.files.get('file')
         if content:
             new_message = Message(
                 chat_id     = chat_id,

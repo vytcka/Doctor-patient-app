@@ -47,6 +47,9 @@ class User(db.Model):
     last_name = db.Column(db.String(50), nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
     location = db.Column(db.String(100), nullable=False)
+    is_banned = db.Column(db.Boolean, default=False, nullable=False)
+    is_suspended = db.Column(db.Boolean, default=False, nullable=False)
+    suspension_reason = db.Column(db.String(255), nullable=True)
 
     def hash_password(self, password:str)-> str:
         """Hash password method is responsble for hashing the methods and storing them in the database
@@ -192,6 +195,9 @@ class Doctor(db.Model):
     language      = db.Column(db.String(60),  nullable=False)
     availability  = db.Column(db.Boolean,     nullable=False, default=True)
     bio           = db.Column(db.String(3000), nullable=False)
+    is_banned = db.Column(db.Boolean, default=False, nullable=False)
+    is_suspended = db.Column(db.Boolean, default=False, nullable=False)
+    suspension_reason = db.Column(db.String(255), nullable=True)
 
     def _hash_password(self, password: str) -> str:
         """Hash password method is responsible for hashing the doctor's password before
@@ -411,7 +417,8 @@ class Message(db.Model):
     sender_type = db.Column(db.String(10), nullable=False)
     content     = db.Column(db.Text,       nullable=False)
     timestamp   = db.Column(db.DateTime,   default=datetime.utcnow, nullable=False)
-    
+    file_path   = db.Column(db.String(255),  nullable=True)
+    file_type   = db.Column(db.String(50),   nullable=True)
     
 class Review(db.Model):
     """The review class generates the review has to be verified and made
