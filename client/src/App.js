@@ -3,6 +3,7 @@ import Home from "./Home";
 import Check from "./Check";
 import PostRequest from './PostRequest'; 
 import Reviews from './Reviews'; 
+import DoctorDetail from "./DoctorDetail";
 import Login from "./login";
 import Signup from "./signup";
 import Chat from "./Chat";
@@ -15,6 +16,7 @@ function App() {
         <Route path="/Check" element={<Check />} />
         <Route path="/post-request" element={<PostRequest />} />
         <Route path="/reviews" element={<Reviews />} />
+        <Route path="/doctor/:id" element={<DoctorDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/chat" element={<Chat />} />

@@ -1,11 +1,15 @@
 import { React, useState } from "react";
 import { data } from "./doctorItems";
+import { useNavigate } from "react-router-dom";
 import './reviews.css'; 
+
 
 export default function Reviews() {
 
 
     const [query, setQuery] = useState("")
+
+    const navigate = useNavigate();
 
     //initialise objects
     const [selectedFilters, setSelectedFilters] = useState({
@@ -140,14 +144,14 @@ export default function Reviews() {
             <div className="doctor-container">
                  {filteredDoctors.map((items) => (
 
-                    <div className="doctor-card" key={items.id}>
+                    <div className="doctor-card" key={items.id} onClick={() => navigate(`/doctor/${items.id}`)}>
+                        <img src={items.profileIcon} alt={items.name} className="doc-profile-icon"/>
                         <div className="doctor-info">
                             <h3>{items.name}</h3>
                             <p><b>Specialty: </b>{items.specialty}</p>
                             <p><b>Gender: </b>{items.gender}</p>
                             <p><b>Language: </b>{items.language.join(", ")}</p>
                             <p><b>Location: </b>{items.location}</p>
-                            {/* availability */}
                         </div>
 
                         <div className="doctor-rating"> 
