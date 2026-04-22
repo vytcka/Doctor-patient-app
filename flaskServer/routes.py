@@ -1093,7 +1093,7 @@ def moderate_user():
         if action == 'ban':
             user.is_banned = True
             user.suspension_reason = reason
-            
+
         elif action == 'suspend':
             user.is_suspended = True
             user.suspension_reason = reason
@@ -1105,6 +1105,42 @@ def moderate_user():
         elif action == 'unsuspend':
             user.is_suspended = False
             user.suspension_reason = None
+
+        db.session.commit()
+
+    return redirect(url_for('main.reviewRequest'))
+@main.route('/moderate_doctor', methods=['POST'])
+def moderate_doctor():
+    """Moderate doctor route allows a moderator to take action on a doctor.
+
+    Returns:
+        redirects to reviewRequest.
+    """
+    if session.get('role') != 'moderator':
+        return render_template('forbidden.html')
+
+    nhs_number = request.form.get('nhs_number')
+    action = request.form.get('action')
+    reason = request.form.get('reason')
+
+    doctor = db.session.get(Doctor, nhs_number)
+
+    if doctor:
+        if action == 'ban':
+            doctor.is_banned = True
+            doctor.suspension_reason = reason
+            
+        elif action == 'suspend':
+            doctor.is_suspended = True
+            doctor  .suspension_reason = reason
+
+        elif action == 'unban':
+            doctor.is_banned = False
+            doctor.suspension_reason = None
+
+        elif action == 'unsuspend':
+            doctor.is_suspended = False
+            doctor.suspension_reason = None
 
         db.session.commit()
 
