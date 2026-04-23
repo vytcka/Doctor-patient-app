@@ -4,7 +4,7 @@ from flask import request, render_template, redirect, url_for, session, Blueprin
 from sqlalchemy import text
 from flaskServer import db
 from flaskServer.models import (
-    Message, Request, User, Doctor, Decypher, Chat,
+    Message, Notification, Request, User, Doctor, Decypher, Chat,
     Review, Report, ModeratorNotification,
     CHAT_STATUS_ACTIVE, CHAT_STATUS_WITHDRAWN, CHAT_STATUS_CLOSED,
     REQUEST_STATUS_PENDING, REQUEST_STATUS_ACCEPTED, REQUEST_STATUS_REJECTED,
@@ -649,6 +649,12 @@ def accept_request(request_id):
             receiver_id = medical_request.user_id,  # doctor contact via nhs in session
         )
         db.session.add(chat)
+
+        notification = Notification(
+            user_id=medical_request.user_id,
+            message=f"Your request has been accepted by Dr. {doctor.username}."
+        )
+        db.session.add(notification)
         db.session.commit()
 
         logger.info(sanitisationForLogs(f"Doctor {doctor.username} accepted request {request_id}"))
