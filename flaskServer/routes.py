@@ -1231,3 +1231,13 @@ def edit_review(review_id):
             flash('An error occurred while updating your review. Please try again.')
             
     return redirect(url_for('main.user_dashboard'))
+
+@main.route('/notifications', methods=['GET'])
+def get_notifications():
+    if session.get('role') != 'user':
+        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+
+    user = get_current_user()
+    user_notifications = Notification.query.filter_by(user_id=user.id).all()
+
+    return render_template('notifications.html', notifications=user_notifications)
