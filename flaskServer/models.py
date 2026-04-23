@@ -417,8 +417,8 @@ class Message(db.Model):
     sender_type = db.Column(db.String(10), nullable=False)
     content     = db.Column(db.Text,       nullable=False)
     timestamp   = db.Column(db.DateTime,   default=datetime.now, nullable=False)
-    file_path   = db.Column(db.String(255),  nullable=True)
-    file_type   = db.Column(db.String(50),   nullable=True)
+    file_path   = db.Column(db.String(255),  default = None, nullable=True)
+    file_type   = db.Column(db.String(50),   default = None,nullable=True)
     
 class Review(db.Model):
     """The review class generates the review has to be verified and made
