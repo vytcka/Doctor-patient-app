@@ -355,6 +355,10 @@ class Chat(db.Model):
     
     def approveAppointment(self):
         """_summary_: approves the appointment for between the patient and doctor."""
+    
+    def withdraw(self):
+        """_summary_: withdraws the appointment for between the patient and doctor."""
+        self.withdrawn = True
  
 # ─────────────────────────────────────────────
 # Message model — UNCHANGED

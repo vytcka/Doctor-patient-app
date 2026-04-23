@@ -437,3 +437,37 @@ class DoctorRegistrationForm(FlaskForm):
         """
         if location.data and location.data.strip() == "":
             raise ValidationError("Location cannot be blank.")
+        
+from wtforms import TextAreaField, FloatField
+from wtforms.validators import NumberRange, Optional, Length, input_required
+
+
+class ReviewForm(FlaskForm):
+    """ReviewForm is used by patients to submit a rating and optional comment
+    for a doctor they have seen.  Ratings must be between 1.0 and 5.0.
+    Comments are optional but capped at 200 characters.
+
+    Args:
+        FlaskForm (Parent Class): uses the FlaskForm parent class.
+
+    Raises:
+        ValidationError: raised if the rating is outside 1.0–5.0.
+    """
+
+    rating = FloatField(
+        'Rating (1–5)',
+        validators=[
+            input_required(message="A rating is required."),
+            NumberRange(min=1.0, max=5.0, message="Rating must be between 1.0 and 5.0."),
+        ]
+    )
+
+    comment = TextAreaField(
+        'Comment (optional)',
+        validators=[
+            Optional(),
+            Length(max=200, message="Comment must be 200 characters or fewer."),
+        ]
+    )
+
+    submit = SubmitField("Submit Review")

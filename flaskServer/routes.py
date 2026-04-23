@@ -3,7 +3,7 @@ from flask import request, render_template, redirect, url_for, session, Blueprin
 from sqlalchemy import text
 from flaskServer import db
 from flaskServer.models import Message, Request, User, Doctor, Decypher
-from flaskServer.forms import request_form, validation_form, registration_form, password_form, DoctorRegistrationForm
+from flaskServer.forms import ReviewForm, request_form, validation_form, registration_form, password_form, DoctorRegistrationForm
 import bleach
 from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
@@ -738,9 +738,9 @@ def filterResults():
 
 @main.route('/submit-review/<string:nhs_number>', methods=['GET', 'POST'])
 def submit_review(nhs_number):
-    """Submit review route allows logged-in patients to leave a review for a doctor
-    they have chatted with. Reviews require at least 5 messages exchanged and go
-    into a pending moderation queue before being published.
+    """Submit review route allows logged-in patients to leave a review for a doctor.
+    Enforces FR26 (no review after early withdrawal), FR28 (can review if reported),
+    and FR29 (must have 5+ messages to review).
 
     Args:
         nhs_number (str): the NHS number of the doctor being reviewed.
@@ -753,7 +753,7 @@ def submit_review(nhs_number):
         logger.warning(sanitisationForLogs(
             f"Forbidden review attempt: role={session.get('role')} from {request.remote_addr}"
         ))
-        return render_template("forbidden.html", 
+        return render_template("forbidden.html",
             message="You must be logged in as a patient to leave a review."), 403
 
     doctor = db.session.get(Doctor, nhs_number)
@@ -772,9 +772,32 @@ def submit_review(nhs_number):
 
     user_id = user_row['id']
 
-    # Count messages in any chat where this user is the sender
-    # and the chat is linked to the target doctor via the Request table
-    chat = Chat.query.filter_by(sender_id=user_id).first()
+    # Find the chat between this user and this doctor
+    chat = Chat.query.filter_by(
+        sender_id=user_id,
+        doctor_nhs_number=nhs_number
+    ).first()
+
+    # FR28 — check if the user has reported this doctor
+    has_reported = False
+    if chat:
+        has_reported = Report.query.filter_by(
+            reporter_id=user_id
+        ).join(Message).filter(
+            Message.chat_id == chat.id
+        ).first() is not None
+
+    # FR26 — block review if chat was withdrawn within 3 messages,
+    # unless the user has reported the doctor (FR28)
+    if chat and chat.withdrawn and not has_reported:
+        flash("You cannot review a doctor you withdrew from within 3 messages.")
+        logger.warning(sanitisationForLogs(
+            f"User {username} attempted to review doctor {nhs_number} "
+            f"after early withdrawal from {request.remote_addr}"
+        ))
+        return redirect(url_for('main.user_dashboard'))
+
+    # FR29 — must have 5+ messages unless they reported the doctor (FR28)
     message_count = 0
     if chat:
         message_count = Message.query.filter_by(
@@ -782,8 +805,8 @@ def submit_review(nhs_number):
             sender_id=user_id
         ).count()
 
-    if message_count < 5:
-        flash("You can only review a doctor after sending at least 5 messages in a chat.")
+    if message_count < 5 and not has_reported:
+        flash("You can only review a doctor after sending at least 5 messages.")
         logger.warning(sanitisationForLogs(
             f"User {username} attempted to review doctor {nhs_number} "
             f"with only {message_count} messages from {request.remote_addr}"
@@ -806,21 +829,21 @@ def submit_review(nhs_number):
                 raise ValueError
         except (TypeError, ValueError):
             flash("Rating must be a number between 1 and 5.")
-            return render_template('submit_review.html', 
+            return render_template('submit_review.html',
                 doctor=doctor, existing_review=existing_review)
 
         safe_comment = bleach.clean(comment, tags=[], strip=True)
 
         if len(safe_comment) > 200:
             flash("Comment must be 200 characters or fewer.")
-            return render_template('submit_review.html', 
+            return render_template('submit_review.html',
                 doctor=doctor, existing_review=existing_review)
 
         if existing_review:
             # Update and return to moderation queue (FR12)
             existing_review.rating = rating
             existing_review.comment = safe_comment
-            existing_review.status = False
+            existing_review.status = False  # back to pending moderation
             db.session.commit()
             logger.info(sanitisationForLogs(
                 f"User {username} updated review for doctor {nhs_number}"
@@ -843,5 +866,91 @@ def submit_review(nhs_number):
 
         return redirect(url_for('main.user_dashboard'))
 
-    return render_template('submit_review.html', 
+    return render_template('submit_review.html',
         doctor=doctor, existing_review=existing_review)
+
+@main.route('/doctor/<nhs_number>/reviews', methods=['GET'])
+def doctor_reviews(nhs_number):
+    """Doctor reviews route displays all approved reviews for a given doctor,
+    along with their current average rating.
+
+    Anyone (logged in or not) may view this page.
+
+    Args:
+        nhs_number (str): the 10-digit NHS number of the doctor.
+
+    Returns:
+        renders doctor_reviews.html with the doctor object and approved reviews.
+    """
+    doctor = db.session.get(Doctor, nhs_number)
+    if doctor is None:
+        abort(404)
+
+    approved_reviews = Review.query.filter_by(
+        doctor_id=nhs_number,
+        status=True
+    ).order_by(Review.created_at.desc()).all()
+
+    # Compute live average from approved reviews (may differ from stored rating)
+    if approved_reviews:
+        avg_rating = round(sum(r.rating for r in approved_reviews) / len(approved_reviews), 1)
+    else:
+        avg_rating = None
+
+    return render_template(
+        'doctor_reviews.html',
+        doctor=doctor,
+        reviews=approved_reviews,
+        avg_rating=avg_rating
+    )
+
+@main.route('/withdraw_chat/<int:chat_id>', methods=['POST'])
+def widthdraw_chat(chat_id):
+    """Withdraw chat route allows a doctor or patient to withdraw from an active chat,
+    effectively ending the appointment. The chat is marked as withdrawn but not deleted
+    to preserve conversation history for moderators in case of disputes.
+
+    Only participants of the chat may perform this action.
+
+    Args:
+        chat_id (int): the ID of the chat to withdraw from.
+
+    Returns:
+        redirects to dashboard after withdrawal.
+    """
+    if session.get('role') != 'user':
+        logger.warning(sanitisationForLogs(f"Forbidden chat withdrawal attempt: role={session.get('role')} from {request.remote_addr}"))
+        return render_template("forbidden.html", 
+            message="You need to be logged in to perform this action."), 403
+    
+    username = session.get('user')
+    user_row = db.session.execute(
+        text("SELECT id FROM user WHERE username = :u"), {"u": username}
+    ).mappings().first()
+
+    if user_row is None:
+        session.clear()
+        return redirect(url_for('main.login'))
+    
+    user_id = user_row['id']
+    
+    chat = Chat.query.get(chat_id)
+    if not chat or chat.sender_id != user_id:
+        flash("Chat not found or you do not have permissions to view this.")
+        return redirect(url_for('main.dashboard'))
+    
+    if chat.withdrawn:
+        flash("Chat is already withdrawn.")
+        return redirect(url_for('main.dashboard'))
+    
+    user_message_count = Message.query.filter_by(chat_id=chat_id, sender_id=user_row['id']).count()
+    if user_message_count < 3:
+        flash("You must send at least 3 messages in the chat before you can withdraw.")
+        return redirect(url_for('main.dashboard'))
+    
+    chat.withdraw()
+    db.session.commit()
+
+    logger.info(sanitisationForLogs(f"Chat {chat_id} withdrawn by user {username} from {request.remote_addr}"))
+    flash("You have withdrawn from the chat. The appointment is now ended.")
+    return redirect(url_for('main.user_dashboard'))
