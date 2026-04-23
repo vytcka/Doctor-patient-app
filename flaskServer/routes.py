@@ -35,9 +35,9 @@ So a proposed solution would be to send json data rather then direct redirection
 @main.route("/certain_path", methods = ["POST"]): #also methods should be post, to send the data
 def certainMethod():
     #lets say we get a variable user, we capture it via the api call to capture json values:
-    json = data.get_json();
+    data = request.get_json()
     
-    user = json.get("username") # whatever it is, its all dependent on the field type.. and then we can manually set up a form so, we set up a manual form 
+    user = data["username"]) # whatever it is, its all dependent on the field type.. and then we can manually set up a form so, we set up a manual form 
     form = certainMethodForm()
     form.user.data = user
     
@@ -269,7 +269,7 @@ def user_dashboard():
         return jsonify({"status", 400}), 400
 
 
-@main.route('/doctor/login', methods=['GET', 'POST'])
+@main.route('/doctor/login', methods=['POST'])
 def doctor_login():
     """Doctor login route is responsible for authenticating doctor accounts.
     On a successful login the doctor's username, role, NHS number, and encrypted
@@ -279,7 +279,10 @@ def doctor_login():
         renders doctor_login.html on GET or failed POST, redirects to doctor_dashboard on success.
     """
     error = None
+    data = request.get_json()
+    
     forms = validation_form()
+    
     if request.method == 'POST':
         if forms.validate_on_submit():
             session.permanent = True
@@ -422,7 +425,7 @@ def doctor_dashboard():
         doctor = get_current_doctor()
         decypher = Decypher(session['bio'])
 
-        active_chats     = Chat.query.filter_by(receiver_id=doctor.nhs_number, status=CHAT_STATUS_ACTIVE).all()
+        active_chats     = Chat.query.filter_by(receiver_id=doctor.nhs_number, status="CHAT_STATUS_ACTIVE").all()
         pending_requests = Request.query.filter_by(status=REQUEST_STATUS_PENDING).all()
 
         return render_template(
@@ -730,12 +733,12 @@ def chat(chat_id):
         return render_template("forbidden.html", message="You do not have access to this chat."), 403
 
     # FR32 — auto-close if inactive for more than 10 minutes
-    if chat_obj.status == CHAT_STATUS_ACTIVE and chat_obj.is_inactive():
-        chat_obj.status = CHAT_STATUS_CLOSED
+    if chat_obj.status == "CHAT_STATUS_ACTIVE" and chat_obj.is_inactive():
+        chat_obj.status = "CHAT_STATUS_CLOSED"
         db.session.commit()
         flash('This chat has been automatically closed due to inactivity.')
 
-    if request.method == 'POST' and chat_obj.status == CHAT_STATUS_ACTIVE:
+    if request.method == 'POST' and chat_obj.status == "CHAT_STATUS_ACTIVE":
         content = request.form.get('content', '').strip()
         file = request.files.get('file')
         if content:

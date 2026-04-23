@@ -82,7 +82,7 @@ export default function Chat() {
           onChange={e => setInput(e.target.value)}
           placeholder="Type a message..."
         />
-        <button style={styles.button} onClick={sendMessage}>
+        <button style={styles.button} on  Click={sendMessage}>
           Send
         </button>
       </div>

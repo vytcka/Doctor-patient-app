@@ -3,7 +3,7 @@ import bcrypt;
 import os;
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
-from datetime import date
+from datetime import datetime
 
 load_dotenv()
 
@@ -334,8 +334,8 @@ class Request(db.Model):
     existing_details = db.Column(db.Text)
     user_id          = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
     doctor_id        = db.Column(db.Integer,  db.ForeignKey('user.id'))
-    status           = db.Column(db.String(20), default=REQUEST_STATUS_PENDING, nullable=False)
-    created_at       = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    status           = db.Column(db.String(20), default="REQUEST_STATUS_PENDING", nullable=False)
+    created_at       = db.Column(db.DateTime, default=datetime.now, nullable=False)
  
     user   = db.relationship('User', foreign_keys=[user_id])
     doctor = db.relationship('User', foreign_keys=[doctor_id])
@@ -346,10 +346,10 @@ class Chat(db.Model):
     sender_id         = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
     receiver_id       = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
     bookedAppointment = db.Column(db.Boolean,  nullable=False, default=False)
-    status            = db.Column(db.String(20), default=CHAT_STATUS_ACTIVE, nullable=False)
+    status            = db.Column(db.String(20), default="CHAT_STATUS_ACTIVE", nullable=False)
     message_count     = db.Column(db.Integer,  default=0, nullable=False)
-    created_at        = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    last_activity     = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at        = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    last_activity     = db.Column(db.DateTime, default=datetime.now , nullable=False)
     withdrawn_at      = db.Column(db.DateTime, nullable=True)
  
     messages = db.relationship('Message', backref='chat', lazy='dynamic',
@@ -364,7 +364,7 @@ class Chat(db.Model):
         Called every time a new message is added to this chat.
         """
         self.message_count += 1
-        self.last_activity = datetime.utcnow()
+        self.last_activity = datetime.datetime.now(datetime.timezone.utc)
  
     def can_be_withdrawn(self) -> bool:
         """Check whether this chat can still be withdrawn.
@@ -375,7 +375,7 @@ class Chat(db.Model):
         user_messages = Message.query.filter_by(
             chat_id=self.id, sender_type='user'
         ).count()
-        return self.status == CHAT_STATUS_ACTIVE and user_messages <= 3
+        return self.status == "CHAT_STATUS_ACTIVE" and user_messages <= 3
  
     def can_be_restored(self) -> bool:
         """Check whether this chat can be restored after withdrawal.
@@ -383,9 +383,9 @@ class Chat(db.Model):
         Returns:
             bool: True if the chat was withdrawn less than 10 minutes ago.
         """
-        if self.status != CHAT_STATUS_WITHDRAWN or self.withdrawn_at is None:
+        if self.status != "CHAT_STATUS_WITHDRAWN" or self.withdrawn_at is None:
             return False
-        elapsed = (datetime.utcnow() - self.withdrawn_at).total_seconds()
+        elapsed = (datetime.now - self.withdrawn_at).total_seconds()
         return elapsed <= 600
  
     def is_inactive(self) -> bool:
@@ -394,7 +394,7 @@ class Chat(db.Model):
         Returns:
             bool: True if last activity was more than 10 minutes ago.
         """
-        elapsed = (datetime.utcnow() - self.last_activity).total_seconds()
+        elapsed = (datetime.now() - self.last_activity).total_seconds()
         return elapsed > 600
  
     def user_can_review(self) -> bool:
@@ -406,7 +406,7 @@ class Chat(db.Model):
         user_messages = Message.query.filter_by(
             chat_id=self.id, sender_type='user'
         ).count()
-        withdrew_early = (self.status == CHAT_STATUS_WITHDRAWN and user_messages <= 3)
+        withdrew_early = (self.status == "CHAT_STATUS_WITHDRAWN" and user_messages <= 3)
         return user_messages > 5 and not withdrew_early
  
  
@@ -416,7 +416,7 @@ class Message(db.Model):
     sender_id   = db.Column(db.String(20), nullable=False)
     sender_type = db.Column(db.String(10), nullable=False)
     content     = db.Column(db.Text,       nullable=False)
-    timestamp   = db.Column(db.DateTime,   default=datetime.utcnow, nullable=False)
+    timestamp   = db.Column(db.DateTime,   default=datetime.now, nullable=False)
     file_path   = db.Column(db.String(255),  nullable=True)
     file_type   = db.Column(db.String(50),   nullable=True)
     
@@ -431,7 +431,7 @@ class Review(db.Model):
     doctor_id = db.Column(db.String(10), db.ForeignKey('doctor.nhs_number'), nullable=False)
     rating = db.Column(db.Float, nullable=False)
     comment = db.Column(db.String(200))
-    created_at = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+    created_at = db.Column(db.DateTime, default=datetime.now)
     
     user = db.relationship('User')
     doctor = db.relationship('Doctor')
