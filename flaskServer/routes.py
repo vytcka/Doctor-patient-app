@@ -943,12 +943,15 @@ def widthdraw_chat(chat_id):
         flash("Chat is already withdrawn.")
         return redirect(url_for('main.dashboard'))
     
-    user_message_count = Message.query.filter_by(chat_id=chat_id, sender_id=user_row['id']).count()
-    if user_message_count < 3:
-        flash("You must send at least 3 messages in the chat before you can withdraw.")
-        return redirect(url_for('main.dashboard'))
-    
-    chat.withdraw()
+    if user_message_count > 3:
+        flash("You can no longer withdraw from this chat.")
+        logger.warning(sanitisationForLogs(
+            f"User {username} tried to withdraw from chat {chat_id} "
+            f"after {user_message_count} messages from {request.remote_addr}"
+        ))
+        return redirect(url_for('main.user_dashboard'))
+
+    chat.withdraw(early=True)
     db.session.commit()
 
     logger.info(sanitisationForLogs(f"Chat {chat_id} withdrawn by user {username} from {request.remote_addr}"))
