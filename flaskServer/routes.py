@@ -27,6 +27,29 @@ from flask import jsonify
 
 #use hashing via bcrypt and put hashed valeus in the db, and then hash the input with the same salt and compare them, if equal then give out token;
 
+
+
+
+""" Quick note for the backend people, we have been focusing on the wrong aspect of developed as i have mentioned.
+So a proposed solution would be to send json data rather then direct redirection. so for example
+@main.route("/certain_path", methods = ["POST"]): #also methods should be post, to send the data
+def certainMethod():
+    #lets say we get a variable user, we capture it via the api call to capture json values:
+    json = data.get_json();
+    
+    user = json.get("username") # whatever it is, its all dependent on the field type.. and then we can manually set up a form so, we set up a manual form 
+    form = certainMethodForm()
+    form.user.data = user
+    
+    if form.validate():
+        ...
+        #now depending on the method we either return data or a status or both :D
+        return jsonify({"status" : 200}), 200
+    else:
+        return jsonify({"status" : 400}), 400
+    
+"""
+
 main = Blueprint('main', __name__)
 logger = logging.getLogger()
 
@@ -55,9 +78,11 @@ def get_current_doctor():
 
 @main.route('/')
 def home():
+    #i Doubt we would need a home directory or navigator per se, i think the approach that i have taken at least we should not return any headers, only json data.
     logger.info(sanitisationForLogs(f"Request from the address {request.remote_addr}"))
-    return render_template('home.html')
-
+    #return json objects instead, in my opinion because I think due to my personal naivety i imagined we would navigate across pages, which is not right.
+    return jsonify({"status" : 200})
+    #return render_template('home.html')
 
 @main.route('/login', methods=['GET', 'POST'])
 def login():
@@ -68,8 +93,10 @@ def login():
     Returns:
         renders login.html on GET or failed POST, redirects to user_dashboard on success.
     """
+
     error = None
     forms = validation_form()
+    
     if request.method == 'POST':
         if forms.validate_on_submit():
             session.permanent = True
@@ -112,7 +139,7 @@ def login():
     
         else:
             logger.error(sanitisationForLogs(f"incorrect submission from attempt from the address {request.remote_addr}"))
-            return render_template('login.html', forms=forms)
+            return jsonify({"status" : 400, "message" : "suspicious attempt"})
 
     return render_template('login.html', forms=forms, error=error)
 
@@ -144,6 +171,8 @@ def register():
     Returns:
         renders register.html on GET or failed POST, redirects to login on success.
     """
+    data = request.get_json()
+    
     forms = registration_form()
     if request.method == 'POST':
         
@@ -168,7 +197,7 @@ def register():
             if row:
                 flash('There already is a user registered with that username... \n Please register with a different username.')
                 logging.info(sanitisationForLogs(f"user tried to create an account with the username {username} from the ip {request.remote_addr} "))
-                return render_template("register.html", forms=forms)
+                return jsonify({"success" : False,"message" : "The name is taken."})
 
             safe_bio = bleach.clean(bio, 
                                  tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
@@ -198,13 +227,21 @@ def register():
             db.session.commit()
 
             logging.info(sanitisationForLogs(f"user has been registered with the name {username} from the ip {request.remote_addr}"))
-            return redirect(url_for('main.login'))
-        else:
-            return render_template('register.html', forms=forms)
-    return render_template('register.html', forms=forms)
+            return jsonify({"success" : True}), 200
+    else:
+        listOfErrors = []
+        for fieldName, errorMessages in forms.errors.items():
+            for err in errorMessages:
+                listOfErrors.append(f"{fieldName} : {err}")
+
+        return jsonify({
+            "success": False,
+            "errors": listOfErrors
+        })
+    return jsonify({"message" : "Please input some data."})
 
 
-@main.route('/user-dashboard')
+@main.route('/user-dashboard', methods = ["POST"])
 def user_dashboard():
     """User dashboard shows the patient's active requests and points total.
 
@@ -229,7 +266,7 @@ def user_dashboard():
             accepted_requests=accepted_requests,
         )
     except InvalidToken:
-        return redirect(url_for('main.login'))
+        return jsonify({"status", 400}), 400
 
 
 @main.route('/doctor/login', methods=['GET', 'POST'])
