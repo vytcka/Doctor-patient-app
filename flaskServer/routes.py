@@ -556,6 +556,11 @@ def chat(chat_id):
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to chat {chat_id} by user {session.get('user')} from {request.remote_addr}"))
         return render_template("forbidden.html", message="You do not have access to this chat."), 403   
     if request.method == 'POST':
+        if chat.withdrawn:
+            #FR25 - block messaging if the chat has been withdrawn
+            flash('This chat has been withdrawn. You cannot send messages.')
+            return redirect(url_for('main.chat', chat_id=chat_id))
+        
         content = request.form.get('content')
         if content:
             new_message = Message(chat_id=chat_id, sender_id=current_user.id, receiver_id=chat.doctor_id if current_user.id == chat.patient_id else chat.patient_id, content=content)
@@ -789,7 +794,7 @@ def submit_review(nhs_number):
 
     # FR26 — block review if chat was withdrawn within 3 messages,
     # unless the user has reported the doctor (FR28)
-    if chat and chat.withdrawn and not has_reported:
+    if chat and chat.early_withdrawn and not has_reported:
         flash("You cannot review a doctor you withdrew from within 3 messages.")
         logger.warning(sanitisationForLogs(
             f"User {username} attempted to review doctor {nhs_number} "
@@ -943,7 +948,12 @@ def widthdraw_chat(chat_id):
         flash("Chat is already withdrawn.")
         return redirect(url_for('main.dashboard'))
     
-    if user_message_count > 3:
+    user_message_count = Message.query.filter_by(
+        chat_id=chat_id,
+        sender_id=user_id
+    ).count()
+    
+    if user_message_count >= 3:
         flash("You can no longer withdraw from this chat.")
         logger.warning(sanitisationForLogs(
             f"User {username} tried to withdraw from chat {chat_id} "
