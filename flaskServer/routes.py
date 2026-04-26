@@ -751,15 +751,13 @@ def submit_review(nhs_number):
         nhs_number (str): the NHS number of the doctor being reviewed.
 
     Returns:
-        renders submit_review.html on GET or failed POST,
-        redirects to user_dashboard on success.
+        returns JSON response with success status message
     """
     if session.get('role') != 'user':
         logger.warning(sanitisationForLogs(
             f"Forbidden review attempt: role={session.get('role')} from {request.remote_addr}"
         ))
-        return render_template("forbidden.html",
-            message="You must be logged in as a patient to leave a review."), 403
+        return jsonify({"success": False, "message": "You must be logged in as a user to submit a review."}), 403
 
     doctor = db.session.get(Doctor, nhs_number)
     if not doctor:
@@ -773,7 +771,7 @@ def submit_review(nhs_number):
 
     if not user_row:
         session.clear()
-        return redirect(url_for('main.login'))
+        return jsonify({"success": False, "message": "User not found."}), 404
 
     user_id = user_row['id']
 
@@ -800,7 +798,7 @@ def submit_review(nhs_number):
             f"User {username} attempted to review doctor {nhs_number} "
             f"after early withdrawal from {request.remote_addr}"
         ))
-        return redirect(url_for('main.user_dashboard'))
+        return jsonify({"success": False, "message": "You cannot review a doctor you withdrew from within 3 messages."}), 403
 
     # FR29 — must have 5+ messages unless they reported the doctor (FR28)
     message_count = 0
@@ -816,7 +814,7 @@ def submit_review(nhs_number):
             f"User {username} attempted to review doctor {nhs_number} "
             f"with only {message_count} messages from {request.remote_addr}"
         ))
-        return redirect(url_for('main.user_dashboard'))
+        return jsonify({"success": False, "message": "You can only review a doctor after sending at least 5 messages."}), 400
 
     # Check for an existing review so the user can update it (FR12)
     existing_review = Review.query.filter_by(
@@ -833,16 +831,12 @@ def submit_review(nhs_number):
             if not (1.0 <= rating <= 5.0):
                 raise ValueError
         except (TypeError, ValueError):
-            flash("Rating must be a number between 1 and 5.")
-            return render_template('submit_review.html',
-                doctor=doctor, existing_review=existing_review)
+            return jsonify({"success": False, "message": "Rating must be a number between 1 and 5."}), 400
 
         safe_comment = bleach.clean(comment, tags=[], strip=True)
 
         if len(safe_comment) > 200:
-            flash("Comment must be 200 characters or fewer.")
-            return render_template('submit_review.html',
-                doctor=doctor, existing_review=existing_review)
+            return jsonify({"success": False, "message": "Comment must be 200 characters or fewer."}), 400
 
         if existing_review:
             # Update and return to moderation queue (FR12)
@@ -853,7 +847,7 @@ def submit_review(nhs_number):
             logger.info(sanitisationForLogs(
                 f"User {username} updated review for doctor {nhs_number}"
             ))
-            flash("Your review has been updated and is pending moderation.")
+            return jsonify({"success": True, "message": "Your review has been updated and is pending moderation."})
         else:
             new_review = Review(
                 user_id=user_id,
@@ -867,12 +861,7 @@ def submit_review(nhs_number):
             logger.info(sanitisationForLogs(
                 f"User {username} submitted review for doctor {nhs_number}"
             ))
-            flash("Your review has been submitted and is pending moderation.")
-
-        return redirect(url_for('main.user_dashboard'))
-
-    return render_template('submit_review.html',
-        doctor=doctor, existing_review=existing_review)
+            return jsonify({"success": True, "message": "Your review has been submitted and is pending moderation."})
 
 @main.route('/doctor/<nhs_number>/reviews', methods=['GET'])
 def doctor_reviews(nhs_number):
@@ -921,12 +910,11 @@ def widthdraw_chat(chat_id):
         chat_id (int): the ID of the chat to withdraw from.
 
     Returns:
-        redirects to dashboard after withdrawal.
+        JSON response with success staus and message
     """
     if session.get('role') != 'user':
         logger.warning(sanitisationForLogs(f"Forbidden chat withdrawal attempt: role={session.get('role')} from {request.remote_addr}"))
-        return render_template("forbidden.html", 
-            message="You need to be logged in to perform this action."), 403
+        return jsonify({"success": False, "message": "You must be logged in as a patient to perform this action."}), 403
     
     username = session.get('user')
     user_row = db.session.execute(
@@ -935,35 +923,31 @@ def widthdraw_chat(chat_id):
 
     if user_row is None:
         session.clear()
-        return redirect(url_for('main.login'))
-    
+        return jsonify({"success": False, "message": "User not found."}), 404
+
     user_id = user_row['id']
     
     chat = Chat.query.get(chat_id)
     if not chat or chat.sender_id != user_id:
-        flash("Chat not found or you do not have permissions to view this.")
-        return redirect(url_for('main.dashboard'))
+        return jsonify({"success": False, "message": "Chat not found or you do not have permissions to view this."}), 404
     
     if chat.withdrawn:
-        flash("Chat is already withdrawn.")
-        return redirect(url_for('main.dashboard'))
-    
+        return jsonify({"success": False, "message": "Chat is already withdrawn."}), 400
+
     user_message_count = Message.query.filter_by(
         chat_id=chat_id,
         sender_id=user_id
     ).count()
     
     if user_message_count >= 3:
-        flash("You can no longer withdraw from this chat.")
         logger.warning(sanitisationForLogs(
             f"User {username} tried to withdraw from chat {chat_id} "
             f"after {user_message_count} messages from {request.remote_addr}"
         ))
-        return redirect(url_for('main.user_dashboard'))
+        return jsonify({"success": False, "message": "You can no longer withdraw from this chat."}), 400
 
     chat.withdraw(early=True)
     db.session.commit()
 
     logger.info(sanitisationForLogs(f"Chat {chat_id} withdrawn by user {username} from {request.remote_addr}"))
-    flash("You have withdrawn from the chat. The appointment is now ended.")
-    return redirect(url_for('main.user_dashboard'))
+    return jsonify({"success": True, "message": "You have withdrawn from the chat. The appointment is now ended."})
