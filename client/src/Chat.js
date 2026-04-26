@@ -13,11 +13,14 @@ export default function Chat() {
     if (!input.trim()) return;
 
     const newMsg = {
-      id: crypto.randomUUID(),
-      text: input,
-      senderId: currentUser.id,
-      timestamp: Date.now()
-    };
+        id: crypto.randomUUID(),
+        chat_id: currentChatId,
+        sender_id: currentUser.id,
+        sender_type: currentUser.type,
+        content: input,
+        file_path: null,
+        file_type: null
+};
 
     setMessages(prev => [...prev, newMsg]);
     setInput("");
