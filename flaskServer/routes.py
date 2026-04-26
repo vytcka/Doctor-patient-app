@@ -745,6 +745,11 @@ def chat(chat_id):
         flash('This chat has been automatically closed due to inactivity.')
 
     if request.method == 'POST' and chat_obj.status == "CHAT_STATUS_ACTIVE":
+        if chat.withdrawn:
+            #FR25 - block messaging if the chat has been withdrawn
+            flash('This chat has been withdrawn. You cannot send messages.')
+            return redirect(url_for('main.chat', chat_id=chat_id))
+        
         content = request.form.get('content', '').strip()
         file = request.files.get('file')
         if content:
@@ -1244,3 +1249,209 @@ def get_notifications():
     user_notifications = Notification.query.filter_by(user_id=user.id).all()
 
     return render_template('notifications.html', notifications=user_notifications)
+
+@main.route('/submit-review/<string:nhs_number>', methods=['GET', 'POST'])
+def submit_review(nhs_number):
+    """Submit review route allows logged-in patients to leave a review for a doctor.
+    Enforces FR26 (no review after early withdrawal), FR28 (can review if reported),
+    and FR29 (must have 5+ messages to review).
+
+    Args:
+        nhs_number (str): the NHS number of the doctor being reviewed.
+
+    Returns:
+        returns JSON response with success status message
+    """
+    if session.get('role') != 'user':
+        logger.warning(sanitisationForLogs(
+            f"Forbidden review attempt: role={session.get('role')} from {request.remote_addr}"
+        ))
+        return jsonify({"success": False, "message": "You must be logged in as a user to submit a review."}), 403
+
+    doctor = db.session.get(Doctor, nhs_number)
+    if not doctor:
+        abort(404)
+
+    username = session.get('user')
+    user_row = db.session.execute(
+        text("SELECT id FROM user WHERE username = :username"),
+        {"username": username}
+    ).mappings().first()
+
+    if not user_row:
+        session.clear()
+        return jsonify({"success": False, "message": "User not found."}), 404
+
+    user_id = user_row['id']
+
+    chat = Chat.query.filter_by(
+        sender_id=user_id,
+        doctor_nhs_number=nhs_number
+    ).first()
+
+    
+    has_reported = False
+    if chat:
+        has_reported = Report.query.filter_by(
+            reporter_id=user_id
+        ).join(Message).filter(
+            Message.chat_id == chat.id
+        ).first() is not None
+
+    
+    if chat and chat.early_withdrawn and not has_reported:
+        flash("You cannot review a doctor you withdrew from within 3 messages.")
+        logger.warning(sanitisationForLogs(
+            f"User {username} attempted to review doctor {nhs_number} "
+            f"after early withdrawal from {request.remote_addr}"
+        ))
+        return jsonify({"success": False, "message": "You cannot review a doctor you withdrew from within 3 messages."}), 403
+
+    
+    message_count = 0
+    if chat:
+        message_count = Message.query.filter_by(
+            chat_id=chat.id,
+            sender_id=user_id
+        ).count()
+
+    if message_count < 5 and not has_reported:
+        flash("You can only review a doctor after sending at least 5 messages.")
+        logger.warning(sanitisationForLogs(
+            f"User {username} attempted to review doctor {nhs_number} "
+            f"with only {message_count} messages from {request.remote_addr}"
+        ))
+        return jsonify({"success": False, "message": "You can only review a doctor after sending at least 5 messages."}), 400
+
+    existing_review = Review.query.filter_by(
+        user_id=user_id,
+        doctor_id=nhs_number
+    ).first()
+
+    if request.method == 'POST':
+        rating_raw = request.form.get('rating')
+        comment = request.form.get('comment', '').strip()
+
+        try:
+            rating = float(rating_raw)
+            if not (1.0 <= rating <= 5.0):
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "Rating must be a number between 1 and 5."}), 400
+
+        safe_comment = bleach.clean(comment, tags=[], strip=True)
+
+        if len(safe_comment) > 200:
+            return jsonify({"success": False, "message": "Comment must be 200 characters or fewer."}), 400
+
+        if existing_review:
+            existing_review.rating = rating
+            existing_review.comment = safe_comment
+            existing_review.status = False  
+            db.session.commit()
+            logger.info(sanitisationForLogs(
+                f"User {username} updated review for doctor {nhs_number}"
+            ))
+            return jsonify({"success": True, "message": "Your review has been updated and is pending moderation."})
+        else:
+            new_review = Review(
+                user_id=user_id,
+                doctor_id=nhs_number,
+                rating=rating,
+                comment=safe_comment,
+                status=False
+            )
+            db.session.add(new_review)
+            db.session.commit()
+            logger.info(sanitisationForLogs(
+                f"User {username} submitted review for doctor {nhs_number}"
+            ))
+            return jsonify({"success": True, "message": "Your review has been submitted and is pending moderation."})
+
+@main.route('/doctor/<nhs_number>/reviews', methods=['GET'])
+def doctor_reviews(nhs_number):
+    """Doctor reviews route displays all approved reviews for a given doctor,
+    along with their current average rating.
+
+    Anyone (logged in or not) may view this page.
+
+    Args:
+        nhs_number (str): the 10-digit NHS number of the doctor.
+
+    Returns:
+        renders doctor_reviews.html with the doctor object and approved reviews.
+    """
+    doctor = db.session.get(Doctor, nhs_number)
+    if doctor is None:
+        abort(404)
+
+    approved_reviews = Review.query.filter_by(
+        doctor_id=nhs_number,
+        status=True
+    ).order_by(Review.created_at.desc()).all()
+
+    if approved_reviews:
+        avg_rating = round(sum(r.rating for r in approved_reviews) / len(approved_reviews), 1)
+    else:
+        avg_rating = None
+
+    return render_template(
+        'doctor_reviews.html',
+        doctor=doctor,
+        reviews=approved_reviews,
+        avg_rating=avg_rating
+    )
+
+@main.route('/withdraw_chat/<int:chat_id>', methods=['POST'])
+def widthdraw_chat(chat_id):
+    """Withdraw chat route allows a doctor or patient to withdraw from an active chat,
+    effectively ending the appointment. The chat is marked as withdrawn but not deleted
+    to preserve conversation history for moderators in case of disputes.
+
+    Only participants of the chat may perform this action.
+
+    Args:
+        chat_id (int): the ID of the chat to withdraw from.
+
+    Returns:
+        JSON response with success staus and message
+    """
+    if session.get('role') != 'user':
+        logger.warning(sanitisationForLogs(f"Forbidden chat withdrawal attempt: role={session.get('role')} from {request.remote_addr}"))
+        return jsonify({"success": False, "message": "You must be logged in as a patient to perform this action."}), 403
+    
+    username = session.get('user')
+    user_row = db.session.execute(
+        text("SELECT id FROM user WHERE username = :u"), {"u": username}
+    ).mappings().first()
+
+    if user_row is None:
+        session.clear()
+        return jsonify({"success": False, "message": "User not found."}), 404
+
+    user_id = user_row['id']
+    
+    chat = Chat.query.get(chat_id)
+    if not chat or chat.sender_id != user_id:
+        return jsonify({"success": False, "message": "Chat not found or you do not have permissions to view this."}), 404
+    
+    if chat.withdrawn:
+        return jsonify({"success": False, "message": "Chat is already withdrawn."}), 400
+
+    user_message_count = Message.query.filter_by(
+        chat_id=chat_id,
+        sender_id=user_id
+    ).count()
+    
+    if user_message_count >= 3:
+        logger.warning(sanitisationForLogs(
+            f"User {username} tried to withdraw from chat {chat_id} "
+            f"after {user_message_count} messages from {request.remote_addr}"
+        ))
+        return jsonify({"success": False, "message": "You can no longer withdraw from this chat."}), 400
+
+    chat.withdraw(early=True)
+    db.session.commit()
+
+    logger.info(sanitisationForLogs(f"Chat {chat_id} withdrawn by user {username} from {request.remote_addr}"))
+    return jsonify({"success": True, "message": "You have withdrawn from the chat. The appointment is now ended."})

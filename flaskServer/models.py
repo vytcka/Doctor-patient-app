@@ -351,11 +351,26 @@ class Chat(db.Model):
     created_at        = db.Column(db.DateTime, default=datetime.now, nullable=False)
     last_activity     = db.Column(db.DateTime, default=datetime.now , nullable=False)
     withdrawn_at      = db.Column(db.DateTime, nullable=True)
- 
+    withdrawn         = db.Column(db.Boolean, default=False, nullable=False)
+    withdrawn_early   = db.Column(db.Boolean, default=False, nullable=False)
     messages = db.relationship('Message', backref='chat', lazy='dynamic',
                                cascade='all, delete-orphan')
     
     def approveAppointment(self):
+        """Approves the appointment between the patient and doctor."""
+
+    def withdraw(self, early=False):
+        """Marks the chat as withdrawn.
+
+        Args:
+            early (bool): True if withdrawn within 3 messages, blocks review (FR26).
+        """
+        self.withdrawn = True
+        self.withdrawn_early = early
+ 
+# ─────────────────────────────────────────────
+# Message model — UNCHANGED
+# ─────────────────────────────────────────────
         """Approves the appointment between the patient and doctor."""
         self.bookedAppointment = True
  
