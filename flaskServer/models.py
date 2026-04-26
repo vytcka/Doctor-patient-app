@@ -351,13 +351,20 @@ class Chat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    bookedAppointment = db.Column(db.Boolean, nullable = False, default = False)
-    
+    bookedAppointment = db.Column(db.Boolean, nullable=False, default=False)
+    withdrawn = db.Column(db.Boolean, nullable=False, default=False)
+    withdrawn_early = db.Column(db.Boolean, nullable=False, default=False)
+    doctor_nhs_number = db.Column(db.String(10), db.ForeignKey('doctor.nhs_number'), nullable=True)
+
     def approveAppointment(self):
-        """_summary_: approves the appointment for between the patient and doctor."""
-    
-    def withdraw(self, early = False):
-        """_summary_: withdraws the appointment for between the patient and doctor."""
+        """Approves the appointment between the patient and doctor."""
+
+    def withdraw(self, early=False):
+        """Marks the chat as withdrawn.
+
+        Args:
+            early (bool): True if withdrawn within 3 messages, blocks review (FR26).
+        """
         self.withdrawn = True
         self.withdrawn_early = early
  
