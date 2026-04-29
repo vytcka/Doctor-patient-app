@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
 from wtforms import (StringField, PasswordField, TextAreaField, IntegerField,
                      SubmitField, BooleanField, SelectField, FloatField, DateField)
-from wtforms.validators import NumberRange, Optional, input_required, Length, ValidationError, Email
+from wtforms.validators import (NumberRange, Optional, input_required,
+                                 Length, ValidationError, Email)
 from flask import session
 from datetime import date
 from flaskServer.models import VALID_SPECIALTIES
@@ -35,8 +36,6 @@ def repeating(input:str)->bool:
             counter = 1
     return False
 
-
-#change password - then login - then registration for forms; but maybe seperate is si
 
 class validation_form(FlaskForm):
     """Validation_form class is responsible for defining the fields and providing validators for those fields, the validation class is utilised for login.
@@ -86,7 +85,6 @@ class validation_form(FlaskForm):
         #part B; checking for repeating charachters;
         if(repeating(password.data)):
             raise ValidationError("There cannot be 3 consequtive repeating charachters in the password ")
-        
 
 
 class registration_form(validation_form):
@@ -101,8 +99,11 @@ class registration_form(validation_form):
         ValidationError: raised if any field fails its validation rules.
     """
 
-    bio = TextAreaField('Biography',validators=[Length(min = 20, max = 500, message= "The biography bit has to be between 20 and 500 charachters" ),
-                            input_required(message="There has to be some data within the biography")])
+    # original field — UNCHANGED
+    bio = TextAreaField('Biography', validators=[
+        Length(min=20, max=500, message="The biography bit has to be between 20 and 500 charachters"),
+        input_required(message="There has to be some data within the biography")
+    ])
 
     # new patient identity fields
     first_name = StringField('First name', validators=[
@@ -208,9 +209,7 @@ class password_form(FlaskForm):
         Raises:
             ValidationError: the validate_new_password raises an issue only when the password does not conform to the standards below.
         """  
-        username = session.get('user')
-        if username and username in new_password.data:
-            raise ValidationError("The password cannot contain the username.")    
+        username = session.get('user')      
         if new_password.data in common_list:
             raise ValidationError("The password is too common. Please change it to a less common password.")
         #doing checks 
@@ -227,6 +226,7 @@ class password_form(FlaskForm):
         #part B; checking for repeating charachters;
         if(repeating(new_password.data)):
             raise ValidationError("There cannot be 3 consequtive repeating characters in the new password ")
+
 
 
 class request_form(FlaskForm):
@@ -249,12 +249,9 @@ class request_form(FlaskForm):
     submit = SubmitField("Submit Request")
 
 
-
 class DoctorRegistrationForm(FlaskForm):
     """DoctorRegistrationForm is responsible for collecting and validating all
-    fields required to register a new doctor account, including NHS number,
-    specialty, language, availability, and rating in addition to the standard
-    identity and login credential fields.
+    fields required to register a new doctor account.
 
     Args:
         FlaskForm (Parent Class): uses the FlaskForm parent class to instantiate
@@ -437,3 +434,37 @@ class DoctorRegistrationForm(FlaskForm):
         """
         if location.data and location.data.strip() == "":
             raise ValidationError("Location cannot be blank.")
+        
+from wtforms import TextAreaField, FloatField
+from wtforms.validators import NumberRange, Optional, Length, input_required
+
+
+class ReviewForm(FlaskForm):
+    """ReviewForm is used by patients to submit a rating and optional comment
+    for a doctor they have seen.  Ratings must be between 1.0 and 5.0.
+    Comments are optional but capped at 200 characters.
+
+    Args:
+        FlaskForm (Parent Class): uses the FlaskForm parent class.
+
+    Raises:
+        ValidationError: raised if the rating is outside 1.0–5.0.
+    """
+
+    rating = FloatField(
+        'Rating (1–5)',
+        validators=[
+            input_required(message="A rating is required."),
+            NumberRange(min=1.0, max=5.0, message="Rating must be between 1.0 and 5.0."),
+        ]
+    )
+
+    comment = TextAreaField(
+        'Comment (optional)',
+        validators=[
+            Optional(),
+            Length(max=200, message="Comment must be 200 characters or fewer."),
+        ]
+    )
+
+    submit = SubmitField("Submit Review")

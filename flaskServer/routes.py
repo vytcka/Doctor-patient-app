@@ -1,16 +1,23 @@
 import traceback
+from datetime import datetime
 from flask import request, render_template, redirect, url_for, session, Blueprint, flash, abort
 from sqlalchemy import text
 from flaskServer import db
-from flaskServer.models import Message, Request, User, Doctor, Decypher
-from flaskServer.forms import request_form, validation_form, registration_form, password_form, DoctorRegistrationForm
+from flaskServer.models import (
+    Message, Notification, Request, User, Doctor, Decypher, Chat,
+    Review, Report, ModeratorNotification,
+)
+"""differrent chat statusses:  CHAT_STATUS_ACTIVE, CHAT_STATUS_WITHDRAWN, CHAT_STATUS_CLOSED,
+    REQUEST_STATUS_PENDING, REQUEST_STATUS_ACCEPTED, REQUEST_STATUS_REJECTED"""
+from flaskServer.forms import (
+    request_form, validation_form, registration_form,
+    password_form, DoctorRegistrationForm, ReviewForm,
+)
 import bleach
 from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
-from .models import Review, Report, Request, ModeratorNotification, Message, Chat
-
 
 #using fernet lib to provide symmetrical encryption
 
@@ -21,15 +28,52 @@ from .models import Review, Report, Request, ModeratorNotification, Message, Cha
 #use hashing via bcrypt and put hashed valeus in the db, and then hash the input with the same salt and compare them, if equal then give out token;
 
 
-#Ensure that these protections are consistently applied across all relevant routes and forms. for CSRF , then the tokens 
+
+
+""" Quick note for the backend people, we have been focusing on the wrong aspect of developed as i have mentioned.
+So a proposed solution would be to send json data rather then direct redirection. so for example
+@main.route("/certain_path", methods = ["POST"]): #also methods should be post, to send the data
+def certainMethod():
+    #lets say we get a variable user, we capture it via the api call to capture json values:
+    data = request.get_json()
+    
+    user = data["username"]) # whatever it is, its all dependent on the field type.. and then we can manually set up a form so, we set up a manual form 
+    form = certainMethodForm()
+    form.user.data = user
+    
+    if form.validate():
+        ...
+        #now depending on the method we either return data or a status or both :D
+        return jsonify({"status" : 200}), 200
+    else:
+        return jsonify({"status" : 400}), 400
+    
+"""
 
 main = Blueprint('main', __name__)
 logger = logging.getLogger()
 
-@main.route('/')
-def home():
-    logger.info(sanitisationForLogs(f"Request from the address {request.remote_addr}" ))
-    return render_template('home.html')
+
+def get_current_user():
+    """Return the logged-in User object from the session, or None.
+
+    Returns:
+        User | None: the User matching session['user'], or None.
+    """
+    if 'user' not in session:
+        return None
+    return User.query.filter_by(username=session['user']).first()
+
+def get_current_doctor():
+    """Return the logged-in Doctor object from the session, or None.
+
+    Returns:
+        Doctor | None: the Doctor matching session['user'], or None.
+    """
+    if session.get('role') != 'doctor':
+        return None
+    return Doctor.query.filter_by(username=session['user']).first()
+
 
 
 @main.route('/login', methods=['GET', 'POST'])
@@ -41,19 +85,23 @@ def login():
     Returns:
         renders login.html on GET or failed POST, redirects to user_dashboard on success.
     """
+
     error = None
+    data = request.get_json()
+    
+    user = data["username"]
+    password = data["password"]
     forms = validation_form()
+    forms.user.data = user
+    forms.password.data = password
+    
+    
     if request.method == 'POST':
         if forms.validate_on_submit():
-            #bio; we need to create a form, pass it in, and escape them in the form
-            
-            #making sure that the timer adds;
-            session.permanent =True
-            
+            session.permanent = True
             username = forms.username.data
             password = forms.password.data
             
-            #calculate hash;
             query = text("SELECT * FROM user WHERE username = :username")
             row = db.session.execute(query, {"username": username}).mappings().first()
 
@@ -61,47 +109,36 @@ def login():
                 flash("no such account exists")
                 error = "No user with that name exists."
                 logging.warning(f"warning, ")
-                return render_template('login.html', forms = forms, error = error)
+                return render_template('login.html', forms=forms, error=error)
 
-            user = db.session.get(User, row['id']) 
-            #clearing old data
+            user = db.session.get(User, row['id'])
             session.clear()
+
+            if user.is_banned:
+                flash('Your account has been banned.')
+                logging.warning(sanitisationForLogs(f"Banned user {username} attempted to log in from {request.remote_addr}"))
+                return jsonify({"status" : 400, "message": "this account has been banned"})
+
+            
+            if user.is_suspended:
+                flash(f'Your account is suspended. Reason: {user.suspension_reason}')
+                logging.warning(sanitisationForLogs(f"Suspended user {username} attempted to log in from {request.remote_addr}. Reason: {user.suspension_reason}"))
+                return jsonify({"status" : 400, "message" : "this account has been suspended"})
 
             if not user.check_hash(password):
                 flash('Login credentials are invalid, please try again')
                 logging.warning(sanitisationForLogs(f"Incorrect credentials for username: {username} from the address: {request.remote_addr}"))
-                return render_template('login.html', forms=forms)
+                return jsonify({"status" : 400, "message": "Incorrect credentials have been provided"})
             
-            session['user'] = user.username
-            session['role'] = user.role
-            session['bio'] = user.bio            
+            
             logger.info(sanitisationForLogs(f"user logged in with the name: {user.username} from {request.remote_addr}"))
-            return redirect(url_for('main.user_dashboard'))
+            return jsonify({"status" : 200})
     
         else:
             logger.error(sanitisationForLogs(f"incorrect submission from attempt from the address {request.remote_addr}"))
-            return render_template('login.html', forms = forms)
+            return jsonify({"status" : 400, "message" : "suspicious attempt"})
 
-    return render_template('login.html', forms = forms, error=error)
-
-
-
-@main.route('/dashboard')
-def dashboard():
-    """Dashboard route redirects logged-in users to their role-appropriate dashboard.
-    Users go to /user-dashboard and doctors go to /doctor/dashboard.
-
-    Returns:
-        redirects to the correct dashboard based on session role,
-        or to the login page if not logged in.
-    """
-    role = session.get('role')
-    if role == 'user':
-        return redirect(url_for('main.user_dashboard'))
-    elif role == 'doctor':
-        return redirect(url_for('main.doctor_dashboard'))
-    return redirect(url_for('main.login'))
-
+    return jsonify({"status" : 400, "message" : "Wrong data has been provided."})
 
 @main.route('/register', methods=['GET', 'POST'])
 def register():
@@ -112,46 +149,57 @@ def register():
     Returns:
         renders register.html on GET or failed POST, redirects to login on success.
     """
+    
+    """user = data["username"] # whatever it is, its all dependent on the field type.. and then we can manually set up a form so, we set up a manual form 
+    form = certainMethodForm()
+    form.user.data = user
+    
+    if form.validate():"""
+    data = request.get_json()
+    
     forms = registration_form()
+    
+    forms.username.data = data["username"]
+    forms.password.data = data["password"]
+    forms.bio.data = data["bio"]
+    forms.first_name.data = data["first name"]
+    forms.last_name.data = data["last name"]
+    forms.date_of_birth = data["date of birth"]
+    forms.location.data = data["location"]
+    
+        
     if request.method == 'POST':
         
         if forms.validate_on_submit():
             session.permanent = True
-            username      = forms.username.data
-            password      = forms.password.data
-            bio           = forms.bio.data
-            first_name    = forms.first_name.data
-            last_name     = forms.last_name.data
-            date_of_birth = forms.date_of_birth.data
-            location      = forms.location.data
             role          = "user"
             
-            logging.info(sanitisationForLogs(f"forms validated during registration for the user: {username} from the ip {request.remote_addr} "))
+            logging.info(sanitisationForLogs(f"forms validated during registration for the user: {forms.username.data} from the ip {request.remote_addr} "))
 
             check_query = text("SELECT username FROM user WHERE username = :username")
-            result = db.session.execute(check_query, {"username": username})
+            result = db.session.execute(check_query, {"username": forms.username.data})
             row = result.first()
 
             session.clear()
             if row:
                 flash('There already is a user registered with that username... \n Please register with a different username.')
-                logging.info(sanitisationForLogs(f"user tried to create an account with the username {username} from the ip {request.remote_addr} "))
-                return render_template("register.html", forms = forms)
+                logging.info(sanitisationForLogs(f"user tried to create an account with the username {forms.username.data} from the ip {request.remote_addr} "))
+                return jsonify({"success" : False,"message" : "The name is taken."})
 
-            safe_bio = bleach.clean(bio, 
+            safe_bio = bleach.clean(forms.bio.data, 
                                  tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
                                  attributes={'a' : ['href', 'title']},
-                                 strip = True)
+                                 strip=True)
 
             db_user = User(
-                username=username, password=password, role=role, bio=safe_bio,
-                first_name=first_name, last_name=last_name,
-                date_of_birth=date_of_birth, location=location
+                username=forms.username.data, password=forms.password.data, role=role, bio=safe_bio,
+                first_name=forms.first_name.data, last_name=forms.last_name.data,
+                date_of_birth=forms.date_of_birth.data, location=forms.location.data
             )
 
             query = text("""
-                INSERT INTO user (username, password, role, bio, first_name, last_name, date_of_birth, location)
-                VALUES (:username, :password, :role, :bio, :first_name, :last_name, :date_of_birth, :location)
+                INSERT INTO user (username, password, role, bio, first_name, last_name, date_of_birth, location, points)
+                VALUES (:username, :password, :role, :bio, :first_name, :last_name, :date_of_birth, :location, 0)
             """)
             db.session.execute(query, {
                 "username":      db_user.username,
@@ -165,26 +213,22 @@ def register():
             })
             db.session.commit()
 
-            logging.info(sanitisationForLogs(f"user has been registered with the name {username} from the ip {request.remote_addr}"))
-            return redirect(url_for('main.login'))
-        else:
-            return render_template('register.html', forms = forms)
-    return render_template('register.html', forms = forms)
+            logging.info(sanitisationForLogs(f"user has been registered with the name {forms.username.data} from the ip {request.remote_addr}"))
+            return jsonify({"success" : True}), 200
+    else:
+        listOfErrors = []
+        for fieldName, errorMessages in forms.errors.items():
+            for err in errorMessages:
+                listOfErrors.append(f"{fieldName} : {err}")
+
+        return jsonify({
+            "success": False,
+            "errors": listOfErrors
+        })
+    return jsonify({"message" : "Please input some data."})
 
 
-
-@main.route('/user-dashboard')
-def user_dashboard():
-    try:
-        if session.get('role') != 'user':
-            logger.warning(sanitisationForLogs(f"Forbidden access attempt: role={session.get('role')}"))
-            return render_template("forbidden.html", message= "you need to be logged in to view this page"), 403 
-        return render_template('user_dashboard.html', username=session.get('user'))
-    except InvalidToken:
-        return redirect(url_for('main.login'))
-
-
-@main.route('/doctor/login', methods=['GET', 'POST'])
+@main.route('/doctor/login', methods=['POST'])
 def doctor_login():
     """Doctor login route is responsible for authenticating doctor accounts.
     On a successful login the doctor's username, role, NHS number, and encrypted
@@ -194,7 +238,13 @@ def doctor_login():
         renders doctor_login.html on GET or failed POST, redirects to doctor_dashboard on success.
     """
     error = None
+    data = request.get_json()
+    
     forms = validation_form()
+    ]
+    forms.username.data = data["username"]
+    forms.password.data = data["password"
+    
     if request.method == 'POST':
         if forms.validate_on_submit():
             session.permanent = True
@@ -204,11 +254,22 @@ def doctor_login():
             query = text("SELECT * FROM doctor WHERE username = :username")
             row = db.session.execute(query, {"username": username}).mappings().first()
 
+            if doctor.is_banned:
+                flash('Your account has been banned.')
+                logging.warning(sanitisationForLogs(f"Banned doctor {username} attempted to log in from {request.remote_addr}"))
+                return render_template('doctor_login.html', forms=forms, error="Your account is banned.")
+            
+            if doctor.is_suspended:
+                flash(f'Your account is suspended. Reason: {doctor.suspension_reason}')
+                logging.warning(sanitisationForLogs(f"Suspended doctor {username} attempted to log in from {request.remote_addr}. Reason: {doctor.suspension_reason}"))
+                return jsonify({"status" : 400, "message" : "this doctor account has been suspended"})
+
+
             if row is None:
                 flash("No doctor account with that email exists.")
                 error = "No doctor with that email exists."
                 logger.warning(sanitisationForLogs(f"Failed doctor login for unknown user from {request.remote_addr}"))
-                return render_template('doctor_login.html', forms=forms, error=error)
+                return jsonify({"status" : 400, "message" : "no doctor with the provided email exists"})
 
             doctor = db.session.get(Doctor, row['nhs_number'])
             session.clear()
@@ -216,23 +277,24 @@ def doctor_login():
             if not doctor.check_password(password):
                 flash('Login credentials are invalid, please try again.')
                 logger.warning(sanitisationForLogs(f"Incorrect password for doctor: {username} from {request.remote_addr}"))
-                return render_template('doctor_login.html', forms=forms)
+                return jsonify({"status": 400, "message" : "the credentials provided are invalid"})
 
             session['user']       = doctor.username
             session['role']       = doctor.role
             session['bio']        = doctor.bio
             session['nhs_number'] = doctor.nhs_number
+            session['user_id']    = doctor.nhs_number
             logger.info(sanitisationForLogs(f"Doctor logged in: {doctor.username} from {request.remote_addr}"))
-            return redirect(url_for('main.doctor_dashboard'))
+            return jsonify({"status" : 200, "message" : f"doctor {session['user']} logged in"})
 
         else:
             logger.error(sanitisationForLogs(f"Invalid doctor login form submission from {request.remote_addr}"))
-            return render_template('doctor_login.html', forms=forms)
+            return jsonify({"status" : 400, "message" : "invalid login credentials provided"})
 
-    return render_template('doctor_login.html', forms=forms, error=error)
+    return jsonify ({"status" : 400, "message" : "incorrect data sending format"})
 
 
-@main.route('/doctor/register', methods=['GET', 'POST'])
+@main.route('/doctor/register', methods=[ 'POST'])
 def doctor_register():
     """Doctor register route is responsible for creating new doctor accounts.
     The role is always set to 'doctor'. Bio is sanitised with bleach before
@@ -241,32 +303,32 @@ def doctor_register():
     Returns:
         renders doctor_register.html on GET or failed POST, redirects to doctor_login on success.
     """
+    data = request.get_json()
     forms = DoctorRegistrationForm()
-    if request.method == 'POST':
+    forms.nhs_number.data = data["nhs number"]
+    forms.first_name.data = data["first name"]
+    forms.last_name.data = data["last name"]
+    forms.username.data = data["username"]
+    forms.password.data = data["password"]
+    forms.date_of_birth.data = data["date of birth"]
+    forms.location.data = data["location"]
+    forms.specialty.data = data["specialty"]
+    forms.languange.data = data["languange"]
+    forms.bio.data = data["bio"]
+    forms.availability.data = data["availability"]
+    
         if forms.validate_on_submit():
-            nhs_number    = forms.nhs_number.data
-            first_name    = forms.first_name.data
-            last_name     = forms.last_name.data
-            username      = forms.username.data
-            password      = forms.password.data
-            date_of_birth = forms.date_of_birth.data
-            location      = forms.location.data
-            specialty     = forms.specialty.data
-            language      = forms.language.data
-            bio           = forms.bio.data
-            availability  = forms.availability.data
 
-            logger.info(sanitisationForLogs(f"Doctor registration attempt for {username} from {request.remote_addr}"))
+
+            logger.info(sanitisationForLogs(f"Doctor registration attempt for {forms.usernmae.data} from {request.remote_addr}"))
 
             nhs_check = text("SELECT nhs_number FROM doctor WHERE nhs_number = :nhs_number")
-            if db.session.execute(nhs_check, {"nhs_number": nhs_number}).first():
-                flash('A doctor with that NHS number is already registered.')
-                return render_template('doctor_register.html', forms=forms)
+            if db.session.execute(nhs_check, {"nhs_number": forms.nhs_number.data}).first():
+                return jsonify({"status" : 400, "message" : "There akready exusts a dictir with that bhs data"})
 
             username_check = text("SELECT username FROM doctor WHERE username = :username")
-            if db.session.execute(username_check, {"username": username}).first():
-                flash('A doctor with that email is already registered.')
-                return render_template('doctor_register.html', forms=forms)
+            if db.session.execute(username_check, {"username": forms.username.data}).first():
+                return jsonify({"status" : 400, message : "That username is taken please use a different username"})
 
             session.clear()
 
@@ -276,10 +338,10 @@ def doctor_register():
                                     strip=True)
 
             db_doctor = Doctor(
-                nhs_number=nhs_number, first_name=first_name, last_name=last_name,
-                username=username, password=password, date_of_birth=date_of_birth,
-                location=location, specialty=specialty, language=language,
-                bio=safe_bio, availability=availability
+                nhs_number=forms.nhs_number.data, first_name=forms.first_name.data, last_name=forms.last_name.data,
+                username=forms.username.data, password=forms.password.data, date_of_birth=forms.date_of_birth.data,
+                location=forms.location.data, specialty=specialty, language=forms.language.data,
+                bio=forms.safe_bio.data, availability=forms.availability.data
             )
 
             query = text("""
@@ -305,30 +367,38 @@ def doctor_register():
             db.session.commit()
 
             logger.info(sanitisationForLogs(f"Doctor registered: {username} from {request.remote_addr}"))
-            return redirect(url_for('main.doctor_login'))
+            return jsonify({"status" : 200})
         else:
-            return render_template('doctor_register.html', forms=forms)
-
-    return render_template('doctor_register.html', forms=forms)
+            return jsonify({"status" : 400, "message" : "invalid data types provided"})
 
 
-@main.route('/doctor/dashboard')
-def doctor_dashboard():
-    """Doctor dashboard route is the main page for logged-in doctor accounts.
-    Only users with the role 'doctor' can access this page.
+#--------------------------------------------
+
+"""do we need this? on second thought we do"""
+
+#--------------------------------------------
+
+
+@main.route('/doctor/dashboardChats')
+    #pass on the doctor nhs number and role
+    """Doctor dashboard shows active chat count, pending requests, and profile info.
 
     Returns:
         renders doctor_dashboard.html if the session role is 'doctor', 403 otherwise.
     """
-    if session.get('role') != 'doctor':
+    data = request.get_json()
+
+
+    if data['role'] != 'doctor':
         logger.warning(sanitisationForLogs(f"Forbidden access to doctor dashboard: role={session.get('role')} from {request.remote_addr}"))
-        return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
+        return jsonify({"status" : 400, "message" : "incorrect role provided"})
     try:
-        decypher = Decypher(session['bio'])
-        username = session['user']
-        return render_template('doctor_dashboard.html', username=username, bio=decypher.get_text())
-    except InvalidToken:
-        return redirect(url_for('main.doctor_login'))
+        queru = text("SELECT * from Chat WHERE  doctor_nhs_number = :doctor_nhs)number")
+        row = db.session.execute(query, {"doctor_nhs_number": data["nhs number"]}).mappings().first()
+
+        if row is not None:
+            return jsonify({"status", "chats" : row})
+        else: return jsonify({"message" : " no chats are available"})
 
 
 @main.route('/change-password', methods=['GET', 'POST'])
@@ -348,16 +418,16 @@ def change_password():
         form = password_form() 
         
         if form.validate_on_submit():
-            username         = session['user']
-            role             = session.get('role')
+            username = session['user']
+            role = session.get('role')
             current_password = form.current_password.data
-            new_password     = form.new_password.data
+            new_password = form.new_password.data
 
             logger.warning(sanitisationForLogs(f"Password change attempt for {username}"))
 
             if role == 'doctor':
-                query   = text("SELECT * FROM doctor WHERE username = :username LIMIT 1")
-                row     = db.session.execute(query, {"username": username}).mappings().first()
+                query = text("SELECT * FROM doctor WHERE username = :username LIMIT 1")
+                row = db.session.execute(query, {"username": username}).mappings().first()
                 if not row:
                     session.clear()
                     return render_template('change_password.html', form=form)
@@ -392,7 +462,7 @@ def change_password():
     return render_template('change_password.html', form=password_form())
 
 
-@main.route('/logout', methods = ['GET'])
+@main.route('/logout', methods=['GET'])
 def logout():
     """the logout method clears the session object, and makes the user lose the ability to acsess the funcitonality of the webiste.
     Doctors are redirected to the doctor login page, users to the standard login page.
@@ -411,31 +481,27 @@ def logout():
 def getDoctor():
     filterValues = ["location", "languange", "specialty", "gender", "min_rating"]
     if not any(key in request.args for key in filterValues):
-        query = text("SELECT * FROM doctors")
-        doctors = db.session.execute(query).mappings()
-        return jsonify([doctors])
+        query = text("SELECT * FROM doctor")
+        doctors = db.session.execute(query).mappings().all()
+        return jsonify([dict(d) for d in doctors])
     
     filters = {}
-    
     if request.args.get('location'):
         filters['location'] = request.args.get('location')
-
     if request.args.get('language'):
         filters['language'] = request.args.get('language')
-
     if request.args.get('specialty'):
         filters['specialty'] = request.args.get('specialty')
-
     if request.args.get('gender'):
         filters['gender'] = request.args.get('gender')
-
     if request.args.get('min_rating'):
         filters['rating'] = request.args.get('rating')
     
     query = " AND ".join(f"{filter} = :{filter}" for filter in filters)
-    executeQuery = text(f"SELECT * FROM doctors WHERE {query}")
-    doctors = db.session.execute(executeQuery, filters).mappings()
-    return jsonify(dict(doctors))
+    executeQuery = text(f"SELECT * FROM doctor WHERE {query}")
+    doctors = db.session.execute(executeQuery, filters).mappings().all()
+    return jsonify([dict(d) for d in doctors])
+
 
 @main.route('/cases', methods=['POST'])
 def caseSelector():
@@ -464,26 +530,34 @@ def caseSelector():
         return jsonify({"message": "case skipped", "case_id": caseID}), 200
 
 
-@main.route('/new-request', methods=['GET', 'POST'])
 
+@main.route('/new-request', methods=['GET', 'POST'])
 def new_request():
+    """New request route allows a patient to submit a health questionnaire.
+
+    Returns:
+        renders new_request.html on GET or failed POST, redirects to user_dashboard on success.
+    """
+    if session.get('role') != 'user':
+        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+
     form = request_form()
+    user = get_current_user()
 
     if form.validate_on_submit():
-        
         new_request = Request(
-            user_id = current_user.id,
-            age = form.age.data,
-            symptoms = form.symptoms.data,
+            user_id          = user.id,
+            age              = form.age.data,
+            symptoms         = form.symptoms.data,
             symptoms_details = form.symptoms_details.data,
-            family_issues = form.family_issues.data,
-            family_details = form.family_details.data
+            family_issues    = form.family_issues.data,
+            family_details   = form.family_details.data,
         )
-
         try:
             db.session.add(new_request)
             db.session.commit()
-
+            flash('Your request has been submitted successfully.')
+            return redirect(url_for('main.user_dashboard'))
         except Exception as e:
             db.session.rollback()
             logger.error(sanitisationForLogs(f"Error submitting medical request for user {session.get('user')}: {str(e)}"))
@@ -494,49 +568,89 @@ def new_request():
 
 @main.route('/view-requests')
 def view_requests():
-    if not current_user.is_doctor:
+    """View requests route shows all pending patient requests to a logged-in doctor.
+
+    Returns:
+        renders view_requests.html with all pending requests.
+    """
+    if session.get('role') != 'doctor':
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
         return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
 
-    if not medical_request or medical_request.status != 'pending':
+    pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
+    return render_template('view_requests.html', requests=pending_requests)
+
+
+
+@main.route('/accept-request/<int:request_id>', methods=['POST'])
+def accept_request(request_id):
+    """Accept request route allows a doctor to accept a pending patient request.
+    A Chat is created linking the doctor and patient.
+
+    Args:
+        request_id (int): the ID of the Request to accept.
+
+    Returns:
+        redirects to the new chat on success, or back to view_requests on failure.
+    """
+    if session.get('role') != 'doctor':
+        return render_template("forbidden.html", message="You need to be logged in as a doctor."), 403
+
+    doctor = get_current_doctor()
+    medical_request = db.session.get(Request, request_id)
+
+    if not medical_request or medical_request.status != "REQUEST_STATUS_PENDING":
         flash('Request not found or already processed.')
         return redirect(url_for('main.view_requests'))
-        
-    medical_request.doctor_id = current_user.id
-    
+
     try:
+        medical_request.status    = "REQUEST_STATUS_ACCEPTED"
+        medical_request.doctor_id = doctor.nhs_number
 
         chat = Chat(
-            patient_id=medical_request.user_id,
-            doctor_id=current_user.id,
-            request_id=medical_request.id       
+            sender_id   = medical_request.user_id,
+            receiver_id = medical_request.user_id,  # doctor contact via nhs in session
         )
-
         db.session.add(chat)
+
+        notification = Notification(
+            user_id=medical_request.user_id,
+            message=f"Your request has been accepted by Dr. {doctor.username}."
+        )
+        db.session.add(notification)
         db.session.commit()
 
+        logger.info(sanitisationForLogs(f"Doctor {doctor.username} accepted request {request_id}"))
         flash('Request accepted successfully.')
         return redirect(url_for('main.chat', chat_id=chat.id))
-    
+
     except Exception as e:
         db.session.rollback()
-        logger.error(sanitisationForLogs(f"Error accepting request {request_id} for user {session.get('user')}: {str(e)}"))
+        logger.error(sanitisationForLogs(f"Error accepting request {request_id} by {session.get('user')}: {str(e)}"))
         flash('An error occurred while accepting the request. Please try again.')
+        return redirect(url_for('main.view_requests'))
 
-    return redirect(url_for('main.view_requests'))
 
 @main.route('/reject-request/<int:request_id>', methods=['POST'])
 def reject_request(request_id):
-    if not current_user.is_doctor:
+    """Reject request route allows a doctor to reject a pending patient request.
+
+    Args:
+        request_id (int): the ID of the Request to reject.
+
+    Returns:
+        redirects to view_requests.
+    """
+    if session.get('role') != 'doctor':
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to reject request {request_id} by user {session.get('user')} from {request.remote_addr}"))
         return render_template("forbidden.html", message="You need to be logged in as a doctor to perform this action."), 403
     
     try:
-        medical_request = Request.query.get(request_id)
-        if not medical_request or medical_request.status != 'pending':
+        medical_request = db.session.get(Request, request_id)
+        if not medical_request or medical_request.status != "REQUEST_STATUS_PENDING":
             flash('Request not found or already processed.')
             return redirect(url_for('main.view_requests'))
-        medical_request.status = 'rejected'
+        medical_request.status = "REQUEST_STATUS_REJECTED"
         db.session.commit()
         flash('Request rejected successfully.')
         return redirect(url_for('main.view_requests'))
@@ -551,26 +665,189 @@ def reject_request(request_id):
 
 @main.route('/chat/<int:chat_id>', methods=['GET', 'POST'])
 def chat(chat_id):
-    chat = Chat.query.get(chat_id)
-    if not chat or (current_user.id not in [chat.patient_id, chat.doctor_id]):
-        logger.warning(sanitisationForLogs(f"Unauthorized access attempt to chat {chat_id} by user {session.get('user')} from {request.remote_addr}"))
-        return render_template("forbidden.html", message="You do not have access to this chat."), 403   
-    if request.method == 'POST':
-        content = request.form.get('content')
+    """Chat route allows a patient and their doctor to exchange messages, images and voice uploads.
+
+    Args:
+        chat_id (int): the ID of the Chat to view.
+
+    Returns:
+        renders chat.html with the message history.
+    """
+    if 'user' not in session:
+        return redirect(url_for('main.login'))
+
+    chat_obj = db.session.get(Chat, chat_id)
+    if not chat_obj:
+        return render_template("forbidden.html", message="Chat not found."), 404
+
+    role = session.get('role')
+
+    # FR9 — only the two participants can access this chat
+    if role == 'user':
+        if chat_obj.sender_id != session.get('user_id'):
+            logger.warning(sanitisationForLogs(f"Unauthorized chat access by user {session.get('user')} from {request.remote_addr}"))
+            return render_template("forbidden.html", message="You do not have access to this chat."), 403
+        sender_id   = str(session.get('user_id'))
+        sender_type = 'user'
+    elif role == 'doctor':
+        if chat_obj.receiver_id != session.get('user_id'):
+            logger.warning(sanitisationForLogs(f"Unauthorized chat access by doctor {session.get('user')} from {request.remote_addr}"))
+            return render_template("forbidden.html", message="You do not have access to this chat."), 403
+        sender_id   = str(session.get('nhs_number'))
+        sender_type = 'doctor'
+    else:
+        return render_template("forbidden.html", message="You do not have access to this chat."), 403
+
+    # FR32 — auto-close if inactive for more than 10 minutes
+    if chat_obj.status == "CHAT_STATUS_ACTIVE" and chat_obj.is_inactive():
+        chat_obj.status = "CHAT_STATUS_CLOSED"
+        db.session.commit()
+        flash('This chat has been automatically closed due to inactivity.')
+
+    if request.method == 'POST' and chat_obj.status == "CHAT_STATUS_ACTIVE":
+        if chat.withdrawn:
+            #FR25 - block messaging if the chat has been withdrawn
+            flash('This chat has been withdrawn. You cannot send messages.')
+            return redirect(url_for('main.chat', chat_id=chat_id))
+        
+        content = request.form.get('content', '').strip()
+        file = request.files.get('file')
         if content:
-            new_message = Message(chat_id=chat_id, sender_id=current_user.id, receiver_id=chat.doctor_id if current_user.id == chat.patient_id else chat.patient_id, content=content)
+            new_message = Message(
+                chat_id     = chat_id,
+                sender_id   = sender_id,
+                sender_type = sender_type,
+                content     = content,
+            )
             try:
                 db.session.add(new_message)
+                chat_obj.increment_message_count()
+
+                # award 1 point to the patient for each message sent
+                if sender_type == 'user':
+                    patient = db.session.get(User, chat_obj.sender_id)
+                    if patient:
+                        patient.add_points(1)
+
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
                 logger.error(sanitisationForLogs(f"Error sending message in chat {chat_id} for user {session.get('user')}: {str(e)}"))
                 flash('An error occurred while sending your message. Please try again.')
+
     messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
-    return render_template('chat.html', chat=chat, messages=messages)   
+    return render_template('chat.html', chat=chat_obj, messages=messages)
 
 
-@main.route('/delete_account', methods = ['GET', 'POST'])    
+
+
+@main.route('/restore-chat/<int:chat_id>', methods=['POST'])
+def restore_chat(chat_id):
+    """Restore chat route allows a patient to restore a withdrawn chat within 10 minutes.
+
+    Args:
+        chat_id (int): the ID of the Chat to restore.
+
+    Returns:
+        redirects to the chat or user_dashboard.
+    """
+    if session.get('role') != 'user':
+        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+
+    chat_obj = db.session.get(Chat, chat_id)
+    if not chat_obj or chat_obj.sender_id != session.get('user_id'):
+        flash('Chat not found.')
+        return redirect(url_for('main.user_dashboard'))
+
+    if not chat_obj.can_be_restored():
+        flash('This chat can no longer be restored. The 10-minute window has passed.')
+        return redirect(url_for('main.user_dashboard'))
+
+    try:
+        chat_obj.status       = "CHAT_STATUS_ACTIVE"
+        chat_obj.withdrawn_at = None
+        db.session.commit()
+        flash('Chat restored successfully.')
+        logger.info(sanitisationForLogs(f"User {session.get('user')} restored chat {chat_id}"))
+        return redirect(url_for('main.chat', chat_id=chat_id))
+    except Exception as e:
+        db.session.rollback()
+        logger.error(sanitisationForLogs(f"Error restoring chat {chat_id}: {str(e)}"))
+        flash('An error occurred while restoring the chat. Please try again.')
+        return redirect(url_for('main.user_dashboard'))
+
+
+
+@main.route('/review/<int:chat_id>', methods=['GET', 'POST'])
+def submit_review(chat_id):
+    """Submit review route allows a patient to leave a review after a chat.
+    Eligibility is checked before the form is shown.
+
+    Args:
+        chat_id (int): the ID of the Chat the review relates to.
+
+    Returns:
+        renders review.html or redirects to user_dashboard.
+    """
+    if session.get('role') != 'user':
+        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+
+    chat_obj = db.session.get(Chat, chat_id)
+    user     = get_current_user()
+
+    if not chat_obj or chat_obj.sender_id != user.id:
+        flash('Chat not found.')
+        return redirect(url_for('main.user_dashboard'))
+
+    # FR26/FR29 — eligibility check
+    if not chat_obj.user_can_review():
+        flash('You are not eligible to leave a review for this chat.')
+        return redirect(url_for('main.user_dashboard'))
+
+    # prevent duplicate reviews
+    existing = Review.query.filter_by(chat_id=chat_id, user_id=user.id).first()
+    if existing:
+        flash('You have already submitted a review for this chat.')
+        return redirect(url_for('main.user_dashboard'))
+
+    form = ReviewForm()
+
+    if form.validate_on_submit():
+        try:
+            # get the doctor's nhs_number from the request linked to this chat
+            linked_request = Request.query.filter_by(status="REQUEST_STATUS_ACCEPTED").filter(
+                Request.user_id == user.id
+            ).first()
+            doctor_nhs = linked_request.doctor_id if linked_request else None
+
+            review = Review(
+                user_id   = user.id,
+                doctor_id = doctor_nhs,
+                chat_id   = chat_id,
+                rating    = form.rating.data,
+                comment   = form.content.data,
+                status    = False,  # pending until moderator approves (FR13)
+            )
+            db.session.add(review)
+
+            # award 5 points for submitting a review
+            user.add_points(5)
+
+            db.session.commit()
+            flash('Your review has been submitted and is awaiting moderation.')
+            logger.info(sanitisationForLogs(f"Review submitted by {user.username} for chat {chat_id}"))
+            return redirect(url_for('main.user_dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(sanitisationForLogs(f"Error submitting review for chat {chat_id} by {user.username}: {str(e)}"))
+            flash('An error occurred while submitting your review. Please try again.')
+
+    return render_template('review.html', form=form, chat=chat_obj)
+
+
+
+@main.route('/delete_account', methods=['GET', 'POST'])
 def delete_account():
     if request.method == "POST":
 
@@ -586,7 +863,7 @@ def delete_account():
             current_password = form.current_password.data
 
             query = text("SELECT * FROM user WHERE username = :username LIMIT 1")
-            row = db.session.execute(query, {"username" : username}).mappings().first()
+            row = db.session.execute(query, {"username": username}).mappings().first()
 
             if not row:
                 session.clear()
@@ -594,51 +871,60 @@ def delete_account():
 
             user = db.session.get(User, row['id'])
 
-            # Validating that the current pass is correct
             if not user or not user.check_hash(current_password):
                 flash('Current password is incorrect')
                 logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
                 return render_template('delete_account.html', form=form)           
 
-            db.session.delete(user) #delete user from database
+            db.session.delete(user)
             db.session.commit() 
 
             flash('Account Deleted Successfully!')
+            session.clear()
             return redirect(url_for('main.login'))
         else:
             session.clear()
             return render_template('delete_account.html', form=form)
-        
-        
+
+
 @main.route('/approve_review', methods=['POST'])
 def approveReview():
+    """Approve review route allows a moderator to approve a pending review.
+
+    Returns:
+        redirects to reviewRequest.
+    """
     if session.get('role') != 'moderator':
         return render_template('forbidden.html')
 
     review_id = request.form.get('review_id')
-
-    review = Review.query.get(review_id)
+    review = db.session.get(Review, review_id)
     if review:
-        review.status = True
+        review.approveReview()
         db.session.commit()
 
     return redirect(url_for('main.reviewRequest'))
-    
-    
+
+
 @main.route('/requestAppointment', methods=['POST'])
 def requestAppointment():
+    """Request appointment route submits a medical request from a patient.
+
+    Returns:
+        redirects to dashboard.
+    """
     if 'user_id' not in session:
         return render_template('forbidden.html')
 
     request_obj = Request(
-        age=request.form.get('age'),
-        symptoms=request.form.get('symptoms'),
-        symptoms_details=request.form.get('symptoms_details'),
-        family_issues=bool(request.form.get('family_issues')),
-        family_details=request.form.get('family_details'),
-        existing_issues=bool(request.form.get('existing_issues')),
-        existing_details=request.form.get('existing_details'),
-        user_id=session['user_id']
+        age = request.form.get('age'),
+        symptoms = request.form.get('symptoms'),
+        symptoms_details = request.form.get('symptoms_details'),
+        family_issues = bool(request.form.get('family_issues')),
+        family_details = request.form.get('family_details'),
+        existing_issues = bool(request.form.get('existing_issues')),
+        existing_details = request.form.get('existing_details'),
+        user_id = session['user_id']
     )
 
     db.session.add(request_obj)
@@ -647,25 +933,35 @@ def requestAppointment():
     flash("Appointment request submitted")
     return redirect(url_for('main.dashboard'))
 
-@main.route('/approveAppointment', methods=['POST'])
 
+@main.route('/approveAppointment', methods=['POST'])
 def approveAppointment():
+    """Approve appointment route allows a doctor to approve a patient request.
+
+    Returns:
+        redirects to dashboard.
+    """
     if session.get('role') != 'doctor':
         return render_template('forbidden.html')
 
     request_id = request.form.get('request_id')
-
-    req = Request.query.get(request_id)
+    req = db.session.get(Request, request_id)
     if req:
         req.status = 'approved'
-        req.doctor_id = session['user_id']  
+        req.doctor_id = session['user_id']
         db.session.commit()
 
     flash("Appointment approved")
     return redirect(url_for('main.dashboard'))
-        
+
+
 @main.route('/reviewRequest', methods=['GET', 'POST'])
 def reviewRequest():
+    """Review request route shows moderators all pending reviews and reports.
+
+    Returns:
+        renders moderator_dashboard.html with pending reviews and reports.
+    """
     if session.get('role') != 'moderator':
         return render_template('forbidden.html')
 
@@ -677,24 +973,34 @@ def reviewRequest():
         reviews=pending_reviews,
         reports=pending_reports
     )
-    
+
+
 @main.route('/approve_report', methods=['POST'])
 def approve_report():
+    """Approve report route allows a moderator to approve a pending report.
+
+    Returns:
+        redirects to reviewRequest.
+    """
     if session.get('role') != 'moderator':
         return render_template('forbidden.html')
 
     report_id = request.form.get('report_id')
-
-    report = Report.query.get(report_id)
+    report = db.session.get(Report, report_id)
     if report:
         report.status = 'approved'
         db.session.commit()
 
     return redirect(url_for('main.reviewRequest'))
 
-    
+
 @main.route('/reportChat', methods=['POST'])
 def reportChat():
+    """Report chat route allows a user to report a specific message.
+
+    Returns:
+        redirects back to the referring page.
+    """
     if 'user' not in session:
         return render_template('forbidden.html')
 
@@ -706,9 +1012,9 @@ def reportChat():
         return redirect(request.referrer)
 
     report = Report(
-        message_id=message_id,
-        reporter_id=session['user_id'],
-        reason=reason
+        message_id  = message_id,
+        reporter_id = session['user_id'],
+        reason = reason
     )
 
     db.session.add(report)
@@ -716,9 +1022,15 @@ def reportChat():
 
     flash("Report submitted successfully")
     return redirect(request.referrer)
-    
+
+
 @main.route('/filterResults', methods=['POST'])
 def filterResults():
+    """Filter results route returns doctors matching submitted form filters.
+
+    Returns:
+        renders search_results.html with matching doctors.
+    """
     specialty = request.form.get('specialty')
     location = request.form.get('location')
     language = request.form.get('language')
@@ -733,5 +1045,341 @@ def filterResults():
         query = query.filter(Doctor.language.ilike(f"%{language}%"))
 
     results = query.all()
-
     return render_template('search_results.html', doctors=results)
+
+@main.route('/moderate_user', methods=['POST'])
+def moderate_user():
+    """Moderate user route allows a moderator to take action on a user.
+
+    Returns:
+        redirects to reviewRequest.
+    """
+    if session.get('role') != 'moderator':
+        return render_template('forbidden.html')
+
+    user_id = request.form.get('user_id')
+    action = request.form.get('action')
+    reason = request.form.get('reason')
+
+    user = db.session.get(User, user_id)
+
+    if user:
+        if action == 'ban':
+            user.is_banned = True
+            user.suspension_reason = reason
+
+        elif action == 'suspend':
+            user.is_suspended = True
+            user.suspension_reason = reason
+
+        elif action == 'unban':
+            user.is_banned = False
+            user.suspension_reason = None
+
+        elif action == 'unsuspend':
+            user.is_suspended = False
+            user.suspension_reason = None
+
+        db.session.commit()
+
+    return redirect(url_for('main.reviewRequest'))
+@main.route('/moderate_doctor', methods=['POST'])
+def moderate_doctor():
+    """Moderate doctor route allows a moderator to take action on a doctor.
+
+    Returns:
+        redirects to reviewRequest.
+    """
+    if session.get('role') != 'moderator':
+        return render_template('forbidden.html')
+
+    nhs_number = request.form.get('nhs_number')
+    action = request.form.get('action')
+    reason = request.form.get('reason')
+
+    doctor = db.session.get(Doctor, nhs_number)
+
+    if doctor:
+        if action == 'ban':
+            doctor.is_banned = True
+            doctor.suspension_reason = reason
+            
+        elif action == 'suspend':
+            doctor.is_suspended = True
+            doctor  .suspension_reason = reason
+
+        elif action == 'unban':
+            doctor.is_banned = False
+            doctor.suspension_reason = None
+
+        elif action == 'unsuspend':
+            doctor.is_suspended = False
+            doctor.suspension_reason = None
+
+        db.session.commit()
+
+    return redirect(url_for('main.reviewRequest'))
+
+@main.route('/edit_review/<int:review_id>', methods=['GET', 'POST'])
+def edit_review(review_id):
+    """Edit review route allows a user to edit a pending review within five minutes of submission.
+
+    Args:
+        review_id (int): the ID of the Review to edit.
+
+    Returns:
+        renders edit_review.html or redirects to user_dashboard.
+    """
+    if session.get('role') != 'user':
+        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+
+    review = db.session.get(Review, review_id)
+    user = get_current_user()
+
+    if not review or review.user_id != user.id:
+        flash('Review not found.')
+        return redirect(url_for('main.user_dashboard'))
+    
+    #time_limit = review.created_at + timedelta(minutes=5)
+
+    #if datetime.utcnow() > time_limit:
+     #   flash('The edit window for this review has expired.')
+    #  return redirect(url_for('main.user_dashboard'))
+    
+    form = ReviewForm(obj=review)
+
+    if form.validate_on_submit():
+        try:
+            review.rating = form.rating.data
+            review.comment = form.content.data
+            db.session.commit()
+            flash('Your review has been updated.')
+            logger.info(sanitisationForLogs(f"Review {review_id} edited by {user.username}"))
+            return redirect(url_for('main.user_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            logger.error(sanitisationForLogs(f"Error editing review {review_id} by {user.username}: {str(e)}"))
+            flash('An error occurred while updating your review. Please try again.')
+            
+    return redirect(url_for('main.user_dashboard'))
+
+@main.route('/notifications', methods=['POST'])
+def get_notifications():
+    if session.get('role') != 'user':
+        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+
+    user = get_current_user()
+    user_notifications = Notification.query.filter_by(user_id=user.id).all()
+
+    return render_template('notifications.html', notifications=user_notifications)
+
+@main.route('/submit-review', methods=['POST'])
+def submit_review(nhs_number):
+    """Submit review route allows logged-in patients to leave a review for a doctor.
+    Enforces FR26 (no review after early withdrawal), FR28 (can review if reported),
+    and FR29 (must have 5+ messages to review).
+
+    Args:
+        nhs_number (str): the NHS number of the doctor being reviewed.
+
+    Returns:
+        returns JSON response with success status message
+    """
+    if session.get('role') != 'user':
+        logger.warning(sanitisationForLogs(
+            f"Forbidden review attempt: role={session.get('role')} from {request.remote_addr}"
+        ))
+        return jsonify({"success": False, "message": "You must be logged in as a user to submit a review."}), 403
+
+    doctor = db.session.get(Doctor, nhs_number)
+    if not doctor:
+        abort(404)
+
+    username = session.get('user')
+    user_row = db.session.execute(
+        text("SELECT id FROM user WHERE username = :username"),
+        {"username": username}
+    ).mappings().first()
+
+    if not user_row:
+        session.clear()
+        return jsonify({"success": False, "message": "User not found."}), 404
+
+    user_id = user_row['id']
+
+    chat = Chat.query.filter_by(
+        sender_id=user_id,
+        doctor_nhs_number=nhs_number
+    ).first()
+
+    
+    has_reported = False
+    if chat:
+        has_reported = Report.query.filter_by(
+            reporter_id=user_id
+        ).join(Message).filter(
+            Message.chat_id == chat.id
+        ).first() is not None
+
+    
+    if chat and chat.early_withdrawn and not has_reported:
+        flash("You cannot review a doctor you withdrew from within 3 messages.")
+        logger.warning(sanitisationForLogs(
+            f"User {username} attempted to review doctor {nhs_number} "
+            f"after early withdrawal from {request.remote_addr}"
+        ))
+        return jsonify({"success": False, "message": "You cannot review a doctor you withdrew from within 3 messages."}), 403
+
+    
+    message_count = 0
+    if chat:
+        message_count = Message.query.filter_by(
+            chat_id=chat.id,
+            sender_id=user_id
+        ).count()
+
+    if message_count < 5 and not has_reported:
+        flash("You can only review a doctor after sending at least 5 messages.")
+        logger.warning(sanitisationForLogs(
+            f"User {username} attempted to review doctor {nhs_number} "
+            f"with only {message_count} messages from {request.remote_addr}"
+        ))
+        return jsonify({"success": False, "message": "You can only review a doctor after sending at least 5 messages."}), 400
+
+    existing_review = Review.query.filter_by(
+        user_id=user_id,
+        doctor_id=nhs_number
+    ).first()
+
+    if request.method == 'POST':
+        rating_raw = request.form.get('rating')
+        comment = request.form.get('comment', '').strip()
+
+        try:
+            rating = float(rating_raw)
+            if not (1.0 <= rating <= 5.0):
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "Rating must be a number between 1 and 5."}), 400
+
+        safe_comment = bleach.clean(comment, tags=[], strip=True)
+
+        if len(safe_comment) > 200:
+            return jsonify({"success": False, "message": "Comment must be 200 characters or fewer."}), 400
+
+        if existing_review:
+            existing_review.rating = rating
+            existing_review.comment = safe_comment
+            existing_review.status = False  
+            db.session.commit()
+            logger.info(sanitisationForLogs(
+                f"User {username} updated review for doctor {nhs_number}"
+            ))
+            return jsonify({"success": True, "message": "Your review has been updated and is pending moderation."})
+        else:
+            new_review = Review(
+                user_id=user_id,
+                doctor_id=nhs_number,
+                rating=rating,
+                comment=safe_comment,
+                status=False
+            )
+            db.session.add(new_review)
+            db.session.commit()
+            logger.info(sanitisationForLogs(
+                f"User {username} submitted review for doctor {nhs_number}"
+            ))
+            return jsonify({"success": True, "message": "Your review has been submitted and is pending moderation."})
+
+@main.route('/doctor/reviews', methods=['POST'])
+def doctor_reviews(nhs_number):
+    """Doctor reviews route displays all approved reviews for a given doctor,
+    along with their current average rating.
+
+    Anyone (logged in or not) may view this page.
+
+    Args:
+        nhs_number (str): the 10-digit NHS number of the doctor.
+
+    Returns:
+        returns a json object.
+    """
+    data = request.get_json()
+
+
+    data["doctor"] = db.session.get(Doctor, nhs_number)
+    if doctor is None:
+        abort(404)
+
+    approved_reviews = Review.query.filter_by(
+        doctor_id=nhs_number,
+        status=True
+    ).order_by(Review.created_at.desc()).all()
+
+    if approved_reviews:
+        avg_rating = round(sum(r.rating for r in approved_reviews) / len(approved_reviews), 1)
+    else:
+        avg_rating = None
+
+    return render_template(
+        'doctor_reviews.html',
+        doctor=doctor,
+        reviews=approved_reviews,
+        avg_rating=avg_rating
+    )
+
+@main.route('/withdraw_chat', methods=['POST'])
+def widthdraw_chat(chat_id):
+    """Withdraw chat route allows a doctor or patient to withdraw from an active chat,
+    effectively ending the appointment. The chat is marked as withdrawn but not deleted
+    to preserve conversation history for moderators in case of disputes.
+
+    Only participants of the chat may perform this action.
+
+    Args:
+        chat_id (int): the ID of the chat to withdraw from.
+
+    Returns:
+        JSON response with success staus and message
+    """
+    data = request.get_json()
+
+    if session.get('role') != 'user':
+        logger.warning(sanitisationForLogs(f"Forbidden chat withdrawal attempt: role={session.get('role')} from {request.remote_addr}"))
+        return jsonify({"success": False, "message": "You must be logged in as a patient to perform this action."}), 403
+    
+    username = session.get('user')
+    user_row = db.session.execute(
+        text("SELECT id FROM user WHERE username = :u"), {"u": username}
+    ).mappings().first()
+
+    if user_row is None:
+        session.clear()
+        return jsonify({"success": False, "message": "User not found."}), 404
+
+    user_id = user_row['id']
+    
+    chat = Chat.query.get(chat_id)
+    if not chat or chat.sender_id != user_id:
+        return jsonify({"success": False, "message": "Chat not found or you do not have permissions to view this."}), 404
+    
+    if chat.withdrawn:
+        return jsonify({"success": False, "message": "Chat is already withdrawn."}), 400
+
+    user_message_count = Message.query.filter_by(
+        chat_id=chat_id,
+        sender_id=user_id
+    ).count()
+    
+    if user_message_count >= 3:
+        logger.warning(sanitisationForLogs(
+            f"User {username} tried to withdraw from chat {chat_id} "
+            f"after {user_message_count} messages from {request.remote_addr}"
+        ))
+        return jsonify({"success": False, "message": "You can no longer withdraw from this chat."}), 400
+
+    chat.withdraw(early=True)
+    db.session.commit()
+
+    logger.info(sanitisationForLogs(f"Chat {chat_id} withdrawn by user {username} from {request.remote_addr}"))
+    return jsonify({"success": True, "message": "You have withdrawn from the chat. The appointment is now ended."})

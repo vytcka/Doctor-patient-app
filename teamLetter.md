@@ -4,7 +4,7 @@ Hello everybody !
 
 to start making files and debugging and running the frontend you guys need to install node js, which can be found here:
 
-https://nodejs.org/en/download
+cd ..
 
 then we will need to create a personal ven folder within the server directory, with nodejs installed.
 
