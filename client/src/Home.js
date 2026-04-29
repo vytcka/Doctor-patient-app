@@ -33,6 +33,9 @@ function Home() {
           <Link to="/chat" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
           </Link>
+          <Link to="/dashboard" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
+          </Link>
         </div>
       </div>
 
