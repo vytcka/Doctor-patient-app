@@ -379,8 +379,8 @@ def doctor_register():
 #--------------------------------------------
 
 
-@main.route('/doctor/dashboard')
-def doctor_dashboard():
+@main.route('/doctor/dashboardChats')
+    #pass on the doctor nhs number and role
     """Doctor dashboard shows active chat count, pending requests, and profile info.
 
     Returns:
@@ -391,30 +391,15 @@ def doctor_dashboard():
 
     if data['role'] != 'doctor':
         logger.warning(sanitisationForLogs(f"Forbidden access to doctor dashboard: role={session.get('role')} from {request.remote_addr}"))
-        return jsonify({"status" : 400, "message" : "incorrect data provided"})
+        return jsonify({"status" : 400, "message" : "incorrect role provided"})
     try:
-        doctor = get_current_doctor()
-        decypher = Decypher(session['bio'])
+        queru = text("SELECT * from Chat WHERE  doctor_nhs_number = :doctor_nhs)number")
+        row = db.session.execute(query, {"doctor_nhs_number": data["nhs number"]}).mappings().first()
 
-        #sql querry based on the avtive chats this has to be reworked this whole session.
+        if row is not None:
+            return jsonify({"status", "chats" : row})
+        else: return jsonify({"message" : " no chats are available"})
 
-        active_chats     = Chat.query.filter_by(receiver_id=doctor.nhs_number, status="CHAT_STATUS_ACTIVE").all()
-        pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
-
-        sql_querry = text("")
-
-        return render_template(
-            'doctor_dashboard.html',
-            username=doctor.username,
-            first_name=doctor.first_name,
-            bio=decypher.get_text(),
-            specialty=doctor.specialty,
-            rating=doctor.rating,
-            active_chat_count=len(active_chats),
-            pending_requests=pending_requests,
-        )
-    except InvalidToken:
-        return redirect(url_for('main.doctor_login'))
 
 @main.route('/change-password', methods=['GET', 'POST'])
 def change_password():
@@ -753,43 +738,6 @@ def chat(chat_id):
     messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
     return render_template('chat.html', chat=chat_obj, messages=messages)
 
-
-
-@main.route('/withdraw-chat/<int:chat_id>', methods=['POST'])
-def withdraw_chat(chat_id):
-    """Withdraw chat route allows a patient to withdraw from a chat within
-    the first 3 user messages. FR25 — chats can be cancelled within 3 user messages.
-
-    Args:
-        chat_id (int): the ID of the Chat to withdraw from.
-
-    Returns:
-        redirects to user_dashboard.
-    """
-    if session.get('role') != 'user':
-        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
-
-    chat_obj = db.session.get(Chat, chat_id)
-    if not chat_obj or chat_obj.sender_id != session.get('user_id'):
-        flash('Chat not found.')
-        return redirect(url_for('main.user_dashboard'))
-
-    if not chat_obj.can_be_withdrawn():
-        flash('This chat can no longer be withdrawn.')
-        return redirect(url_for('main.chat', chat_id=chat_id))
-
-    try:
-        chat_obj.status       = "CHAT_STATUS_WITHDRAWN"
-        chat_obj.withdrawn_at = datetime.utcnow()
-        db.session.commit()
-        flash('Chat withdrawn successfully.')
-        logger.info(sanitisationForLogs(f"User {session.get('user')} withdrew from chat {chat_id}"))
-    except Exception as e:
-        db.session.rollback()
-        logger.error(sanitisationForLogs(f"Error withdrawing chat {chat_id}: {str(e)}"))
-        flash('An error occurred while withdrawing. Please try again.')
-
-    return redirect(url_for('main.user_dashboard'))
 
 
 
@@ -1215,7 +1163,7 @@ def edit_review(review_id):
             
     return redirect(url_for('main.user_dashboard'))
 
-@main.route('/notifications', methods=['GET'])
+@main.route('/notifications', methods=['POST'])
 def get_notifications():
     if session.get('role') != 'user':
         return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
@@ -1225,7 +1173,7 @@ def get_notifications():
 
     return render_template('notifications.html', notifications=user_notifications)
 
-@main.route('/submit-review/<string:nhs_number>', methods=['GET', 'POST'])
+@main.route('/submit-review', methods=['POST'])
 def submit_review(nhs_number):
     """Submit review route allows logged-in patients to leave a review for a doctor.
     Enforces FR26 (no review after early withdrawal), FR28 (can review if reported),
@@ -1343,7 +1291,7 @@ def submit_review(nhs_number):
             ))
             return jsonify({"success": True, "message": "Your review has been submitted and is pending moderation."})
 
-@main.route('/doctor/<nhs_number>/reviews', methods=['GET'])
+@main.route('/doctor/reviews', methods=['POST'])
 def doctor_reviews(nhs_number):
     """Doctor reviews route displays all approved reviews for a given doctor,
     along with their current average rating.
@@ -1354,9 +1302,12 @@ def doctor_reviews(nhs_number):
         nhs_number (str): the 10-digit NHS number of the doctor.
 
     Returns:
-        renders doctor_reviews.html with the doctor object and approved reviews.
+        returns a json object.
     """
-    doctor = db.session.get(Doctor, nhs_number)
+    data = request.get_json()
+
+
+    data["doctor"] = db.session.get(Doctor, nhs_number)
     if doctor is None:
         abort(404)
 
@@ -1377,7 +1328,7 @@ def doctor_reviews(nhs_number):
         avg_rating=avg_rating
     )
 
-@main.route('/withdraw_chat/<int:chat_id>', methods=['POST'])
+@main.route('/withdraw_chat', methods=['POST'])
 def widthdraw_chat(chat_id):
     """Withdraw chat route allows a doctor or patient to withdraw from an active chat,
     effectively ending the appointment. The chat is marked as withdrawn but not deleted
@@ -1391,6 +1342,8 @@ def widthdraw_chat(chat_id):
     Returns:
         JSON response with success staus and message
     """
+    data = request.get_json()
+
     if session.get('role') != 'user':
         logger.warning(sanitisationForLogs(f"Forbidden chat withdrawal attempt: role={session.get('role')} from {request.remote_addr}"))
         return jsonify({"success": False, "message": "You must be logged in as a patient to perform this action."}), 403
