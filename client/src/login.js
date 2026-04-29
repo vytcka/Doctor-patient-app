@@ -5,7 +5,7 @@ import Icon from "./LogoIcon.png";
 
 export default function Login() {
     const [formData, setFormData] = useState({
-        email: '',
+        username: '',
         password: ''
     });
 
@@ -21,7 +21,7 @@ export default function Login() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.email || !formData.password){
+        if (!formData.username || !formData.password){
             setErrorMessage('Please fill in all fields');
             setSuccessMessage('');
             return;
@@ -69,10 +69,10 @@ export default function Login() {
                 <form className="form" onSubmit={handleSubmit}>
                     <div className="form-group">
                         <input 
-                            type="email"
-                            id="email"
-                            name="email"
-                            placeholder='email'
+                            type="username"
+                            id="username"
+                            name="username"
+                            placeholder='username'
                             value={formData.email}
                             onChange={handleChange}
                             required
