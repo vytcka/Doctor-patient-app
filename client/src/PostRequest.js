@@ -37,9 +37,6 @@ function PostRequest() {
         </Link>
         {/* Buttons - Home button REMOVED */}
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/post-request" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
-          </Link>
           <Link to="/reviews" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
           </Link>

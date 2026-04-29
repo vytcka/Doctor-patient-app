@@ -58,24 +58,6 @@ export default function Signup() {
                     <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
                     <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
                 </Link>
-                {/* Buttons - Home button REMOVED */}
-                <div style={{ display: "flex", gap: "10px" }}>
-                    <Link to="/post-request" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
-                    </Link>
-                    <Link to="/reviews" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
-                    </Link>
-                    <Link to="/login" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                    </Link>
-                    <Link to="/signup" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-                    </Link>
-                    <Link to="/chat" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
-                    </Link>
-                </div>
             </div>
             <div className="form-container">
                 <h1>Sign Up</h1>
