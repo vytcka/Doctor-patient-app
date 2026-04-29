@@ -188,7 +188,7 @@ class Doctor(db.Model):
     username      = db.Column(db.String(80),  unique=True, nullable=False)
     password      = db.Column(db.String(200), nullable=False)
     role          = db.Column(db.String(50),  default='doctor', nullable=False)
-    date_of_birth = db.Column(db.Date,        nullable=False)
+    date_of_birth = db.Column(db.Date, nullable=False)
     location      = db.Column(db.String(100), nullable=False)
     rating        = db.Column(db.Float,       nullable=True, default=None)
     specialty     = db.Column(db.String(60),  nullable=False)
@@ -313,6 +313,14 @@ class Doctor(db.Model):
         """
         fernet = Fernet(ENCRYPTIONKEY)
         return fernet.decrypt(self.bio.encode('utf-8')).decode('utf-8')
+    
+    def get_availability(self) -> bool:
+        """Get availability method returns the doctor's current availability status.
+
+        Returns:
+            bool: True if the doctor is available for appointments, False if not.
+        """
+        return self.availability
 
     @property
     def is_doctor(self):
@@ -358,6 +366,11 @@ class Chat(db.Model):
     
     def approveAppointment(self):
         """Approves the appointment between the patient and doctor."""
+        if self.status == "CHAT_STATUS_ACTIVE":
+            if self.withdrawn == False:
+                if Doctor.get_availability(self.receiver_id) == True:
+                    if self.message_count >= 3:
+                        self.bookedAppointment = True
 
     def withdraw(self, early=False):
         """Marks the chat as withdrawn.
@@ -367,12 +380,7 @@ class Chat(db.Model):
         """
         self.withdrawn = True
         self.withdrawn_early = early
- 
-# ─────────────────────────────────────────────
-# Message model — UNCHANGED
-# ─────────────────────────────────────────────
-        """Approves the appointment between the patient and doctor."""
-        self.bookedAppointment = True
+
  
     def increment_message_count(self):
         """Increment the message count and update the last activity timestamp.
