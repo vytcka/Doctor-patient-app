@@ -1,7 +1,8 @@
 import { React, useState } from "react";
-import { data } from "./doctorItems";
+import { data } from "./doctorItems"; //dummy data for doctors
 import { useNavigate } from "react-router-dom";
 import './reviews.css'; 
+import StarRating from "./StarRating";
 
 
 export default function Reviews() {
@@ -69,6 +70,9 @@ export default function Reviews() {
             //location
             const locationOptions = [...new Set(data.map(item => item.location))];
 
+            //Show calculated average star rating based on reviews
+            const renderStars = (rating) => "⭐".repeat(Math.round(rating));
+
     return(
         <div className="review-container">
             <h1>Doctors Reviews</h1>
@@ -78,7 +82,7 @@ export default function Reviews() {
             <div className="search-bar">
                 <input
                 type="search"
-                placeholder="Search"
+                placeholder="🔍 Search"
                 onChange={event => setQuery(event.target.value)}
                 />
             </div>
@@ -155,7 +159,7 @@ export default function Reviews() {
                         </div>
 
                         <div className="doctor-rating"> 
-                            {"⭐".repeat(items.rating)}
+                            <StarRating rating={items.rating} />
                             <p>View more information about this doctor →</p>
                         </div>
 
