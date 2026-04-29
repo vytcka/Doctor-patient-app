@@ -397,7 +397,7 @@ def doctor_dashboard():
         decypher = Decypher(session['bio'])
 
         active_chats     = Chat.query.filter_by(receiver_id=doctor.nhs_number, status="CHAT_STATUS_ACTIVE").all()
-        pending_requests = Request.query.filter_by(status=REQUEST_STATUS_PENDING).all()
+        pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
 
         return render_template(
             'doctor_dashboard.html',
@@ -588,7 +588,7 @@ def view_requests():
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
         return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
 
-    pending_requests = Request.query.filter_by(status=REQUEST_STATUS_PENDING).all()
+    pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
     return render_template('view_requests.html', requests=pending_requests)
 
 
@@ -610,12 +610,12 @@ def accept_request(request_id):
     doctor = get_current_doctor()
     medical_request = db.session.get(Request, request_id)
 
-    if not medical_request or medical_request.status != REQUEST_STATUS_PENDING:
+    if not medical_request or medical_request.status != "REQUEST_STATUS_PENDING":
         flash('Request not found or already processed.')
         return redirect(url_for('main.view_requests'))
 
     try:
-        medical_request.status    = REQUEST_STATUS_ACCEPTED
+        medical_request.status    = "REQUEST_STATUS_ACCEPTED"
         medical_request.doctor_id = doctor.nhs_number
 
         chat = Chat(
@@ -775,7 +775,7 @@ def withdraw_chat(chat_id):
         return redirect(url_for('main.chat', chat_id=chat_id))
 
     try:
-        chat_obj.status       = CHAT_STATUS_WITHDRAWN
+        chat_obj.status       = "CHAT_STATUS_WITHDRAWN"
         chat_obj.withdrawn_at = datetime.utcnow()
         db.session.commit()
         flash('Chat withdrawn successfully.')
@@ -812,7 +812,7 @@ def restore_chat(chat_id):
         return redirect(url_for('main.user_dashboard'))
 
     try:
-        chat_obj.status       = CHAT_STATUS_ACTIVE
+        chat_obj.status       = "CHAT_STATUS_ACTIVE"
         chat_obj.withdrawn_at = None
         db.session.commit()
         flash('Chat restored successfully.')
@@ -1188,11 +1188,11 @@ def edit_review(review_id):
         flash('Review not found.')
         return redirect(url_for('main.user_dashboard'))
     
-    time_limit = review.created_at + timedelta(minutes=5)
+    #time_limit = review.created_at + timedelta(minutes=5)
 
-    if datetime.utcnow() > time_limit:
-        flash('The edit window for this review has expired.')
-        return redirect(url_for('main.user_dashboard'))
+    #if datetime.utcnow() > time_limit:
+     #   flash('The edit window for this review has expired.')
+    #  return redirect(url_for('main.user_dashboard'))
     
     form = ReviewForm(obj=review)
 
