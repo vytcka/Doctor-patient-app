@@ -7,6 +7,7 @@ import Login from "./login";
 import Signup from "./signup";
 import Chat from "./Chat";
 import Dashboard from "./Dashboard"; 
+import Settings from './Settings';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/Settings" element={<Settings />} />
 
       </Routes>
 
