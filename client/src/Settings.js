@@ -48,14 +48,14 @@ function Settings() {
 
   return (
     <div>
-      {/* Navbar - exact copy of homepage */}
+      {/* Navbar with clickable logo - Home button removed */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+          <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
-        </div>
+        </Link>
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button></Link>
+          {/* Home button REMOVED */}
           <Link to="/post-request" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
           <Link to="/reviews" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button></Link>
           <Link to="/login" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button></Link>

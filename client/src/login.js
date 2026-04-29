@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
 export default function Login() {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -28,40 +29,41 @@ export default function Login() {
         }
         else {
             setErrorMessage('');
-            setSuccessMessage('Login successful!');
+            setSuccessMessage('Login successful! Redirecting...');
+            // Redirect to dashboard after 1 second
+            setTimeout(() => {
+                navigate('/dashboard');
+            }, 1000);
         }
     };
 
     //UI
     return (
         <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-                  <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>{/* App title */}
-                </div>
-                {/* Buttons for: Home, PostaRequest, Reviews, Login and their colours + placements */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
+                <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+                    <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+                    <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+                </Link>
+                {/* Buttons - Home button REMOVED */}
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <Link to="/" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
-                  </Link>
-                  <Link to="/post-request" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
-                  </Link>
-                  <Link to="/reviews" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
-                  </Link>
-                  <Link to="/login" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                  </Link>
-                  <Link to="/signup" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-                  </Link>
-                  <Link to="/chat" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
-                  </Link>
+                    <Link to="/post-request" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
+                    </Link>
+                    <Link to="/reviews" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
+                    </Link>
+                    <Link to="/login" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+                    </Link>
+                    <Link to="/signup" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+                    </Link>
+                    <Link to="/chat" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+                    </Link>
                 </div>
-              </div>
+            </div>
 
             <div className="form-container"> 
                 <h1>Login</h1>
@@ -95,12 +97,10 @@ export default function Login() {
                     <button type="submit">Login</button>
 
                     <Link to="/request" className="guest">Continue as guest?</Link>
-                    <p>Don't have an account yet? <Link to="/Signup">Sign up</Link></p>
+                    <p>Don't have an account yet? <Link to="/signup">Sign up</Link></p>
 
                 </form>
-            
             </div>
         </div>
-       
-        )
+    )
 }

@@ -23,12 +23,12 @@ function Dashboard() {
     <div>
       {/* Navbar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+          <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
-        </div>
+        </Link>
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button></Link>
+          {/* Home button REMOVED */}
           <Link to="/post-request" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
           <Link to="/reviews" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button></Link>
           <Link to="/login" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button></Link>
@@ -52,7 +52,7 @@ function Dashboard() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           <button onClick={() => navigate(-1)} style={{ width: "100%", backgroundColor: "#3b82f6", color: "white", padding: "10px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "bold" }}>Back</button>
-          <Link to="/Settings" style={{ textDecoration: "none" }}>
+          <Link to="/settings" style={{ textDecoration: "none" }}>
             <button style={{ width: "100%", backgroundColor: "#f0f4ff", color: "#1b4cb6", padding: "10px", borderRadius: "6px", border: "1px solid #ccd9ee", cursor: "pointer", fontWeight: "bold" }}>Settings</button>
           </Link>
         </div>

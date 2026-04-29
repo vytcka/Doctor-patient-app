@@ -9,15 +9,12 @@ function Home() {
     //Top header layout : logo, buttons -------------------------------------- 
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-          <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>{/* App title */}
-        </div>
-        {/* Buttons for: Home, PostaRequest, Reviews, Login and their colours + placements */}
+        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+          <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+          <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+        </Link>
+        {/* Buttons - Home button REMOVED since logo handles it */}
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
-          </Link>
           <Link to="/post-request" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
           </Link>
@@ -50,7 +47,6 @@ function Home() {
         </div>
       </div>
 
-
       {/* Features Section-------------------------------------- */}
       <div style={{backgroundColor: "#dbeafe", padding: "40px"}}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "40px" }}>
@@ -81,7 +77,6 @@ function Home() {
         <button style={{backgroundColor: "#709de6", color: "#41537a", fontSize: "2rem", padding: "15px 40px"}}>Post a request now!</button>
         </Link>      
       </div>
-
 
     </div>
   );

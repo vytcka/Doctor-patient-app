@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './form.css'; 
 import Icon from "./LogoIcon.png";
 
 export default function Signup() {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -24,13 +25,28 @@ export default function Signup() {
     //validation and submit form data to backend
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!formData.username || !formData.email || !formData.password) {
+            setErrorMessage('Please fill in all fields');
+            setSuccessMessage('');
+            return;
+        }
         if (formData.password !== formData.confirmPassword) {
             setErrorMessage('Passwords do not match');
+            setSuccessMessage('');
+            return;
+        }
+        if (formData.password.length < 6) {
+            setErrorMessage('Password must be at least 6 characters');
+            setSuccessMessage('');
             return;
         }
         else {
             setErrorMessage('');
-            setSuccessMessage('Signup successful!');
+            setSuccessMessage('Signup successful! Redirecting to dashboard...');
+            // Redirect to dashboard after 1.5 seconds
+            setTimeout(() => {
+                navigate('/dashboard');
+            }, 1500);
         }
     };
 
@@ -38,15 +54,12 @@ export default function Signup() {
     return (
         <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                    <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-                    <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>{/* App title */}
-                </div>
-                {/* Buttons for: Home, PostaRequest, Reviews, Login and their colours + placements */}
+                <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+                    <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+                    <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+                </Link>
+                {/* Buttons - Home button REMOVED */}
                 <div style={{ display: "flex", gap: "10px" }}>
-                    <Link to="/" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
-                    </Link>
                     <Link to="/post-request" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
                     </Link>
@@ -118,7 +131,7 @@ export default function Signup() {
                     <button type="submit">Submit</button>
 
                     <Link to="/request" className="guest">Continue as guest?</Link>
-                    <p>Already have an account? <Link to="/Login">Login</Link></p>
+                    <p>Already have an account? <Link to="/login">Login</Link></p>
 
                 </form>
             </div>

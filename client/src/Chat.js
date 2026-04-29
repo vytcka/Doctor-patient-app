@@ -34,14 +34,12 @@ export default function Chat() {
     <div>
       {/* Navbar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+          <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
-        </div>
+        </Link>
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
-          </Link>
+          {/* Home button REMOVED */}
           <Link to="/post-request" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
           </Link>
@@ -152,7 +150,7 @@ export default function Chat() {
               <span style={{ color: "#607593" }}>Points: </span>{user.points}
             </p>
 
-            <Link to="/Dashboard" style={{ textDecoration: "none", marginTop: "8px" }}>
+            <Link to="/dashboard" style={{ textDecoration: "none", marginTop: "8px" }}>
               <button style={{
                 width: "100%", backgroundColor: "#3b82f6", color: "white",
                 padding: "8px", borderRadius: "6px", border: "none",
@@ -172,7 +170,7 @@ const styles = {
   container: {
     flex: 1,
     height: "80vh",
-    width: "100vh",
+    width: "100%",  // Fixed: was "100vh" which was wrong
     display: "flex",
     flexDirection: "column",
     padding: 20,
