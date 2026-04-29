@@ -7,6 +7,7 @@ import DoctorDetail from "./DoctorDetail";
 import Login from "./login";
 import Signup from "./signup";
 import Chat from "./Chat";
+import UserDashboard from "./UserDashboard";
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/chat" element={<Chat />} />
-
+        <Route path="/dashboard" element={<UserDashboard />} />
 
       </Routes>
 
