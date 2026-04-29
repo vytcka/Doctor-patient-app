@@ -76,14 +76,6 @@ def get_current_doctor():
 
 
 
-@main.route('/')
-def home():
-    #i Doubt we would need a home directory or navigator per se, i think the approach that i have taken at least we should not return any headers, only json data.
-    logger.info(sanitisationForLogs(f"Request from the address {request.remote_addr}"))
-    #return json objects instead, in my opinion because I think due to my personal naivety i imagined we would navigate across pages, which is not right.
-    return jsonify({"status" : 200})
-    #return render_template('home.html')
-
 @main.route('/login', methods=['GET', 'POST'])
 def login():
     """Login route is responsible for authenticating patient (user) accounts.
@@ -249,9 +241,9 @@ def doctor_login():
     data = request.get_json()
     
     forms = validation_form()
-    
+    ]
     forms.username.data = data["username"]
-    forms.password.data = data["password"]
+    forms.password.data = data["password"
     
     if request.method == 'POST':
         if forms.validate_on_submit():
@@ -302,7 +294,7 @@ def doctor_login():
     return jsonify ({"status" : 400, "message" : "incorrect data sending format"})
 
 
-@main.route('/doctor/register', methods=['GET', 'POST'])
+@main.route('/doctor/register', methods=[ 'POST'])
 def doctor_register():
     """Doctor register route is responsible for creating new doctor accounts.
     The role is always set to 'doctor'. Bio is sanitised with bleach before
@@ -311,32 +303,32 @@ def doctor_register():
     Returns:
         renders doctor_register.html on GET or failed POST, redirects to doctor_login on success.
     """
+    data = request.get_json()
     forms = DoctorRegistrationForm()
-    if request.method == 'POST':
+    forms.nhs_number.data = data["nhs number"]
+    forms.first_name.data = data["first name"]
+    forms.last_name.data = data["last name"]
+    forms.username.data = data["username"]
+    forms.password.data = data["password"]
+    forms.date_of_birth.data = data["date of birth"]
+    forms.location.data = data["location"]
+    forms.specialty.data = data["specialty"]
+    forms.languange.data = data["languange"]
+    forms.bio.data = data["bio"]
+    forms.availability.data = data["availability"]
+    
         if forms.validate_on_submit():
-            nhs_number    = forms.nhs_number.data
-            first_name    = forms.first_name.data
-            last_name     = forms.last_name.data
-            username      = forms.username.data
-            password      = forms.password.data
-            date_of_birth = forms.date_of_birth.data
-            location      = forms.location.data
-            specialty     = forms.specialty.data
-            language      = forms.language.data
-            bio           = forms.bio.data
-            availability  = forms.availability.data
 
-            logger.info(sanitisationForLogs(f"Doctor registration attempt for {username} from {request.remote_addr}"))
+
+            logger.info(sanitisationForLogs(f"Doctor registration attempt for {forms.usernmae.data} from {request.remote_addr}"))
 
             nhs_check = text("SELECT nhs_number FROM doctor WHERE nhs_number = :nhs_number")
-            if db.session.execute(nhs_check, {"nhs_number": nhs_number}).first():
-                flash('A doctor with that NHS number is already registered.')
-                return render_template('doctor_register.html', forms=forms)
+            if db.session.execute(nhs_check, {"nhs_number": forms.nhs_number.data}).first():
+                return jsonify({"status" : 400, "message" : "There akready exusts a dictir with that bhs data"})
 
             username_check = text("SELECT username FROM doctor WHERE username = :username")
-            if db.session.execute(username_check, {"username": username}).first():
-                flash('A doctor with that email is already registered.')
-                return render_template('doctor_register.html', forms=forms)
+            if db.session.execute(username_check, {"username": forms.username.data}).first():
+                return jsonify({"status" : 400, message : "That username is taken please use a different username"})
 
             session.clear()
 
@@ -346,10 +338,10 @@ def doctor_register():
                                     strip=True)
 
             db_doctor = Doctor(
-                nhs_number=nhs_number, first_name=first_name, last_name=last_name,
-                username=username, password=password, date_of_birth=date_of_birth,
-                location=location, specialty=specialty, language=language,
-                bio=safe_bio, availability=availability
+                nhs_number=forms.nhs_number.data, first_name=forms.first_name.data, last_name=forms.last_name.data,
+                username=forms.username.data, password=forms.password.data, date_of_birth=forms.date_of_birth.data,
+                location=forms.location.data, specialty=specialty, language=forms.language.data,
+                bio=forms.safe_bio.data, availability=forms.availability.data
             )
 
             query = text("""
@@ -375,11 +367,16 @@ def doctor_register():
             db.session.commit()
 
             logger.info(sanitisationForLogs(f"Doctor registered: {username} from {request.remote_addr}"))
-            return redirect(url_for('main.doctor_login'))
+            return jsonify({"status" : 200})
         else:
-            return render_template('doctor_register.html', forms=forms)
+            return jsonify({"status" : 400, "message" : "invalid data types provided"})
 
-    return render_template('doctor_register.html', forms=forms)
+
+#--------------------------------------------
+
+"""do we need this? on second thought we do"""
+
+#--------------------------------------------
 
 
 @main.route('/doctor/dashboard')
@@ -389,15 +386,22 @@ def doctor_dashboard():
     Returns:
         renders doctor_dashboard.html if the session role is 'doctor', 403 otherwise.
     """
-    if session.get('role') != 'doctor':
+    data = request.get_json()
+
+
+    if data['role'] != 'doctor':
         logger.warning(sanitisationForLogs(f"Forbidden access to doctor dashboard: role={session.get('role')} from {request.remote_addr}"))
-        return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
+        return jsonify({"status" : 400, "message" : "incorrect data provided"})
     try:
         doctor = get_current_doctor()
         decypher = Decypher(session['bio'])
 
+        #sql querry based on the avtive chats this has to be reworked this whole session.
+
         active_chats     = Chat.query.filter_by(receiver_id=doctor.nhs_number, status="CHAT_STATUS_ACTIVE").all()
         pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
+
+        sql_querry = text("")
 
         return render_template(
             'doctor_dashboard.html',
