@@ -6,9 +6,9 @@ from flaskServer import db
 from flaskServer.models import (
     Message, Notification, Request, User, Doctor, Decypher, Chat,
     Review, Report, ModeratorNotification,
-    CHAT_STATUS_ACTIVE, CHAT_STATUS_WITHDRAWN, CHAT_STATUS_CLOSED,
-    REQUEST_STATUS_PENDING, REQUEST_STATUS_ACCEPTED, REQUEST_STATUS_REJECTED,
 )
+"""differrent chat statusses:  CHAT_STATUS_ACTIVE, CHAT_STATUS_WITHDRAWN, CHAT_STATUS_CLOSED,
+    REQUEST_STATUS_PENDING, REQUEST_STATUS_ACCEPTED, REQUEST_STATUS_REJECTED"""
 from flaskServer.forms import (
     request_form, validation_form, registration_form,
     password_form, DoctorRegistrationForm, ReviewForm,
@@ -95,7 +95,14 @@ def login():
     """
 
     error = None
+    data = request.get_json()
+    
+    user = data["username"]
+    password = data["password"]
     forms = validation_form()
+    forms.user.data = user
+    forms.password.data = password
+    
     
     if request.method == 'POST':
         if forms.validate_on_submit():
@@ -118,49 +125,28 @@ def login():
             if user.is_banned:
                 flash('Your account has been banned.')
                 logging.warning(sanitisationForLogs(f"Banned user {username} attempted to log in from {request.remote_addr}"))
-                return render_template('login.html', forms=forms, error="Your account is banned.")
+                return jsonify({"status" : 400, "message": "this account has been banned"})
+
             
             if user.is_suspended:
                 flash(f'Your account is suspended. Reason: {user.suspension_reason}')
                 logging.warning(sanitisationForLogs(f"Suspended user {username} attempted to log in from {request.remote_addr}. Reason: {user.suspension_reason}"))
-                return render_template('login.html', forms=forms, error="Your account is suspended.")
+                return jsonify({"status" : 400, "message" : "this account has been suspended"})
 
             if not user.check_hash(password):
                 flash('Login credentials are invalid, please try again')
                 logging.warning(sanitisationForLogs(f"Incorrect credentials for username: {username} from the address: {request.remote_addr}"))
-                return render_template('login.html', forms=forms)
+                return jsonify({"status" : 400, "message": "Incorrect credentials have been provided"})
             
-            session['user']    = user.username
-            session['role']    = user.role
-            session['bio']     = user.bio
-            session['user_id'] = user.id
+            
             logger.info(sanitisationForLogs(f"user logged in with the name: {user.username} from {request.remote_addr}"))
-            return redirect(url_for('main.user_dashboard'))
+            return jsonify({"status" : 200})
     
         else:
             logger.error(sanitisationForLogs(f"incorrect submission from attempt from the address {request.remote_addr}"))
             return jsonify({"status" : 400, "message" : "suspicious attempt"})
 
-    return render_template('login.html', forms=forms, error=error)
-
-
-@main.route('/dashboard')
-def dashboard():
-    """Dashboard route redirects logged-in users to their role-appropriate dashboard.
-    Users go to /user-dashboard and doctors go to /doctor/dashboard.
-
-    Returns:
-        redirects to the correct dashboard based on session role,
-        or to the login page if not logged in.
-    """
-    role = session.get('role')
-    if role == 'user':
-        return redirect(url_for('main.user_dashboard'))
-    elif role == 'doctor':
-        return redirect(url_for('main.doctor_dashboard'))
-    return redirect(url_for('main.login'))
-
-
+    return jsonify({"status" : 400, "message" : "Wrong data has been provided."})
 
 @main.route('/register', methods=['GET', 'POST'])
 def register():
@@ -171,43 +157,52 @@ def register():
     Returns:
         renders register.html on GET or failed POST, redirects to login on success.
     """
+    
+    """user = data["username"] # whatever it is, its all dependent on the field type.. and then we can manually set up a form so, we set up a manual form 
+    form = certainMethodForm()
+    form.user.data = user
+    
+    if form.validate():"""
     data = request.get_json()
     
     forms = registration_form()
+    
+    forms.username.data = data["username"]
+    forms.password.data = data["password"]
+    forms.bio.data = data["bio"]
+    forms.first_name.data = data["first name"]
+    forms.last_name.data = data["last name"]
+    forms.date_of_birth = data["date of birth"]
+    forms.location.data = data["location"]
+    
+        
     if request.method == 'POST':
         
         if forms.validate_on_submit():
             session.permanent = True
-            username      = forms.username.data
-            password      = forms.password.data
-            bio           = forms.bio.data
-            first_name    = forms.first_name.data
-            last_name     = forms.last_name.data
-            date_of_birth = forms.date_of_birth.data
-            location      = forms.location.data
             role          = "user"
             
-            logging.info(sanitisationForLogs(f"forms validated during registration for the user: {username} from the ip {request.remote_addr} "))
+            logging.info(sanitisationForLogs(f"forms validated during registration for the user: {forms.username.data} from the ip {request.remote_addr} "))
 
             check_query = text("SELECT username FROM user WHERE username = :username")
-            result = db.session.execute(check_query, {"username": username})
+            result = db.session.execute(check_query, {"username": forms.username.data})
             row = result.first()
 
             session.clear()
             if row:
                 flash('There already is a user registered with that username... \n Please register with a different username.')
-                logging.info(sanitisationForLogs(f"user tried to create an account with the username {username} from the ip {request.remote_addr} "))
+                logging.info(sanitisationForLogs(f"user tried to create an account with the username {forms.username.data} from the ip {request.remote_addr} "))
                 return jsonify({"success" : False,"message" : "The name is taken."})
 
-            safe_bio = bleach.clean(bio, 
+            safe_bio = bleach.clean(forms.bio.data, 
                                  tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
                                  attributes={'a' : ['href', 'title']},
                                  strip=True)
 
             db_user = User(
-                username=username, password=password, role=role, bio=safe_bio,
-                first_name=first_name, last_name=last_name,
-                date_of_birth=date_of_birth, location=location
+                username=forms.username.data, password=forms.password.data, role=role, bio=safe_bio,
+                first_name=forms.first_name.data, last_name=forms.last_name.data,
+                date_of_birth=forms.date_of_birth.data, location=forms.location.data
             )
 
             query = text("""
@@ -226,7 +221,7 @@ def register():
             })
             db.session.commit()
 
-            logging.info(sanitisationForLogs(f"user has been registered with the name {username} from the ip {request.remote_addr}"))
+            logging.info(sanitisationForLogs(f"user has been registered with the name {forms.username.data} from the ip {request.remote_addr}"))
             return jsonify({"success" : True}), 200
     else:
         listOfErrors = []
@@ -239,34 +234,6 @@ def register():
             "errors": listOfErrors
         })
     return jsonify({"message" : "Please input some data."})
-
-
-@main.route('/user-dashboard', methods = ["POST"])
-def user_dashboard():
-    """User dashboard shows the patient's active requests and points total.
-
-    Returns:
-        renders user_dashboard.html with request and profile data.
-    """
-    try:
-        if session.get('role') != 'user':
-            logger.warning(sanitisationForLogs(f"Forbidden access attempt: role={session.get('role')}"))
-            return render_template("forbidden.html", message="you need to be logged in to view this page"), 403
-
-        user = get_current_user()
-        pending_requests  = Request.query.filter_by(user_id=user.id, status=REQUEST_STATUS_PENDING).all()
-        accepted_requests = Request.query.filter_by(user_id=user.id, status=REQUEST_STATUS_ACCEPTED).all()
-
-        return render_template(
-            'user_dashboard.html',
-            username=user.username,
-            first_name=user.first_name,
-            points=user.points,
-            pending_requests=pending_requests,
-            accepted_requests=accepted_requests,
-        )
-    except InvalidToken:
-        return jsonify({"status", 400}), 400
 
 
 @main.route('/doctor/login', methods=['POST'])
@@ -282,6 +249,9 @@ def doctor_login():
     data = request.get_json()
     
     forms = validation_form()
+    
+    forms.username.data = data["username"]
+    forms.password.data = data["password"]
     
     if request.method == 'POST':
         if forms.validate_on_submit():
@@ -300,13 +270,14 @@ def doctor_login():
             if doctor.is_suspended:
                 flash(f'Your account is suspended. Reason: {doctor.suspension_reason}')
                 logging.warning(sanitisationForLogs(f"Suspended doctor {username} attempted to log in from {request.remote_addr}. Reason: {doctor.suspension_reason}"))
-                return render_template('doctor_login.html', forms=forms, error="Your account is suspended.")
+                return jsonify({"status" : 400, "message" : "this doctor account has been suspended"})
+
 
             if row is None:
                 flash("No doctor account with that email exists.")
                 error = "No doctor with that email exists."
                 logger.warning(sanitisationForLogs(f"Failed doctor login for unknown user from {request.remote_addr}"))
-                return render_template('doctor_login.html', forms=forms, error=error)
+                return jsonify({"status" : 400, "message" : "no doctor with the provided email exists"})
 
             doctor = db.session.get(Doctor, row['nhs_number'])
             session.clear()
@@ -314,7 +285,7 @@ def doctor_login():
             if not doctor.check_password(password):
                 flash('Login credentials are invalid, please try again.')
                 logger.warning(sanitisationForLogs(f"Incorrect password for doctor: {username} from {request.remote_addr}"))
-                return render_template('doctor_login.html', forms=forms)
+                return jsonify({"status": 400, "message" : "the credentials provided are invalid"})
 
             session['user']       = doctor.username
             session['role']       = doctor.role
@@ -322,13 +293,13 @@ def doctor_login():
             session['nhs_number'] = doctor.nhs_number
             session['user_id']    = doctor.nhs_number
             logger.info(sanitisationForLogs(f"Doctor logged in: {doctor.username} from {request.remote_addr}"))
-            return redirect(url_for('main.doctor_dashboard'))
+            return jsonify({"status" : 200, "message" : f"doctor {session['user']} logged in"})
 
         else:
             logger.error(sanitisationForLogs(f"Invalid doctor login form submission from {request.remote_addr}"))
-            return render_template('doctor_login.html', forms=forms)
+            return jsonify({"status" : 400, "message" : "invalid login credentials provided"})
 
-    return render_template('doctor_login.html', forms=forms, error=error)
+    return jsonify ({"status" : 400, "message" : "incorrect data sending format"})
 
 
 @main.route('/doctor/register', methods=['GET', 'POST'])
@@ -687,10 +658,10 @@ def reject_request(request_id):
     
     try:
         medical_request = db.session.get(Request, request_id)
-        if not medical_request or medical_request.status != REQUEST_STATUS_PENDING:
+        if not medical_request or medical_request.status != "REQUEST_STATUS_PENDING":
             flash('Request not found or already processed.')
             return redirect(url_for('main.view_requests'))
-        medical_request.status = REQUEST_STATUS_REJECTED
+        medical_request.status = "REQUEST_STATUS_REJECTED"
         db.session.commit()
         flash('Request rejected successfully.')
         return redirect(url_for('main.view_requests'))
@@ -892,7 +863,7 @@ def submit_review(chat_id):
     if form.validate_on_submit():
         try:
             # get the doctor's nhs_number from the request linked to this chat
-            linked_request = Request.query.filter_by(status=REQUEST_STATUS_ACCEPTED).filter(
+            linked_request = Request.query.filter_by(status="REQUEST_STATUS_ACCEPTED").filter(
                 Request.user_id == user.id
             ).first()
             doctor_nhs = linked_request.doctor_id if linked_request else None
