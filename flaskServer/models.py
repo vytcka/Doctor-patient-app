@@ -103,11 +103,11 @@ class User(db.Model):
         return encrypted_bio_str
 
     def __init__(self, username, password, role, bio,
-                 first_name, last_name, date_of_birth, location):
+                 first_name, last_name, date_of_birth, location, is_banned, is_suspended, suspension_reason):
         """Constructor for creating the user object. Passwords are hashed and biographies are
         encrypted on creation.
         """
-        self.id = random.random() * 100000000
+        self.id = int(random.random() * 100000000)
         self.username      = username
         self.password      = self.hash_password(password)
         self.role          = role if role in VALID_ROLES else "user"
@@ -116,6 +116,9 @@ class User(db.Model):
         self.last_name     = last_name
         self.date_of_birth = date_of_birth
         self.location      = location
+        self.is_banned     = is_banned
+        self.is_suspended  = is_suspended
+        self.suspension_reason = suspension_reason
 
     def set_password(self, password):
         """ Password setter

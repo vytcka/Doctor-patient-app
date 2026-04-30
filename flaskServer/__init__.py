@@ -7,6 +7,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import re
 import os
+
 from flask_cors import CORS
 from datetime import date
 
@@ -16,6 +17,15 @@ def sanitisationForLogs(val:str) -> str:
     return re.sub(r'[\n\r\t]', '_SPECIAL_CHARACTER_', str(val))
 
 def create_app():
+    csp = {
+        'default-src': "'self'"}
+
+    
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    Talisman(app, content_security_policy=csp, force_https=False)
+    db.init_app(app)
+    
     #setting up logs:
     #------------------------
     if not os.path.exists('logs'):
@@ -40,48 +50,12 @@ def create_app():
 
     #------------------------
 
-
-    app = Flask(__name__)   
-  
-    csp = {
-        'default-src': "'self'"
-    }
-    Talisman(app, content_security_policy = csp, force_https=False)
-    app.secret_key = Config.SECRET_KEY
-    # applying CSRF protection to legitimise requests
-    csrf = CSRFProtect(app)
-    app.config.from_object(Config)
-
-    db.init_app(app)
-
     from .routes import main
     app.register_blueprint(main)
 
 
-    @app.errorhandler(400)
-    def bad_request(error):
-            return render_template('badRequest.html'), 400
-    @app.errorhandler(403)
-    def forbidden(error):
-        return render_template('forbidden.html', message="Access Denied"), 403
-    @app.errorhandler(404)
-    def not_found(error):
-        return render_template('notFound.html'), 404
-    @app.errorhandler(500)
-    def internal_error(error):
-        db.session.rollback()
-        return render_template('internalServerError.html'), 500
-
-    with app.app_context():
-        from .models import User
-        db.drop_all()
-        db.create_all()
-
-        
-
     users = [
-    {
-        "id": 123222,
+{
         "username": "patient1@email.com",
         "password": "Patientpass!23",
         "role": "patient",
@@ -95,7 +69,6 @@ def create_app():
         "suspension_reason": None
     },
     {
-        "id": 123223,
         "username": "doctor1@email.com",
         "password": "Doctorpass!23",
         "role": "doctor",
@@ -109,7 +82,6 @@ def create_app():
         "suspension_reason": None
     },
     {
-        "id": 123224,
         "username": "admin1@email.com",
         "password": "Adminpass!23",
         "role": "admin",
@@ -123,7 +95,6 @@ def create_app():
         "suspension_reason": None
     },
     {
-        "id": 123225,
         "username": "patient2@email.com",
         "password": "Patientpass!45",
         "role": "patient",
@@ -137,7 +108,6 @@ def create_app():
         "suspension_reason": "Violation of community guidelines"
     },
     {
-        "id": 123226,
         "username": "doctor2@email.com",
         "password": "Doctorpass!56",
         "role": "doctor",
@@ -151,7 +121,6 @@ def create_app():
         "suspension_reason": None
     },
     {
-        "id": 123227,
         "username": "patient3@email.com",
         "password": "Patientpass!78",
         "role": "patient",
@@ -165,26 +134,25 @@ def create_app():
         "suspension_reason": None
     }
 ]
-        
-    """class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.String(50), default='user', nullable=False)
-    bio = db.Column(db.String(3000), nullable=False)
-    first_name = db.Column(db.String(50), nullable=False)
-    last_name = db.Column(db.String(50), nullable=False)
-    date_of_birth = db.Column(db.Date, nullable=False)
-    location = db.Column(db.String(100), nullable=False)
-    is_banned = db.Column(db.Boolean, default=False, nullable=False)
-    is_suspended = db.Column(db.Boolean, default=False, nullable=False)
-    suspension_reason = db.Column(db.String(255), nullable=True)"""
-
-    for user in users:
-            user = User(username=user["username"], password=user["password"], role=user["role"], bio=user["bio"])
-            db.session.add(user)
-            db.session.commit()
+    from .models import User
+    with app.app_context():
+            db.create_all()
+            if User.query.count() == 0:
+                for user_data in users:
+                    user = User(
+                        username=user_data["username"],
+                        password=user_data["password"],
+                        role=user_data["role"],
+                        bio=user_data["bio"],
+                        first_name=user_data["first_name"],
+                        last_name=user_data["last_name"],
+                        date_of_birth=user_data["date_of_birth"],
+                        location=user_data["location"],
+                        is_banned=user_data["is_banned"],
+                        is_suspended=user_data["is_suspended"],
+                        suspension_reason=user_data["suspension_reason"]
+                    )
+                    db.session.add(user)
+                db.session.commit()
     CORS(app, supports_credentials=True)
-
     return app
-
