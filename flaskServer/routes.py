@@ -241,9 +241,9 @@ def doctor_login():
     data = request.get_json()
     
     forms = validation_form()
-    ]
+    
     forms.username.data = data["username"]
-    forms.password.data = data["password"
+    forms.password.data = data["password"]
     
     if request.method == 'POST':
         if forms.validate_on_submit():
