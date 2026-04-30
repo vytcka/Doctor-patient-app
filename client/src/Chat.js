@@ -10,7 +10,7 @@ export default function Chat() {
   const [reportForm, setReportForm] = useState({ reason: "", details: "" });
   const [reportSubmitted, setReportSubmitted] = useState(false);
 
-  const currentUser = users.u1;
+  const currentUser = users.u1; // Patient is logged in
 
   function sendMessage() {
     let currentChatId = 12;
