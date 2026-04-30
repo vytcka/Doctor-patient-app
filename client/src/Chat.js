@@ -10,6 +10,7 @@ export default function Chat() {
   const currentUser = users.u1; // Patient is logged in
 
   function sendMessage() {
+    currentChatId = 12;
     if (!input.trim()) return;
 
     const newMsg = {
