@@ -317,7 +317,7 @@ def doctor_register():
     forms.bio.data = data["bio"]
     forms.availability.data = data["availability"]
     
-        if forms.validate_on_submit():
+    if forms.validate_on_submit():
 
 
             logger.info(sanitisationForLogs(f"Doctor registration attempt for {forms.usernmae.data} from {request.remote_addr}"))
@@ -328,11 +328,11 @@ def doctor_register():
 
             username_check = text("SELECT username FROM doctor WHERE username = :username")
             if db.session.execute(username_check, {"username": forms.username.data}).first():
-                return jsonify({"status" : 400, message : "That username is taken please use a different username"})
+                return jsonify({"status" : 400, "message" : "That username is taken please use a different username"})
 
             session.clear()
 
-            safe_bio = bleach.clean(bio,
+            safe_bio = bleach.clean(forms.bio.data,
                                     tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
                                     attributes={'a': ['href', 'title']},
                                     strip=True)
@@ -340,7 +340,7 @@ def doctor_register():
             db_doctor = Doctor(
                 nhs_number=forms.nhs_number.data, first_name=forms.first_name.data, last_name=forms.last_name.data,
                 username=forms.username.data, password=forms.password.data, date_of_birth=forms.date_of_birth.data,
-                location=forms.location.data, specialty=specialty, language=forms.language.data,
+                location=forms.location.data, specialty=forms.specialty.data, language=forms.language.data,
                 bio=forms.safe_bio.data, availability=forms.availability.data
             )
 
@@ -366,10 +366,10 @@ def doctor_register():
             })
             db.session.commit()
 
-            logger.info(sanitisationForLogs(f"Doctor registered: {username} from {request.remote_addr}"))
+            logger.info(sanitisationForLogs(f"Doctor registered: {db_doctor.username} from {request.remote_addr}"))
             return jsonify({"status" : 200})
-        else:
-            return jsonify({"status" : 400, "message" : "invalid data types provided"})
+    else:
+        return jsonify({"status" : 400, "message" : "invalid data types provided"})
 
 
 #--------------------------------------------
@@ -381,6 +381,7 @@ def doctor_register():
 
 @main.route('/doctor/dashboardChats')
     #pass on the doctor nhs number and role
+def doctorDashboard():
     """Doctor dashboard shows active chat count, pending requests, and profile info.
 
     Returns:
@@ -393,12 +394,16 @@ def doctor_register():
         logger.warning(sanitisationForLogs(f"Forbidden access to doctor dashboard: role={session.get('role')} from {request.remote_addr}"))
         return jsonify({"status" : 400, "message" : "incorrect role provided"})
     try:
-        queru = text("SELECT * from Chat WHERE  doctor_nhs_number = :doctor_nhs)number")
+        query = text("SELECT * from Chat WHERE  doctor_nhs_number = :doctor_nhs)number")
         row = db.session.execute(query, {"doctor_nhs_number": data["nhs number"]}).mappings().first()
+    except:
+        return jsonify({"status" : 400, "message" : "the data is unreachable"})
 
-        if row is not None:
-            return jsonify({"status", "chats" : row})
-        else: return jsonify({"message" : " no chats are available"})
+    if row is not None:
+            return jsonify({"status" : 200, "chats" : row})
+    else:
+            return jsonify({"status": 400,"message" : " no chats are available"})
+
 
 
 @main.route('/change-password', methods=['GET', 'POST'])
@@ -776,74 +781,6 @@ def restore_chat(chat_id):
         flash('An error occurred while restoring the chat. Please try again.')
         return redirect(url_for('main.user_dashboard'))
 
-
-
-@main.route('/review/<int:chat_id>', methods=['GET', 'POST'])
-def submit_review(chat_id):
-    """Submit review route allows a patient to leave a review after a chat.
-    Eligibility is checked before the form is shown.
-
-    Args:
-        chat_id (int): the ID of the Chat the review relates to.
-
-    Returns:
-        renders review.html or redirects to user_dashboard.
-    """
-    if session.get('role') != 'user':
-        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
-
-    chat_obj = db.session.get(Chat, chat_id)
-    user     = get_current_user()
-
-    if not chat_obj or chat_obj.sender_id != user.id:
-        flash('Chat not found.')
-        return redirect(url_for('main.user_dashboard'))
-
-    # FR26/FR29 — eligibility check
-    if not chat_obj.user_can_review():
-        flash('You are not eligible to leave a review for this chat.')
-        return redirect(url_for('main.user_dashboard'))
-
-    # prevent duplicate reviews
-    existing = Review.query.filter_by(chat_id=chat_id, user_id=user.id).first()
-    if existing:
-        flash('You have already submitted a review for this chat.')
-        return redirect(url_for('main.user_dashboard'))
-
-    form = ReviewForm()
-
-    if form.validate_on_submit():
-        try:
-            # get the doctor's nhs_number from the request linked to this chat
-            linked_request = Request.query.filter_by(status="REQUEST_STATUS_ACCEPTED").filter(
-                Request.user_id == user.id
-            ).first()
-            doctor_nhs = linked_request.doctor_id if linked_request else None
-
-            review = Review(
-                user_id   = user.id,
-                doctor_id = doctor_nhs,
-                chat_id   = chat_id,
-                rating    = form.rating.data,
-                comment   = form.content.data,
-                status    = False,  # pending until moderator approves (FR13)
-            )
-            db.session.add(review)
-
-            # award 5 points for submitting a review
-            user.add_points(5)
-
-            db.session.commit()
-            flash('Your review has been submitted and is awaiting moderation.')
-            logger.info(sanitisationForLogs(f"Review submitted by {user.username} for chat {chat_id}"))
-            return redirect(url_for('main.user_dashboard'))
-
-        except Exception as e:
-            db.session.rollback()
-            logger.error(sanitisationForLogs(f"Error submitting review for chat {chat_id} by {user.username}: {str(e)}"))
-            flash('An error occurred while submitting your review. Please try again.')
-
-    return render_template('review.html', form=form, chat=chat_obj)
 
 
 
@@ -1292,7 +1229,7 @@ def submit_review(nhs_number):
             return jsonify({"success": True, "message": "Your review has been submitted and is pending moderation."})
 
 @main.route('/doctor/reviews', methods=['POST'])
-def doctor_reviews(nhs_number):
+def doctor_reviews():
     """Doctor reviews route displays all approved reviews for a given doctor,
     along with their current average rating.
 
@@ -1306,13 +1243,15 @@ def doctor_reviews(nhs_number):
     """
     data = request.get_json()
 
+    if not data or "nhs_number" not in data:
+        return jsonify({"status": 400, "message": "nhs_number is required"})
 
-    data["doctor"] = db.session.get(Doctor, nhs_number)
-    if doctor is None:
-        abort(404)
+    obj = db.session.get(Doctor, data["nhs_number"])
+    if obj is None:
+        return jsonify({"status": 400, "message": "the doctor does not exist"})
 
     approved_reviews = Review.query.filter_by(
-        doctor_id=nhs_number,
+        nhs_number=data["nhs_number"],  
         status=True
     ).order_by(Review.created_at.desc()).all()
 
@@ -1321,12 +1260,28 @@ def doctor_reviews(nhs_number):
     else:
         avg_rating = None
 
-    return render_template(
-        'doctor_reviews.html',
-        doctor=doctor,
-        reviews=approved_reviews,
-        avg_rating=avg_rating
-    )
+    
+    query = text("SELECT * FROM doctors WHERE nhs_number = :nhs_number")
+    results = db.session.execute(query, {"nhs_number": data["nhs_number"]}).mappings().all()
+
+   
+    return jsonify({
+        "status": 200,
+        "doctor": {
+            "nhs_number": obj.nhs_number,
+            "name": obj.name,
+        },
+        "avg_rating": avg_rating,
+        "reviews": [
+            {
+                "id": r.id,
+                "rating": r.rating,
+                "comment": r.comment,
+                "created_at": r.created_at.isoformat()
+            }
+            for r in approved_reviews
+        ]
+    })
 
 @main.route('/withdraw_chat', methods=['POST'])
 def widthdraw_chat(chat_id):
