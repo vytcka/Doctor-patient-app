@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { PrefetchPageLinks, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Link } from 'react-router-dom';
 import { data } from "./doctorItems";
 import './reviews.css'; 
 import StarRating from "./StarRating";
 
 
-export default function DoctorDetail(){
+export default function DoctorReview(){
     
     const [reviews, setReviews] = useState([]);
     //Store new review inputted by user
@@ -178,7 +178,7 @@ export default function DoctorDetail(){
 
                 <Link to="/Chat"><button>Start Chat!</button></Link>
 
-                <Link to="/Reviews"> ← Back to Reviews Page </Link>
+                <Link to="/search"> ← Back to Reviews Page </Link>
 
             </div>
             
