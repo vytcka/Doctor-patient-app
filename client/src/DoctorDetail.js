@@ -15,7 +15,6 @@ export default function DoctorDetail(){
     comment: ""
     });
 
-    //Store ID of review currently being edited
     const [editedReviewId, setEditedReviewId] = useState(null);
     //Store temporary edited review
     const [editedReview, setEditedReview] = useState({

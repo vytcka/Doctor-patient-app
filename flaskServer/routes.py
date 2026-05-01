@@ -88,57 +88,70 @@ def login():
 
     error = None
     data = request.get_json()
-    
-    user = data["username"]
-    password = data["password"]
+
+    if not data:
+        return jsonify({
+            "status": 400,
+            "message": "No data provided"
+        }), 400
+
+    username = data.get("username")
+    password = data.get("password")
+
     forms = validation_form()
-    forms.user.data = user
+    forms.username.data = username
     forms.password.data = password
-    
-    
-    if request.method == 'POST':
-        if forms.validate_on_submit():
-            session.permanent = True
-            username = forms.username.data
-            password = forms.password.data
-            
-            query = text("SELECT * FROM user WHERE username = :username")
-            row = db.session.execute(query, {"username": username}).mappings().first()
 
-            if row is None:
-                flash("no such account exists")
-                error = "No user with that name exists."
-                logging.warning(f"warning, ")
-                return render_template('login.html', forms=forms, error=error)
+    if forms.validate_on_submit():
 
-            user = db.session.get(User, row['id'])
-            session.clear()
+        query = text(
+            "SELECT * FROM user WHERE username = :username"
+        )
 
-            if user.is_banned:
-                flash('Your account has been banned.')
-                logging.warning(sanitisationForLogs(f"Banned user {username} attempted to log in from {request.remote_addr}"))
-                return jsonify({"status" : 400, "message": "this account has been banned"})
+        row = db.session.execute(
+            query,
+            {"username": username}
+        ).mappings().first()
 
-            
-            if user.is_suspended:
-                flash(f'Your account is suspended. Reason: {user.suspension_reason}')
-                logging.warning(sanitisationForLogs(f"Suspended user {username} attempted to log in from {request.remote_addr}. Reason: {user.suspension_reason}"))
-                return jsonify({"status" : 400, "message" : "this account has been suspended"})
+        if row is None:
+            return jsonify({
+                "status": 400,
+                "message": "No user with that name exists"
+            }), 400
 
-            if not user.check_hash(password):
-                flash('Login credentials are invalid, please try again')
-                logging.warning(sanitisationForLogs(f"Incorrect credentials for username: {username} from the address: {request.remote_addr}"))
-                return jsonify({"status" : 400, "message": "Incorrect credentials have been provided"})
-            
-            
-            logger.info(sanitisationForLogs(f"user logged in with the name: {user.username} from {request.remote_addr}"))
-            return jsonify({"status" : 200})
-    
-        else:
-            logger.error(sanitisationForLogs(f"incorrect submission from attempt from the address {request.remote_addr}"))
-            return jsonify({"status" : 400, "message" : "suspicious attempt"})
+        user = db.session.get(User, row["id"])
 
-    return jsonify({"status" : 400, "message" : "Wrong data has been provided."})
+        if user.is_banned:
+            return jsonify({
+                "status": 400,
+                "message": "This account has been banned"
+            }), 400
+
+        if user.is_suspended:
+            return jsonify({
+                "status": 400,
+                "message": "This account has been suspended"
+            }), 400
+
+        if not user.check_hash(password):
+            return jsonify({
+                "status": 400,
+                "message": "Incorrect credentials"
+            }), 400
+
+        session.clear()
+        session["username"] = user.username
+        session.permanent = True
+
+        return jsonify({
+            "status": 200,
+            "message": "Login successful"
+        }), 200
+
+    return jsonify({
+        "status": 400,
+        "message": "Suspicious attempt"
+    }), 400
 
 @main.route('/register', methods=['GET', 'POST'])
 def register():

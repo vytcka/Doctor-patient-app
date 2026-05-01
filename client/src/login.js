@@ -19,18 +19,44 @@ export default function Login() {
         });
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!formData.username || !formData.password){
-            setErrorMessage('Please fill in all fields');
-            setSuccessMessage('');
-            return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.username || !formData.password) {
+        setErrorMessage("Please fill in all fields");
+        setSuccessMessage("");
+        return;
+    }
+
+    try {
+        const response = await fetch("http://127.0.0.1:5000/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include", 
+            body: JSON.stringify({
+                username: formData.username,
+                password: formData.password
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.status === 200) {
+            setSuccessMessage(data.message);
+            setErrorMessage("");
+
+        } else {
+            setErrorMessage(data.message);
+            setSuccessMessage("");
         }
-        else {
-            setErrorMessage('');
-            setSuccessMessage('Login successful!');
-        }
-    };
+
+    } catch (error) {
+        setErrorMessage("Server connection failed");
+        setSuccessMessage("");
+    }
+};
 
     //UI
     return (
