@@ -63,22 +63,23 @@ export default function Login() {
                 </div>
               </div>
 
-            <div className="form-container"> 
+
+            <div className="form-container">
                 <h1>Login</h1>
                 <h2>Welcome back! Please login to your account</h2>
                 <form className="form" onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <input 
-                            type="username"
+                        <input
+                            type="text"
                             id="username"
                             name="username"
                             placeholder='username'
-                            value={formData.email}
+                            value={formData.username}
                             onChange={handleChange}
                             required
                         />
                     </div>
-                    <div className="form-group"> 
+                    <div className="form-group">
                         <input
                             type="password"
                             id="password"
@@ -98,7 +99,7 @@ export default function Login() {
                     <p>Don't have an account yet? <Link to="/Signup">Sign up</Link></p>
 
                 </form>
-            
+           
             </div>
         </div>
        
