@@ -53,15 +53,20 @@ def certainMethod():
 main = Blueprint('main', __name__)
 logger = logging.getLogger()
 
+
 def get_current_user():
     """Return the logged-in User object from the session, or None.
 
     Returns:
         User | None: the User matching session['user'], or None.
     """
-    if 'user' not in session:
+    data = request.get_json()
+
+    if data is None:
         return None
-    return User.query.filter_by(username=session['user']).first()
+    username = data.get("username")    return None
+    return User.query.filter_by(username=username).first()
+    
 
 def get_current_doctor():
     """Return the logged-in Doctor object from the session, or None.
@@ -75,7 +80,7 @@ def get_current_doctor():
 
 
 
-@main.route('/login', methods=['GET', 'POST'])
+@main.route('/login', methods=['POST'])
 def login():
     """Login route is responsible for authenticating patient (user) accounts.
     On a successful login the user's username, role, and encrypted bio are stored
@@ -91,8 +96,7 @@ def login():
     if not data:
         return jsonify({
             "status": 400,
-            "message": "No data provided"
-        }), 400
+            "message": "No data provided"}), 400
 
     username = data.get("username")
     password = data.get("password")
@@ -167,9 +171,9 @@ def register():
     form.user.data = user
     
     if form.validate():"""
-
     data = request.get_json()
-    forms = registration_form(data=data)
+    
+    forms = registration_form()
     
     forms.username.data = data["username"]
     forms.password.data = data["password"]
@@ -184,7 +188,7 @@ def register():
         
         if forms.validate_on_submit():
             session.permanent = True
-            role          = "user"
+            role   = "user"
             
             logging.info(sanitisationForLogs(f"forms validated during registration for the user: {forms.username.data} from the ip {request.remote_addr} "))
 
@@ -252,10 +256,11 @@ def doctor_login():
     error = None
     data = request.get_json()
     
-    forms = validation_form()
-    
     forms.username.data = data["username"]
     forms.password.data = data["password"]
+
+    session['role'] = 'doctor'
+    session['username'] = data["username"]
     
     if request.method == 'POST':
         if forms.validate_on_submit():
@@ -325,7 +330,7 @@ def doctor_register():
     forms.date_of_birth.data = data["date of birth"]
     forms.location.data = data["location"]
     forms.specialty.data = data["specialty"]
-    forms.language.data = data["language"]
+    forms.languange.data = data["languange"]
     forms.bio.data = data["bio"]
     forms.availability.data = data["availability"]
     
@@ -430,8 +435,7 @@ def change_password():
         
         if 'user' not in session:
             logger.warning(sanitisationForLogs(f"user has tried to change the password without being logged in from the ip address {request.remote_addr}"))
-            return render_template("forbidden.html", message="you need to be logged in to view this page."), 403 
-        
+            return jsonify({"status" : 400, "message" : "you need to be logged in to change your password"})        
         form = password_form() 
         
         if form.validate_on_submit():
@@ -489,9 +493,8 @@ def logout():
     """
     role = session.get('role')
     session.clear()
-    if role == 'doctor':
-        return redirect(url_for('main.doctor_login'))
-    return redirect(url_for('main.login'))
+    return jsonify({"status" : 200, "message" : "logged out successfully, redirecting to doctor login"})
+
 
 
 @main.route('/filter', methods=['GET'])
@@ -522,8 +525,9 @@ def getDoctor():
 
 @main.route('/cases', methods=['POST'])
 def caseSelector():
-    caseID = request.json.get('case_id')
-    action = request.json.get('action')
+    name = session["username"]
+
+    
     
     if not caseID or action not in ('accept', 'reject'):
         return jsonify({"error": "provide a case_id and action"}), 400
@@ -548,7 +552,7 @@ def caseSelector():
 
 
 
-@main.route('/new-request', methods=['GET', 'POST'])
+@main.route('/new-request', methods=['POST'])
 def new_request():
     """New request route allows a patient to submit a health questionnaire.
 
@@ -599,7 +603,7 @@ def view_requests():
 
 
 
-@main.route('/accept-request/<int:request_id>', methods=['POST'])
+@main.route('/accept-request', methods=['POST'])
 def accept_request(request_id):
     """Accept request route allows a doctor to accept a pending patient request.
     A Chat is created linking the doctor and patient.
@@ -611,14 +615,13 @@ def accept_request(request_id):
         redirects to the new chat on success, or back to view_requests on failure.
     """
     if session.get('role') != 'doctor':
-        return render_template("forbidden.html", message="You need to be logged in as a doctor."), 403
+        return jsonify({"status" : 400, "message" : "you need to be logged in as a doctor to perform this action"})
 
     doctor = get_current_doctor()
     medical_request = db.session.get(Request, request_id)
 
     if not medical_request or medical_request.status != "REQUEST_STATUS_PENDING":
-        flash('Request not found or already processed.')
-        return redirect(url_for('main.view_requests'))
+        return jsonify({"status" : 400, "message" : "Request not found or already processed."})
 
     try:
         medical_request.status    = "REQUEST_STATUS_ACCEPTED"
@@ -626,7 +629,7 @@ def accept_request(request_id):
 
         chat = Chat(
             sender_id   = medical_request.user_id,
-            receiver_id = medical_request.user_id,  # doctor contact via nhs in session
+            receiver_id = medical_request.user_id,
         )
         db.session.add(chat)
 
@@ -644,11 +647,10 @@ def accept_request(request_id):
     except Exception as e:
         db.session.rollback()
         logger.error(sanitisationForLogs(f"Error accepting request {request_id} by {session.get('user')}: {str(e)}"))
-        flash('An error occurred while accepting the request. Please try again.')
-        return redirect(url_for('main.view_requests'))
+        return jsonify({"status" : 400, "message" : "An error occurred while accepting the request. Please try again."})
 
 
-@main.route('/reject-request/<int:request_id>', methods=['POST'])
+@main.route('/reject-request', methods=['POST'])
 def reject_request(request_id):
     """Reject request route allows a doctor to reject a pending patient request.
 
@@ -660,22 +662,21 @@ def reject_request(request_id):
     """
     if session.get('role') != 'doctor':
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to reject request {request_id} by user {session.get('user')} from {request.remote_addr}"))
-        return render_template("forbidden.html", message="You need to be logged in as a doctor to perform this action."), 403
-    
+        return jsonify({"status" : 400, "message" : "You need to be logged in as a doctor to perform this action."}), 403
+
     try:
         medical_request = db.session.get(Request, request_id)
         if not medical_request or medical_request.status != "REQUEST_STATUS_PENDING":
-            flash('Request not found or already processed.')
-            return redirect(url_for('main.view_requests'))
+            return jsonify({"status" : 400, "message" : "Request not found or already processed."})
         medical_request.status = "REQUEST_STATUS_REJECTED"
         db.session.commit()
-        flash('Request rejected successfully.')
-        return redirect(url_for('main.view_requests'))
+        return jsonify({"status" : 200, "message" : "Request rejected successfully."})
     
     except Exception as e:
         db.session.rollback()
         logger.error(sanitisationForLogs(f"Error rejecting request {request_id} for user {session.get('user')}: {str(e)}"))
-        flash('An error occurred while rejecting the request. Please try again.')
+        return jsonify({"status" : 400, "message" : "An error occurred while rejecting the request. Please try again."}
+        )
 
     return redirect(url_for('main.view_requests'))
 
@@ -1069,7 +1070,7 @@ def moderate_doctor():
 
     return redirect(url_for('main.reviewRequest'))
 
-@main.route('/edit_review/<int:review_id>', methods=['GET', 'POST'])
+@main.route('/edit_review>', methods=['GET', 'POST'])
 def edit_review(review_id):
     """Edit review route allows a user to edit a pending review within five minutes of submission.
 
