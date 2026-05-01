@@ -10,6 +10,7 @@ load_dotenv()
 
 #part g load the secret vars;
 PEPPER = os.getenv("SECRET_PEPPER")
+
 #converting the stored value to byte string
 ENCRYPTIONKEY = os.getenv("MASTER_KEY").encode('utf-8')
 
@@ -107,7 +108,6 @@ class User(db.Model):
         """Constructor for creating the user object. Passwords are hashed and biographies are
         encrypted on creation.
         """
-        self.id = int(random.random() * 100000000)
         self.username      = username
         self.password      = self.hash_password(password)
         self.role          = role if role in VALID_ROLES else "user"
@@ -346,7 +346,7 @@ class Request(db.Model):
     existing_issues = db.Column(db.Boolean, default=False)
     existing_details = db.Column(db.Text)
     user_id          = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
-    doctor_nhs_number       = db.Column(db.Integer,  db.ForeignKey('doctor.nhs_number'))
+    doctor_nhs_number       = db.Column(db.String(10),  db.ForeignKey('doctor.nhs_number'))
     status           = db.Column(db.String(20), default="REQUEST_STATUS_PENDING", nullable=False)
     created_at       = db.Column(db.DateTime, default=datetime.now, nullable=False)
  
@@ -373,7 +373,8 @@ class Chat(db.Model):
         """Approves the appointment between the patient and doctor."""
         if self.status == "CHAT_STATUS_ACTIVE":
             if self.withdrawn == False:
-                if Doctor.get_availability(self.receiver_id) == True:
+                doctor = Doctor.query.get(self.receiver_id)
+                if doctor and doctor.get_availability() == True:
                     if self.message_count >= 3:
                         self.bookedAppointment = True
 
@@ -392,7 +393,7 @@ class Chat(db.Model):
         Called every time a new message is added to this chat.
         """
         self.message_count += 1
-        self.last_activity = datetime.datetime.now(datetime.timezone.utc)
+        self.last_activity = datetime.now()
  
     def can_be_withdrawn(self) -> bool:
         """Check whether this chat can still be withdrawn.
@@ -413,7 +414,7 @@ class Chat(db.Model):
         """
         if self.status != "CHAT_STATUS_WITHDRAWN" or self.withdrawn_at is None:
             return False
-        elapsed = (datetime.now - self.withdrawn_at).total_seconds()
+        elapsed = (datetime.now() - self.withdrawn_at).total_seconds()
         return elapsed <= 600
  
     def is_inactive(self) -> bool:
