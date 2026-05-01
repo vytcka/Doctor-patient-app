@@ -385,6 +385,8 @@ class Chat(db.Model):
         """
         self.withdrawn = True
         self.withdrawn_early = early
+        self.withdrawn_at = datetime.now()
+        self.status = "CHAT_STATUS_WITHDRAWN"
 
  
     def increment_message_count(self):
@@ -392,7 +394,7 @@ class Chat(db.Model):
         Called every time a new message is added to this chat.
         """
         self.message_count += 1
-        self.last_activity = datetime.datetime.now(datetime.timezone.utc)
+        self.last_activity = datetime.now()
  
     def can_be_withdrawn(self) -> bool:
         """Check whether this chat can still be withdrawn.
@@ -413,7 +415,7 @@ class Chat(db.Model):
         """
         if self.status != "CHAT_STATUS_WITHDRAWN" or self.withdrawn_at is None:
             return False
-        elapsed = (datetime.now - self.withdrawn_at).total_seconds()
+        elapsed = (datetime.now() - self.withdrawn_at).total_seconds()
         return elapsed <= 600
  
     def is_inactive(self) -> bool:
