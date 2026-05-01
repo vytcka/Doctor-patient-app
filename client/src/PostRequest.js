@@ -38,7 +38,7 @@ function PostRequest() {
                 <Link to="/reviews" style={{ textDecoration: "none" }}>
                   <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
                 </Link>
-                <Link to="/login" style={{ textDecoration: "none" }}>
+                <Link to="/login-choice" style={{ textDecoration: "none" }}>
                   <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
                 </Link>
                 <Link to="/signup" style={{ textDecoration: "none" }}>
