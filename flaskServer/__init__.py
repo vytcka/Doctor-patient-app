@@ -22,7 +22,6 @@ def create_app():
 
     
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = "super-secret-key"
     app.config.from_object(Config)
     Talisman(app, content_security_policy=csp, force_https=False)
     db.init_app(app)

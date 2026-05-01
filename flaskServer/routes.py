@@ -53,7 +53,6 @@ def certainMethod():
 main = Blueprint('main', __name__)
 logger = logging.getLogger()
 
-
 def get_current_user():
     """Return the logged-in User object from the session, or None.
 
@@ -168,9 +167,9 @@ def register():
     form.user.data = user
     
     if form.validate():"""
+
     data = request.get_json()
-    
-    forms = registration_form()
+    forms = registration_form(data=data)
     
     forms.username.data = data["username"]
     forms.password.data = data["password"]
@@ -326,7 +325,7 @@ def doctor_register():
     forms.date_of_birth.data = data["date of birth"]
     forms.location.data = data["location"]
     forms.specialty.data = data["specialty"]
-    forms.languange.data = data["languange"]
+    forms.language.data = data["language"]
     forms.bio.data = data["bio"]
     forms.availability.data = data["availability"]
     
