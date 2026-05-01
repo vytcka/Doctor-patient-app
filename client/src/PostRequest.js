@@ -7,7 +7,8 @@ import TickGif from './check-green.gif';
 function PostRequest() {
   const [showGif, setShowGif] = useState(false);
   const [doctors, setDoctor] = useState("");
-  const [message, setMessage] = useState("");
+  const [symptomsMessage, setSymptomsMessage] = useState("");
+  const [backgroundMessage, setBackgroundMessage] = useState("");
   const [gender, setGender] = useState("");
   const [age, setAge] = useState("");
 
@@ -52,14 +53,14 @@ function PostRequest() {
         <p style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#1b4cb6", textAlign:"left" }}>Symptoms:</p>
        <textarea cols= "60" autocorrect="on"
           placeholder="Write what you're feeling..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          value={symptomsMessage}
+          onChange={(e) => setSymptomsMessage(e.target.value)}
         /> 
       <p style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#1b4cb6", textAlign:"left" }}>Background Information:</p>
        <textarea cols= "60" autocorrect="on"
           placeholder="Any medical history or context?"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          value={backgroundMessage}
+          onChange={(e) => setBackgroundMessage(e.target.value)}
         /> 
     <p style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#1b4cb6", textAlign:"left" }}>Gender:</p>
   <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
