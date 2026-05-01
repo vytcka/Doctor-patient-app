@@ -8,6 +8,7 @@ import Login from "./login";
 import Signup from "./signup";
 import Chat from "./Chat";
 import UserDashboard from "./UserDashboard";
+import LoginChoice from "./LoginChoice";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/login-choice" element={<LoginChoice />} />
 
       </Routes>
 
