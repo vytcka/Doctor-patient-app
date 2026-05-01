@@ -29,11 +29,12 @@ h3 {
   color: gold;
 }
 
-.stars {
+.star {
   color: gold;
   font-size: 18px;
   display: flex;
-  gap: 4px;
+  gap: 5px;
+  margin: 10px 0;
 }
 
 .doc-profile-icon {

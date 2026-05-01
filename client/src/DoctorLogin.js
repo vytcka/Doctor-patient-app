@@ -42,11 +42,11 @@ export default function DoctorLogin() {
                 <form className="form" onSubmit={handleSubmit}>
                     <div className="form-group">
                         <input 
-                            type="username"
+                            type="text"
                             id="username"
                             name="username"
                             placeholder='username'
-                            value={formData.email}
+                            value={formData.username}
                             onChange={handleChange}
                             required
                         />

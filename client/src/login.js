@@ -5,7 +5,7 @@ import Icon from "./LogoIcon.png";
 
 export default function Login() {
     const [formData, setFormData] = useState({
-        email: '',
+        username: '',
         password: ''
     });
 
@@ -21,7 +21,7 @@ export default function Login() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.email || !formData.password){
+        if (!formData.username || !formData.password){
             setErrorMessage('Please fill in all fields');
             setSuccessMessage('');
             return;
@@ -63,22 +63,23 @@ export default function Login() {
                 </div>
               </div>
 
-            <div className="form-container"> 
+
+            <div className="form-container">
                 <h1>Login</h1>
                 <h2>Welcome back! Please login to your account</h2>
                 <form className="form" onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <input 
-                            type="email"
-                            id="email"
-                            name="email"
-                            placeholder='email'
-                            value={formData.email}
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            placeholder='username'
+                            value={formData.username}
                             onChange={handleChange}
                             required
                         />
                     </div>
-                    <div className="form-group"> 
+                    <div className="form-group">
                         <input
                             type="password"
                             id="password"
@@ -98,7 +99,7 @@ export default function Login() {
                     <p>Don't have an account yet? <Link to="/Signup">Sign up</Link></p>
 
                 </form>
-            
+           
             </div>
         </div>
        
