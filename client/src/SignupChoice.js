@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import Icon from "./LogoIcon.png";
 
-export default function LoginChoice() {
+export default function SignupChoice() {
   return (
     <div style={styles.page}>
       {/* Header */}
@@ -14,10 +14,10 @@ export default function LoginChoice() {
 
       {/* Main Content */}
       <div style={styles.content}>
-        <h1 style={styles.heading}>Welcome back to TreatMe</h1>
+        <h1 style={styles.heading}>Welcome to TreatMe</h1>
         <p style={styles.subheading}>
           Connecting patients with trusted medical professionals.<br />
-          Please log in to continue.
+          Please sign up to continue.
         </p>
 
         <p style={styles.question}>Are you a patient or a doctor?</p>
@@ -30,8 +30,8 @@ export default function LoginChoice() {
             <p style={styles.cardText}>
               Book appointments, message your doctor, and manage your health requests.
             </p>
-            <Link to="/login" style={{ textDecoration: "none" }}>
-              <button style={styles.button}>Log in as Patient</button>
+            <Link to="/signup" style={{ textDecoration: "none" }}>
+              <button style={styles.button}>Sign up as Patient</button>
             </Link>
           </div>
 
@@ -42,15 +42,15 @@ export default function LoginChoice() {
             <p style={styles.cardText}>
               View patient requests, manage appointments, and communicate securely.
             </p>
-            <Link to="/doctorlogin" style={{ textDecoration: "none" }}>
-              <button style={{ ...styles.button, background: "#1b4cb6" }}>Log in as Doctor</button>
+            <Link to="/doctorsignup" style={{ textDecoration: "none" }}>
+              <button style={{ ...styles.button, background: "#1b4cb6" }}>Sign up as Doctor</button>
             </Link>
           </div>
         </div>
 
         <p style={styles.signupPrompt}>
-          Don't have an account?{" "}
-          <Link to="/signup" style={styles.signupLink}>Sign up here</Link>
+          Already ave an account?{" "}
+          <Link to="/login-choice" style={styles.signupLink}>Log in here</Link>
         </p>
       </div>
     </div>

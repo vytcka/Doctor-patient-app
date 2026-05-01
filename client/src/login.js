@@ -122,7 +122,7 @@ export default function Login() {
                     <button type="submit">Login</button>
 
                     <Link to="/request" className="guest">Continue as guest?</Link>
-                    <p>Don't have an account yet? <Link to="/Signup">Sign up</Link></p>
+                    <p>Don't have an account yet? <Link to="/signup-choice">Sign up</Link></p>
 
                 </form>
            

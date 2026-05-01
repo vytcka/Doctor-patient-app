@@ -27,7 +27,7 @@ function Home() {
           <Link to="/login-choice" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
           </Link>
-          <Link to="/signup" style={{ textDecoration: "none" }}>
+          <Link to="/signup-choice" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
           </Link>
           <Link to="/chat" style={{ textDecoration: "none" }}>

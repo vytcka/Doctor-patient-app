@@ -10,6 +10,8 @@ import Chat from "./Chat";
 import UserDashboard from "./UserDashboard";
 import LoginChoice from "./LoginChoice";
 import DoctorLogin from "./DoctorLogin";
+import SignupChoice from "./SignupChoice";
+import DoctorSignup from "./DoctorSignup";
 
 function App() {
   return (
@@ -26,6 +28,8 @@ function App() {
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/login-choice" element={<LoginChoice />} />
         <Route path="/doctorlogin" element={<DoctorLogin />} />
+        <Route path="/signup-choice" element={<SignupChoice />} />
+        <Route path="/doctorsignup" element={<DoctorSignup />} />
 
       </Routes>
 
