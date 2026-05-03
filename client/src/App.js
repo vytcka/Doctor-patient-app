@@ -10,7 +10,6 @@ import Signup from "./signup";
 import Chat from "./Chat";
 import Dashboard from "./Dashboard"; 
 import Settings from './Settings';
-import UserDashboard from "./UserDashboard";
 import LoginChoice from "./LoginChoice";
 import DoctorLogin from "./DoctorLogin";
 import SignupChoice from "./SignupChoice";
@@ -31,7 +30,6 @@ function App() {
         <Route path="/chat" element={<Chat />} />
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/Settings" element={<Settings />} />
-        <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/login-choice" element={<LoginChoice />} />
         <Route path="/doctorlogin" element={<DoctorLogin />} />
         <Route path="/signup-choice" element={<SignupChoice />} />
