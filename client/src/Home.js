@@ -18,8 +18,8 @@ function Home() {
           <Link to="/post-request" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
           </Link>
-          <Link to="/search" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Search for Doctors</button>
+          <Link to="/reviews" style={{ textDecoration: "none" }}>
+              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
           </Link>
           <Link to="/login-choice" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>

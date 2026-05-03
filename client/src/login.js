@@ -121,7 +121,7 @@ export default function Login() {
                     {successMessage && <p className="success">{successMessage}</p>}
                     <button type="submit">Login</button>
 
-                    <Link to="/request" className="guest">Continue as guest?</Link>
+                    <Link to="/post-request" className="guest">Continue as guest?</Link>
                     <p>Don't have an account yet? <Link to="/signup">Sign up</Link></p>
                 </form>
             </div>

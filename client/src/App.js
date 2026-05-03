@@ -3,7 +3,6 @@ import Home from "./Home";
 import Check from "./Check";
 import PostRequest from './PostRequest'; 
 import Reviews from './Reviews'; 
-import Search from './Search'; 
 import DoctorReview from "./DoctorReview";
 import Login from "./login";
 import Signup from "./signup";
@@ -24,7 +23,7 @@ function App() {
         <Route path="/Check" element={<Check />} />
         <Route path="/post-request" element={<PostRequest />} />
         <Route path="/reviews" element={<Reviews />} />
-        <Route path="/search" element={<Search />} />
+        <Route path="/search" element={<Reviews />} />
         <Route path="/doctor/:id" element={<DoctorReview />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
