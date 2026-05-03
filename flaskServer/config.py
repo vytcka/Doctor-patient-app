@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY")
+    SECRET_KEY = "super-secret-key"
     PERMANENT_SESSION_LIFETIME = timedelta(hours=1, minutes=20)
     SQLALCHEMY_DATABASE_URI = 'sqlite:///site.db'
     SESSION_COOKIE_SAMESITE = 'Lax'

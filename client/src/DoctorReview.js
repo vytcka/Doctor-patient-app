@@ -1,23 +1,28 @@
 import { useState } from "react";
-import { PrefetchPageLinks, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Link } from 'react-router-dom';
 import { data } from "./doctorItems";
 import './reviews.css'; 
+import StarRating from "./StarRating";
 
 
-export default function DoctorDetail(){
-    //Reviews
+export default function DoctorReview(){
+    
     const [reviews, setReviews] = useState([]);
+    //Store new review inputted by user
     const [newReview, setNewReview] = useState({
     rating: 0,
     comment: ""
     });
+
     const [editedReviewId, setEditedReviewId] = useState(null);
+    //Store temporary edited review
     const [editedReview, setEditedReview] = useState({
         rating: 0,
         comment: ""
     });
 
+    //Extract id
     const {id} = useParams();
 
     //find doctor by id
@@ -45,7 +50,7 @@ export default function DoctorDetail(){
 
     }
 
-    //Edit
+    //Enable edit mode for selected review
     const handleEdit = (review) => {
         setEditedReviewId(review.id);
         setEditedReview({
@@ -65,13 +70,13 @@ export default function DoctorDetail(){
         setEditedReviewId(null);
     }
 
-    //calculate average rating based on reviews gotten
+    //calculate average rating if reviews exist
     const averageRating = reviews.length > 0 ? (
         reviews.reduce((sum, r) => sum + r.rating, 0) /
         reviews.length
     ).toFixed(1) : 0;
 
-    //For star display
+    //Convert numeric rating into star rating strings
     const renderStars = (rating) => "⭐".repeat(Math.round(rating));
 
     // Show average rating if reviews exist, otherwise show N/A
@@ -79,6 +84,8 @@ export default function DoctorDetail(){
 
     return(
         <div>
+
+            {/* Doctor Information Section */}
             <div className="doctor-info">
                 <p><img src={doctor.profileIcon} alt={doctor.name} className="doc-profile-icon"/></p>
                 <h1>{doctor.name}</h1>
@@ -91,35 +98,26 @@ export default function DoctorDetail(){
                 <p><b>Bio: </b>{doctor.bio}</p>
             </div>
 
+            {/* Reviews Display */}
             <div className="display-reviews">
                 <h3>Reviews</h3>
 
                 {reviews.length === 0 ? (
                     <p>No reviews yet</p>
                 ) : (
+
                     reviews.map((review) => (
                         <div key={review.id} className="review">
                             {editedReviewId === review.id ? (
                                 //edit mode
                                 <>
                                     {/* Edit star rating */}
-                                    <select
-                                        value={editedReview.rating}
-                                        onChange={(e) =>
-                                            setEditedReview({
-                                                ...editedReview,
-                                                rating: Number(e.target.value)
-                                            })
+                                    <StarRating
+                                        rating={editedReview.rating}
+                                        onRatingChange={(value) =>
+                                            setEditedReview({ ...editedReview, rating: value })
                                         }
-                                        >
-                                            <option>Select rating</option>
-                                            <option value="5">⭐⭐⭐⭐⭐</option>
-                                            <option value="4">⭐⭐⭐⭐</option>
-                                            <option value="3">⭐⭐⭐</option>
-                                            <option value="2">⭐⭐</option>
-                                            <option value="1">⭐</option>
-                                            <option value="0">0</option>
-                                    </select>
+                                    />
 
                                     {/* Edit comments */}
                                     <textarea
@@ -143,7 +141,7 @@ export default function DoctorDetail(){
                             ):(
                                 <>
                                     {/* Normal view */}
-                                    <p>{"⭐".repeat(review.rating)}</p>
+                                    <p><StarRating rating={review.rating}/></p>
                                     <p>{review.comment}</p>
 
                                     <button onClick={() => handleEdit(review)}>
@@ -156,23 +154,17 @@ export default function DoctorDetail(){
                 )}
             </div>
 
+            {/* Add review form */}
             <div className="review-form">
                 <h3>Leave a Review</h3>
 
                 {/* Star Rating */}
-                <select
-                    value={newReview.rating}
-                    onChange={(e) =>
-                        setNewReview({...newReview, rating: Number(e.target.value)})
-                    }>
-                        <option>Select rating</option>
-                        <option value="5">⭐⭐⭐⭐⭐</option>
-                        <option value="4">⭐⭐⭐⭐</option>
-                        <option value="3">⭐⭐⭐</option>
-                        <option value="2">⭐⭐</option>
-                        <option value="1">⭐</option>
-                        <option value="0">0</option>
-                </select>
+                <StarRating
+                    rating={newReview.rating}
+                    onRatingChange={(value) =>
+                        setNewReview({ ...newReview, rating: value })
+                    }
+                />
 
                 {/* comments */}
                 <textarea
@@ -186,7 +178,7 @@ export default function DoctorDetail(){
 
                 <Link to="/Chat"><button>Start Chat!</button></Link>
 
-                <Link to="/Reviews"> ← Back to Reviews Page </Link>
+                <Link to="/search"> ← Back to Reviews Page </Link>
 
             </div>
             

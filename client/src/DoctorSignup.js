@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import './form.css'; 
+import { Link } from 'react-router-dom';
+import './form.css';
 import Icon from "./LogoIcon.png";
 
-export default function Signup() {
-    const navigate = useNavigate();
+export default function DoctorSignup() {
     const [formData, setFormData] = useState({
+        fullName: '',
         username: '',
-        email: '',
+        gmcNumber: '',
         password: '',
         confirmPassword: ''
     });
@@ -22,75 +22,77 @@ export default function Signup() {
         });
     };
 
-    //validation and submit form data to backend
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.username || !formData.email || !formData.password) {
-            setErrorMessage('Please fill in all fields');
-            setSuccessMessage('');
+
+        if (!formData.fullName || !formData.username || !formData.gmcNumber || !formData.password || !formData.confirmPassword) {
+            setErrorMessage("Please fill in all fields");
+            setSuccessMessage("");
             return;
         }
+
         if (formData.password !== formData.confirmPassword) {
-            setErrorMessage('Passwords do not match');
-            setSuccessMessage('');
+            setErrorMessage("Passwords do not match");
+            setSuccessMessage("");
             return;
         }
-        if (formData.password.length < 6) {
-            setErrorMessage('Password must be at least 6 characters');
-            setSuccessMessage('');
+
+        if (!/^\d{7}$/.test(formData.gmcNumber)) {
+            setErrorMessage("GMC number must be 7 digits");
+            setSuccessMessage("");
             return;
         }
 
         try {
-            const response = await fetch("http://127.0.0.1:5000/signup", {
+            const response = await fetch("http://127.0.0.1:5000/doctor-signup", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
                 credentials: "include",
                 body: JSON.stringify({
+                    full_name: formData.fullName,
                     username: formData.username,
-                    email: formData.email,
+                    gmc_number: formData.gmcNumber,
                     password: formData.password
                 })
             });
 
             const data = await response.json();
 
-            if (data.status === 201) {
-                setErrorMessage('');
-                setSuccessMessage('Signup successful! Redirecting to dashboard...');
-                // Redirect to dashboard after 1.5 seconds
-                setTimeout(() => {
-                    navigate('/dashboard');
-                }, 1500);
+            if (data.status === 200 || data.status === 201) {
+                setSuccessMessage(data.message);
+                setErrorMessage("");
             } else {
                 setErrorMessage(data.message);
-                setSuccessMessage('');
+                setSuccessMessage("");
             }
+
         } catch (error) {
             setErrorMessage("Server connection failed");
-            setSuccessMessage('');
+            setSuccessMessage("");
         }
     };
 
-    //UI
     return (
         <div>
-            {/* Navbar with clickable logo - YOUR VERSION */}
+            {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-                <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-                    <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+                <div style={{ display: "flex", alignItems: "center" }}>
+                    <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
                     <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
-                </Link>
+                </div>
                 <div style={{ display: "flex", gap: "10px" }}>
+                    <Link to="/" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
+                    </Link>
                     <Link to="/post-request" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
                     </Link>
-                    <Link to="/reviews" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
+                    <Link to="/search" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Search for Doctors</button>
                     </Link>
-                    <Link to="/login" style={{ textDecoration: "none" }}>
+                    <Link to="/login-choice" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
                     </Link>
                     <Link to="/signup" style={{ textDecoration: "none" }}>
@@ -101,49 +103,67 @@ export default function Signup() {
                     </Link>
                 </div>
             </div>
+
             <div className="form-container">
-                <h1>Sign Up</h1>
-                <h2>Please create an account</h2>
+                <h1>🩺 Doctor Sign Up</h1>
+                <h2>Create your TreatMe doctor account</h2>
                 <form className="form" onSubmit={handleSubmit}>
+
+                    <div className="form-group">
+                        <input
+                            type="text"
+                            id="fullName"
+                            name="fullName"
+                            placeholder="Full name (e.g. Dr. Jane Smith)"
+                            value={formData.fullName}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+
                     <div className="form-group">
                         <input
                             type="text"
                             id="username"
                             name="username"
-                            placeholder='username'
+                            placeholder="Username"
                             value={formData.username}
                             onChange={handleChange}
                             required
                         />
                     </div>
+
                     <div className="form-group">
                         <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            placeholder='email'
-                            value={formData.email}
+                            type="text"
+                            id="gmcNumber"
+                            name="gmcNumber"
+                            placeholder="GMC number (7 digits)"
+                            value={formData.gmcNumber}
                             onChange={handleChange}
+                            maxLength={7}
                             required
                         />
                     </div>
+
                     <div className="form-group">
                         <input
                             type="password"
                             id="password"
                             name="password"
-                            placeholder='password'
+                            placeholder="Password"
                             value={formData.password}
                             onChange={handleChange}
                             required
                         />
                     </div>
+
                     <div className="form-group">
                         <input
                             type="password"
                             id="confirmPassword"
                             name="confirmPassword"
-                            placeholder='confirm password'
+                            placeholder="Confirm password"
                             value={formData.confirmPassword}
                             onChange={handleChange}
                             required
@@ -152,10 +172,11 @@ export default function Signup() {
 
                     {errorMessage && <p className="error">{errorMessage}</p>}
                     {successMessage && <p className="success">{successMessage}</p>}
-                    <button type="submit">Submit</button>
 
-                    <Link to="/request" className="guest">Continue as guest?</Link>
-                    <p>Already have an account? <Link to="/login">Login</Link></p>
+                    <button type="submit">Create Account</button>
+
+                    <p>Already have an account? <Link to="/doctorlogin">Log in as a Doctor</Link></p>
+                    <p>Not a doctor? <Link to="/signup">Sign up as a Patient</Link></p>
 
                 </form>
             </div>

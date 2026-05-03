@@ -6,7 +6,7 @@ import Icon from "./LogoIcon.png";
 export default function Login() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        email: '',
+        username: '',
         password: ''
     });
 
@@ -20,49 +20,92 @@ export default function Login() {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.email || !formData.password){
-            setErrorMessage('Please fill in all fields');
-            setSuccessMessage('');
+
+        if (!formData.username || !formData.password) {
+            setErrorMessage("Please fill in all fields");
+            setSuccessMessage("");
             return;
         }
-        else {
-            setErrorMessage('');
-            setSuccessMessage('Login successful! Redirecting...');
-            // Redirect to dashboard after 1 second
-            setTimeout(() => {
-                navigate('/dashboard');
-            }, 1000);
+
+        try {
+            const response = await fetch("http://127.0.0.1:5000/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include", 
+                body: JSON.stringify({
+                    username: formData.username,
+                    password: formData.password
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 200) {
+                setSuccessMessage(data.message);
+                setErrorMessage("");
+                // Redirect to dashboard after 1 second
+                setTimeout(() => {
+                    navigate('/dashboard');
+                }, 1000);
+            } else {
+                setErrorMessage(data.message);
+                setSuccessMessage("");
+            }
+
+        } catch (error) {
+            setErrorMessage("Server connection failed");
+            setSuccessMessage("");
         }
     };
 
     //UI
     return (
         <div>
+            {/* Navbar with clickable logo - YOUR VERSION */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
                 <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
                     <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
                     <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
                 </Link>
+                <div style={{ display: "flex", gap: "10px" }}>
+                    <Link to="/post-request" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
+                    </Link>
+                    <Link to="/reviews" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
+                    </Link>
+                    <Link to="/login" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+                    </Link>
+                    <Link to="/signup" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+                    </Link>
+                    <Link to="/chat" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+                    </Link>
+                </div>
             </div>
 
-            <div className="form-container"> 
+            <div className="form-container">
                 <h1>Login</h1>
                 <h2>Welcome back! Please login to your account</h2>
                 <form className="form" onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <input 
-                            type="email"
-                            id="email"
-                            name="email"
-                            placeholder='email'
-                            value={formData.email}
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            placeholder='username'
+                            value={formData.username}
                             onChange={handleChange}
                             required
                         />
                     </div>
-                    <div className="form-group"> 
+                    <div className="form-group">
                         <input
                             type="password"
                             id="password"
@@ -80,9 +123,8 @@ export default function Login() {
 
                     <Link to="/request" className="guest">Continue as guest?</Link>
                     <p>Don't have an account yet? <Link to="/signup">Sign up</Link></p>
-
                 </form>
             </div>
         </div>
-    )
+    );
 }

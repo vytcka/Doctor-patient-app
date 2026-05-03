@@ -18,13 +18,13 @@ function Home() {
           <Link to="/post-request" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
           </Link>
-          <Link to="/reviews" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
+          <Link to="/search" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Search for Doctors</button>
           </Link>
-          <Link to="/login" style={{ textDecoration: "none" }}>
+          <Link to="/login-choice" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
           </Link>
-          <Link to="/signup" style={{ textDecoration: "none" }}>
+          <Link to="/signup-choice" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
           </Link>
           <Link to="/chat" style={{ textDecoration: "none" }}>
