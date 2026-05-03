@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
 export default function DoctorLogin() {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',
         password: ''
@@ -29,7 +30,7 @@ export default function DoctorLogin() {
         }
 
         try {
-            const response = await fetch("http://127.0.0.1:5000/doctor-login", {
+            const response = await fetch("http://127.0.0.1:5000/doctor/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -46,6 +47,10 @@ export default function DoctorLogin() {
             if (data.status === 200) {
                 setSuccessMessage(data.message);
                 setErrorMessage("");
+                // Redirect to doctor dashboard after 1 second
+                setTimeout(() => {
+                    navigate('/doctor-dashboard');
+                }, 1000);
             } else {
                 setErrorMessage(data.message);
                 setSuccessMessage("");
@@ -59,16 +64,14 @@ export default function DoctorLogin() {
 
     return (
         <div>
-            {/* Header */}
+            {/* Header with clickable logo */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                    <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+                <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+                    <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
                     <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
-                </div>
+                </Link>
                 <div style={{ display: "flex", gap: "10px" }}>
-                    <Link to="/" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
-                    </Link>
+                    {/* Home button REMOVED - logo handles it */}
                     <Link to="/post-request" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
                     </Link>
@@ -88,7 +91,7 @@ export default function DoctorLogin() {
             </div>
 
             <div className="form-container">
-                <h1>🩺 Doctor Login</h1>
+                <h1>Doctor Login</h1>
                 <h2>Welcome back, Doctor! Please login to your account</h2>
                 <form className="form" onSubmit={handleSubmit}>
                     <div className="form-group">
@@ -119,7 +122,7 @@ export default function DoctorLogin() {
                     <button type="submit">Login</button>
 
                     <p>Not a doctor? <Link to="/login">Log in as a Patient</Link></p>
-                    <p>Don't have an account yet? <Link to="/Signup">Sign up</Link></p>
+                    <p>Don't have an account yet? <Link to="/signup">Sign up</Link></p>
                 </form>
             </div>
         </div>

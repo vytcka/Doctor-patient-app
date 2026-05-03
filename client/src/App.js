@@ -14,6 +14,7 @@ import LoginChoice from "./LoginChoice";
 import DoctorLogin from "./DoctorLogin";
 import SignupChoice from "./SignupChoice";
 import DoctorSignup from "./DoctorSignup";
+import DoctorDashboard from "./DoctorDashboard";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
         <Route path="/doctorlogin" element={<DoctorLogin />} />
         <Route path="/signup-choice" element={<SignupChoice />} />
         <Route path="/doctorsignup" element={<DoctorSignup />} />
+        <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
       </Routes>
     </BrowserRouter>
   );

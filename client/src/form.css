@@ -18,11 +18,14 @@ h2{
 
 body {
     background: #FAFCFF;
+    color: #2F5D96;
+}
+
+.centered-page {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    color: #2F5D96;
 }
 
 .form-container {
