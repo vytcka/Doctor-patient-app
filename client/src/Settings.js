@@ -25,17 +25,32 @@ function Settings() {
     setTimeout(() => setUsernameMsg(""), 2000);
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmNewPassword) { setPasswordMsg("Please fill in all fields."); return; }
     if (newPassword !== confirmNewPassword) { setPasswordMsg("New passwords do not match."); return; }
-    if (newPassword.length < 6) { setPasswordMsg("Password must be at least 6 characters."); return; }
-    setPasswordMsg("Password updated successfully!");
-    setCurrentPassword(""); setNewPassword(""); setConfirmNewPassword("");
-    setTimeout(() => setPasswordMsg(""), 2000);
+    
+    const response = await fetch("http://127.0.0.1:5000/change-password", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+    });
+    const data = await response.json();
+    setPasswordMsg(data.status === 200 ? "Password updated successfully!" : data.message);
   };
 
-  const confirmDelete = () => { setShowConfirm(false); navigate('/'); };
+  const confirmDelete = async () => {
+    const response = await fetch("http://127.0.0.1:5000/delete_account", {
+      method: "POST",
+      credentials: "include"
+    });
+    const data = await response.json();
+    if (data.status === 200) {
+      setShowConfirm(false);
+      navigate('/');
+    }
+  };
 
   const inputStyle = { width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "0.9rem", marginBottom: "12px", boxSizing: "border-box", outline: "none" };
   const saveBtnStyle = { backgroundColor: "#3b82f6", color: "white", padding: "10px 28px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "0.95rem" };
