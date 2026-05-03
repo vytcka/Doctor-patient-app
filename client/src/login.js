@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
-export default function Login() {
+export default function Login({ setIsLoggedIn, setUserRole }) {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',
@@ -45,9 +45,10 @@ export default function Login() {
             const data = await response.json();
 
             if (data.status === 200) {
+                setIsLoggedIn(true);
+                setUserRole('user');
                 setSuccessMessage(data.message);
                 setErrorMessage("");
-                // Redirect to dashboard after 1 second
                 setTimeout(() => {
                     navigate('/dashboard');
                 }, 1000);

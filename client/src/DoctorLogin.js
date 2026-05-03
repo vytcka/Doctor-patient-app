@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
-export default function DoctorLogin() {
+export default function DoctorLogin({ setIsLoggedIn, setUserRole }) {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',

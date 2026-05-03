@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from './LogoIcon.png';
 
-function Settings() {
+function Settings({ isLoggedIn }) {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('account');
 
@@ -29,7 +29,6 @@ function Settings() {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmNewPassword) { setPasswordMsg("Please fill in all fields."); return; }
     if (newPassword !== confirmNewPassword) { setPasswordMsg("New passwords do not match."); return; }
-    
     const response = await fetch("http://127.0.0.1:5000/change-password", {
       method: "POST",
       credentials: "include",
@@ -61,21 +60,56 @@ function Settings() {
     { id: 'delete', label: 'Delete Account', desc: 'Permanently remove account' },
   ];
 
+  if (!isLoggedIn) {
+    return (
+      <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
+          <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+            <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+            <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+          </Link>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Link to="/login-choice" style={{ textDecoration: "none" }}>
+              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+            </Link>
+            <Link to="/signup-choice" style={{ textDecoration: "none" }}>
+              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+            </Link>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: "16px" }}>
+          <p style={{ fontSize: "1.2rem", color: "#607593" }}>You need to be logged in to access settings.</p>
+          <Link to="/login-choice">
+            <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px 28px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}>
+              Log In
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      {/* Navbar with clickable logo - Home button removed */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
+    <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
+      {/* Navbar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
         </Link>
         <div style={{ display: "flex", gap: "10px" }}>
-          {/* Home button REMOVED */}
-          <Link to="/post-request" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
-          <Link to="/reviews" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button></Link>
-          <Link to="/login" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button></Link>
-          <Link to="/signup" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button></Link>
-          <Link to="/chat" style={{ textDecoration: "none" }}><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button></Link>
+          <Link to="/post-request" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
+          </Link>
+          <Link to="/reviews" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
+          </Link>
+          <Link to="/chat" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+          </Link>
+          <Link to="/dashboard" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
+          </Link>
         </div>
       </div>
 
@@ -92,7 +126,7 @@ function Settings() {
             </div>
           ))}
           <div style={{ marginTop: "16px" }}>
-            <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "0.9rem", fontWeight: "600", padding: 0 }}>⬅️ Back</button>
+            <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "0.9rem", fontWeight: "600", padding: 0 }}>← Back</button>
           </div>
         </div>
 

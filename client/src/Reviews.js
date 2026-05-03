@@ -4,7 +4,7 @@ import { data } from "./doctorItems";
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
 
-export default function Reviews() {
+export default function Reviews({ isLoggedIn }) {
     const [query, setQuery] = useState("");
     const navigate = useNavigate();
 
@@ -58,15 +58,25 @@ export default function Reviews() {
                     <Link to="/post-request" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
                     </Link>
-                    <Link to="/login-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                    </Link>
-                    <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-                    </Link>
-                    <Link to="/dashboard" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
-                    </Link>
+                    {isLoggedIn ? (
+                        <>
+                            <Link to="/chat" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+                            </Link>
+                            <Link to="/dashboard" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/login-choice" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+                            </Link>
+                            <Link to="/signup-choice" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -74,12 +84,10 @@ export default function Reviews() {
             <div style={{ backgroundColor: "#1b4cb6", padding: "40px 30px", textAlign: "center" }}>
                 <h1 style={{ color: "white", fontSize: "2rem", margin: "0 0 8px 0" }}>Find a Doctor</h1>
                 <p style={{ color: "#bfdbfe", margin: "0 0 24px 0" }}>Search and filter verified doctors, and read patient reviews</p>
-
-                {/* Search bar */}
                 <div style={{ maxWidth: "600px", margin: "0 auto" }}>
                     <input
                         type="search"
-                        placeholder="🔍 Search by name, specialty, location..."
+                        placeholder="Search by name, specialty, location..."
                         onChange={e => setQuery(e.target.value)}
                         style={{ width: "100%", padding: "14px 20px", borderRadius: "8px", border: "none", fontSize: "1rem", outline: "none", boxSizing: "border-box" }}
                     />
@@ -130,9 +138,9 @@ export default function Reviews() {
                                     <h3 style={{ margin: "0 0 4px 0", color: "#1b4cb6", textAlign: "left" }}>{doctor.name}</h3>
                                     <p style={{ margin: "0 0 8px 0", color: "#607593", fontSize: "0.9rem" }}>{doctor.specialty}</p>
                                     <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", fontSize: "0.85rem", color: "#374151" }}>
-                                        <span>👤 {doctor.gender}</span>
-                                        <span>🗣️ {doctor.language.join(", ")}</span>
-                                        <span>📍 {doctor.location}</span>
+                                        <span>{doctor.gender}</span>
+                                        <span>{doctor.language.join(", ")}</span>
+                                        <span>{doctor.location}</span>
                                     </div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>

@@ -4,7 +4,7 @@ import { data } from "./doctorItems";
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
 
-export default function DoctorReview() {
+export default function DoctorReview({ isLoggedIn }) {
     const [reviews, setReviews] = useState([]);
     const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
     const [editedReviewId, setEditedReviewId] = useState(null);
@@ -54,15 +54,20 @@ export default function DoctorReview() {
                     <Link to="/post-request" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
                     </Link>
-                    <Link to="/login-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                    </Link>
-                    <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-                    </Link>
-                    <Link to="/dashboard" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
-                    </Link>
+                    {isLoggedIn ? (
+                        <Link to="/dashboard" style={{ textDecoration: "none" }}>
+                            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
+                        </Link>
+                    ) : (
+                        <>
+                            <Link to="/login-choice" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+                            </Link>
+                            <Link to="/signup-choice" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -148,23 +153,25 @@ export default function DoctorReview() {
                             )}
                         </div>
 
-                        {/* Leave a review */}
-                        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-                            <h3 style={{ color: "#1b4cb6", marginTop: 0, marginBottom: "16px" }}>Leave a Review</h3>
-                            <StarRating rating={newReview.rating} onRatingChange={(value) => setNewReview({ ...newReview, rating: value })} />
-                            <textarea
-                                placeholder="Write your review here..."
-                                value={newReview.comment}
-                                onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", marginTop: "12px", minHeight: "100px", fontSize: "0.9rem", boxSizing: "border-box", resize: "vertical" }}
-                            />
-                            <button
-                                onClick={handleAddReview}
-                                disabled={newReview.rating === 0 || newReview.comment === ""}
-                                style={{ marginTop: "12px", backgroundColor: newReview.rating === 0 || newReview.comment === "" ? "#94a3b8" : "#3b82f6", color: "white", padding: "10px 28px", borderRadius: "8px", border: "none", cursor: newReview.rating === 0 || newReview.comment === "" ? "not-allowed" : "pointer", fontWeight: "bold" }}>
-                                Submit Review
-                            </button>
-                        </div>
+                        {/* Leave a review - only show if logged in */}
+                        {isLoggedIn && (
+                            <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+                                <h3 style={{ color: "#1b4cb6", marginTop: 0, marginBottom: "16px" }}>Leave a Review</h3>
+                                <StarRating rating={newReview.rating} onRatingChange={(value) => setNewReview({ ...newReview, rating: value })} />
+                                <textarea
+                                    placeholder="Write your review here..."
+                                    value={newReview.comment}
+                                    onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                                    style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", marginTop: "12px", minHeight: "100px", fontSize: "0.9rem", boxSizing: "border-box", resize: "vertical" }}
+                                />
+                                <button
+                                    onClick={handleAddReview}
+                                    disabled={newReview.rating === 0 || newReview.comment === ""}
+                                    style={{ marginTop: "12px", backgroundColor: newReview.rating === 0 || newReview.comment === "" ? "#94a3b8" : "#3b82f6", color: "white", padding: "10px 28px", borderRadius: "8px", border: "none", cursor: newReview.rating === 0 || newReview.comment === "" ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                                    Submit Review
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Right column - action card */}
@@ -174,16 +181,24 @@ export default function DoctorReview() {
                             <p style={{ color: "#607593", fontSize: "0.9rem", marginBottom: "20px", lineHeight: "1.6" }}>
                                 Start a secure private chat with {doctor.name} to discuss your symptoms and get medical advice.
                             </p>
-                            <Link to="/chat" style={{ textDecoration: "none" }}>
-                                <button style={{ width: "100%", backgroundColor: "#1b4cb6", color: "white", padding: "12px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}>
-                                    Start Chat
-                                </button>
-                            </Link>
-                            <Link to="/post-request" style={{ textDecoration: "none" }}>
-                                <button style={{ width: "100%", backgroundColor: "#f0f4ff", color: "#1b4cb6", padding: "12px", borderRadius: "8px", border: "1px solid #ccd9ee", cursor: "pointer", fontWeight: "bold", fontSize: "1rem", marginTop: "10px" }}>
-                                    Post a Request
-                                </button>
-                            </Link>
+                            {isLoggedIn ? (
+                                <>
+                                    <Link to="/chat" style={{ textDecoration: "none" }}>
+                                        <button style={{ width: "100%", backgroundColor: "#1b4cb6", color: "white", padding: "12px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}>
+                                            Start Chat
+                                        </button>
+                                    </Link>
+                                    <Link to="/post-request" style={{ textDecoration: "none" }}>
+                                        <button style={{ width: "100%", backgroundColor: "#f0f4ff", color: "#1b4cb6", padding: "12px", borderRadius: "8px", border: "1px solid #ccd9ee", cursor: "pointer", fontWeight: "bold", fontSize: "1rem", marginTop: "10px" }}>
+                                            Post a Request
+                                        </button>
+                                    </Link>
+                                </>
+                            ) : (
+                                <p style={{ color: "#607593", fontSize: "0.9rem", textAlign: "center" }}>
+                                    <Link to="/login-choice" style={{ color: "#3b82f6", fontWeight: "600" }}>Log in</Link> to start chatting with this doctor.
+                                </p>
+                            )}
                         </div>
 
                         <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
