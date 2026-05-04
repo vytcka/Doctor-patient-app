@@ -257,6 +257,9 @@ def doctor_login():
     error = None
     data = request.get_json()
     
+    username = data["username"]
+
+    forms = validation_form()
     forms.username.data = data["username"]
     forms.password.data = data["password"]
 
