@@ -25,7 +25,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
         <Route path="/Check" element={<Check />} />
-        <Route path="/post-request" element={<PostRequest />} />
+        <Route path="/post-request" element={<PostRequest isLoggedIn={isLoggedIn} />} />
         <Route path="/reviews" element={<Reviews isLoggedIn={isLoggedIn} />} />
         <Route path="/search" element={<Reviews isLoggedIn={isLoggedIn} />} />
         <Route path="/doctor/:id" element={<DoctorReview isLoggedIn={isLoggedIn} />} />

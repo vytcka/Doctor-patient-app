@@ -77,16 +77,7 @@ export default function Login({ setIsLoggedIn, setUserRole }) {
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
                     </Link>
                     <Link to="/reviews" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
-                    </Link>
-                    <Link to="/login" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                    </Link>
-                    <Link to="/signup" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-                    </Link>
-                    <Link to="/chat" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
                     </Link>
                 </div>
             </div>

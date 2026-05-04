@@ -106,20 +106,14 @@ export default function DoctorSignup() {
                     <Link to="/post-request" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
                     </Link>
-                    <Link to="/search" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Search for Doctors</button>
-                    </Link>
-                    <Link to="/login-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                    </Link>
-                    <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+                    <Link to="/reviews" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
                     </Link>
                 </div>
             </div>
 
             <div className="form-container">
-                <h1>🩺 Doctor Sign Up</h1>
+                <h1>Doctor Sign Up</h1>
                 <h2>Create your TreatMe doctor account</h2>
                 <form className="form" onSubmit={handleSubmit}>
 
@@ -155,7 +149,7 @@ export default function DoctorSignup() {
 
                     <div className="form-group">
                         <select name="specialty" value={formData.specialty} onChange={handleChange} required
-                            style={{ width: "100%", padding: "10px", fontSize: "14px", color: "#2F5D96", border: "1px solid #ccc" }}>
+                            style={{ width: "100%", padding: "10px", margin: "7px", fontSize: "14px", color: "#2F5D96", border: "1px solid #ccc", borderRadius: "0" }}>
                             <option value="">Select specialty...</option>
                             {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
@@ -168,8 +162,8 @@ export default function DoctorSignup() {
 
                     <div className="form-group">
                         <textarea name="bio" placeholder="Biography (min 20 characters)"
-                            value={formData.bio} onChange={handleChange} required
-                            style={{ width: "100%", padding: "10px", fontSize: "14px", color: "#2F5D96", minHeight: "80px" }} />
+                        value={formData.bio} onChange={handleChange} required
+                        style={{ width: "100%", padding: "10px", margin: "7px", fontSize: "14px", color: "#2F5D96", minHeight: "80px", borderRadius: "0", border: "1px solid #ccc" }} />
                     </div>
 
                     <div className="form-group">
@@ -187,7 +181,7 @@ export default function DoctorSignup() {
 
                     <button type="submit">Create Account</button>
 
-                    <p>Already have an account? <Link to="/doctorlogin">Log in as a Doctor</Link></p>
+                    <p>Already have an account? <Link to="/doctorlogin">Log in</Link></p>
                     <p>Not a doctor? <Link to="/signup">Sign up as a Patient</Link></p>
 
                 </form>

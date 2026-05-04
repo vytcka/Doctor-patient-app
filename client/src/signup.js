@@ -89,12 +89,6 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
                     <Link to="/reviews" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
                     </Link>
-                    <Link to="/login-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                    </Link>
-                    <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-                    </Link>
                 </div>
             </div>
 
@@ -131,7 +125,16 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
                     <div className="form-group">
                         <textarea name="bio" placeholder="Short bio (min 20 characters)"
                             value={formData.bio} onChange={handleChange} required
-                            style={{ width: "100%", padding: "10px", fontSize: "14px", color: "#2F5D96", minHeight: "80px" }} />
+                            style={{ 
+                                width: "100%", 
+                                padding: "10px",
+                                margin: "7px",
+                                fontSize: "14px", 
+                                color: "#2F5D96",
+                                borderRadius: "0",
+                                border: "1px solid #ccc",
+                                boxSizing: "border-box"
+                            }} />
                     </div>
 
                     <div className="form-group">
