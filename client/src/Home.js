@@ -42,13 +42,16 @@ function Home({ isLoggedIn }) {
 
       {/* About Us Section */}
       <div style={{ maxWidth: "800px", margin: "auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "80px" }}>
-          <img src={myImage2} alt="description" style={{ width: "250px", height: "250px" }} />
-          <div>
-            <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6" }}>About Us</p>
-            <p style={{ fontSize: "1rem", textAlign: "center" }}>TreatMe helps you connect with doctors for reliable health advice. Ask questions, chat securely, and get the support you need—when you need it. Real doctors. Real answers.</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "80px" }}>
+              <img src={myImage2} alt="description" style={{ width: "250px", height: "250px" }} />
+              <div>
+                  <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6" }}>About Us</p>
+                  <p style={{ fontSize: "1rem", textAlign: "center" }}>TreatMe helps you connect with doctors for reliable health advice. Ask questions, chat securely, and get the support you need, when you need it. Real doctors. Real answers.</p>
+                  <p style={{ fontSize: "0.9rem", textAlign: "center", color: "#435e99", marginTop: "12px" }}>
+                      TreatMe supports UN Sustainable Development Goal 3: Good Health and Well-Being by making healthcare more accessible, reducing pressure on NHS services, and connecting patients with verified doctors digitally.
+                  </p>
+              </div>
           </div>
-        </div>
       </div>
 
       {/* Features Section */}
