@@ -331,7 +331,7 @@ def doctor_register():
     forms.date_of_birth.data = data["date of birth"]
     forms.location.data = data["location"]
     forms.specialty.data = data["specialty"]
-    forms.languange.data = data["languange"]
+    forms.language.data = data["language"]
     forms.bio.data = data["bio"]
     forms.availability.data = data["availability"]
     

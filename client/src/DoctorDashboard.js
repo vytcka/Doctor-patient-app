@@ -53,15 +53,57 @@ function DoctorDashboard() {
     fetchDoctorData();
   }, []);
 
-  const handleAcceptRequest = (requestId) => {
+  const handleAcceptRequest = async (requestId) => {
+  try {
+    const response = await fetch("http://127.0.0.1:5000/accept-request", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId })
+    });
+    const data = await response.json();
+    if (data.status === 200) {
+      setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+      alert("✓ Request accepted! Patient has been notified.");
+    } else {
+      alert(data.message);
+    }
+  } catch (error) {
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-    alert("✓ Request accepted! Patient has been notified.");
-  };
+    alert("✓ Request accepted!");
+  }
+};
 
-  const handleRejectRequest = (requestId) => {
+const handleRejectRequest = async (requestId) => {
+  try {
+    const response = await fetch("http://127.0.0.1:5000/reject-request", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId })
+    });
+    const data = await response.json();
+    if (data.status === 200) {
+      setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+      alert("✗ Request rejected.");
+    } else {
+      alert(data.message);
+    }
+  } catch (error) {
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
     alert("✗ Request rejected.");
-  };
+  }
+};
+
+const handleLogout = async () => {
+  try {
+    await fetch("http://127.0.0.1:5000/logout", {
+      credentials: "include"
+    });
+  } finally {
+    navigate('/');
+  }
+};
 
   if (loading) {
     return (
@@ -90,7 +132,7 @@ function DoctorDashboard() {
           </Link>
           <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
             <span style={{ color: "#435e99" }}>{doctor?.name}</span>
-            <button onClick={() => navigate('/')} style={{ backgroundColor: "#ef4444", color: "white", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}>Logout</button>
+            <button onClick={handleLogout} style={{ backgroundColor: "#ef4444", color: "white", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}>Logout</button>
           </div>
         </div>
       </div>
@@ -132,10 +174,10 @@ function DoctorDashboard() {
               </div>
             </div>
             <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "15px" }}>
-              <p style={{ marginBottom: "10px" }}><strong>📍 Location:</strong> {doctor?.location}</p>
-              <p style={{ marginBottom: "10px" }}><strong>🗣️ Languages:</strong> {doctor?.languages?.join(", ")}</p>
-              <p style={{ marginBottom: "10px" }}><strong>📧 Email:</strong> {doctor?.email}</p>
-              <p><strong>📅 Availability:</strong></p>
+              <p style={{ marginBottom: "10px" }}><strong>Location:</strong> {doctor?.location}</p>
+              <p style={{ marginBottom: "10px" }}><strong>Languages:</strong> {doctor?.languages?.join(", ")}</p>
+              <p style={{ marginBottom: "10px" }}><strong>Email:</strong> {doctor?.email}</p>
+              <p><strong>Availability:</strong></p>
               <ul style={{ marginTop: "5px", paddingLeft: "20px" }}>
                 {doctor?.availability?.map((slot, i) => <li key={i} style={{ marginBottom: "4px" }}>{slot}</li>)}
               </ul>
@@ -172,8 +214,8 @@ function DoctorDashboard() {
                   <div key={request.id} style={{ border: "1px solid #e2e8f0", borderRadius: "10px", padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
                     <div>
                       <div style={{ display: "flex", gap: "20px", marginBottom: "10px", flexWrap: "wrap" }}>
-                        <span><strong>🆔 Patient:</strong> {request.patientName}</span>
-                        <span><strong>📅 Age:</strong> {request.age}</span>
+                        <span><strong>Patient:</strong> {request.patientName}</span>
+                        <span><strong>Age:</strong> {request.age}</span>
                       </div>
                       <p style={{ margin: "0 0 5px 0", color: "#607593" }}><strong>Symptoms:</strong> {request.symptoms}</p>
                       <p style={{ margin: 0, fontSize: "0.75rem", color: "#94a3b8" }}>Submitted: {new Date(request.submittedAt).toLocaleDateString()}</p>
