@@ -1,20 +1,44 @@
-import { React, useState } from "react";
-import { data } from "./doctorItems"; //dummy data for doctors
+import { React, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from 'react-router-dom';
 import './reviews.css'; 
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
 
+const doctor = (doc) => {
+    // Calculate average rating from reviews if available
+    let avgRating = 0;
+    if (Array.isArray(doc.reviews) && doc.reviews.length > 0) {
+        const sum = doc.reviews.reduce((total, r) => total + Number(r.rating), 0);
+        avgRating = (sum / doc.reviews.length);
+    } else {
+        avgRating = Number(doc.rating) || 0;
+    }
+
+    return {
+        id: doc.nhs_number || doc.id,
+        name: doc.first_name && doc.last_name 
+            ? `${doc.first_name} ${doc.last_name}` 
+            : doc.name,
+        specialty: doc.specialty || "",
+        rating: avgRating, 
+        gender: doc.gender || "Unknown",
+        language: Array.isArray(doc.language)
+            ? doc.language
+            : String(doc.language || "").split(",").map((lang) => lang.trim()).filter(Boolean),
+        location: doc.location || "",
+        profileIcon: doc.profileIcon || "/profile-icon.svg",
+    };
+};
 
 export default function Search() {
-
-
     const [query, setQuery] = useState("")
+    const [doctors, setDoctors] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const navigate = useNavigate();
 
-    //initialise objects
     const [selectedFilters, setSelectedFilters] = useState({
             name: "",
             specialty: "",
@@ -23,7 +47,67 @@ export default function Search() {
             language: "",
             location: "",
         }); 
-    
+
+    useEffect(() => {
+        const loadDoctors = async () => {
+            try {
+                const response = await fetch("http://127.0.0.1:5000/filter", {
+                    credentials: "include"
+                });
+                if (!response.ok) {
+                    throw new Error(`Could not load doctors: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // First, map doctors without ratings
+                let mappedDoctors = Array.isArray(data) ? data.map(doctor) : [];
+
+                // Then, fetch reviews for each doctor to calculate average rating
+                const doctorsWithRatings = await Promise.all(
+                    mappedDoctors.map(async (doc) => {
+                        try {
+                            const reviewResponse = await fetch("http://127.0.0.1:5000/doctor/reviews", {
+                                method: "POST",
+                                credentials: "include",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({ nhs_number: String(doc.id) })
+                            });
+                            if (reviewResponse.ok) {
+                                const reviewData = await reviewResponse.json();
+                                if (reviewData.status === 200 && Array.isArray(reviewData.reviews)) {
+                                    const reviews = reviewData.reviews;
+                                    if (reviews.length > 0) {
+                                        const avgRating = reviews.reduce((sum, r) => sum + Number(r.rating), 0) / reviews.length;
+                                        return { ...doc, rating: avgRating };
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.error(`Failed to load reviews for doctor ${doc.id}:`, err);
+                        }
+                        return doc; // Return doctor as is if reviews fetch fails
+                    })
+                );
+
+                setDoctors(doctorsWithRatings);
+                setError(null);
+            } catch (err) {
+                console.error(err);
+                setDoctors([]);
+                setError("Cannot reach backend.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadDoctors();
+    }, []);
+
+    if (loading) {
+        return <div className="review-container"><p>Loading doctors...</p></div>;
+    }
+
         const filters = [
                          {key: "specialty", label:"Specialty"},
                          {key: "rating", label: "Rating"},
@@ -32,7 +116,7 @@ export default function Search() {
                          {key: "location", label: "Location"}
                         ];
     
-        const filteredDoctors = data.filter((item) => {
+        const filteredDoctors = doctors.filter((item) => {
                 return (
                     //search
                     (query === "" ||
@@ -41,39 +125,40 @@ export default function Search() {
                         item.gender.toLowerCase().includes(query.toLowerCase()) ||
                         item.language.some(lang => lang.toLowerCase().includes(query.toLowerCase())) ||
                         item.location.toLowerCase().includes(query.toLowerCase())
-                        
                     ) &&
 
                     //Specialty Filter
-                    (selectedFilters.specialty === "" || item.specialty === selectedFilters.specialty) &&
+                    (selectedFilters.specialty === "" || item.specialty.toLowerCase() === selectedFilters.specialty.toLowerCase()) &&
 
                     //Rating Filter
                     (selectedFilters.rating === "" || item.rating >= Number(selectedFilters.rating)) &&
 
                     //Gender Filter
-                    (selectedFilters.gender === "" || item.gender === selectedFilters.gender) &&
+                    (selectedFilters.gender === "" || item.gender.toLowerCase() === selectedFilters.gender.toLowerCase()) &&
 
                     //Language Filter
                     (selectedFilters.language === "" || item.language.some(lang => lang.toLowerCase() === selectedFilters.language.toLowerCase())) &&
 
                     //Location Filter
-                    (selectedFilters.location === "" || item.location === selectedFilters.location)
-
+                    (selectedFilters.location === "" || item.location.toLowerCase() === selectedFilters.location.toLowerCase())
                 );
             });
 
             //Get unique values for options
             //Specialty
-            const specialtyOptions = [...new Set(data.map(item => item.specialty))];
+            const specialtyOptions = [
+                ...new Set(doctors.map(item => item.specialty).filter(Boolean)) //filter(Boolean) removes empty or null
+            ];
             //rating
-            const ratingOptions = [...new Set(data.map(item => item.rating))].sort();
+            const ratingOptions = [...new Set(doctors.map(item => item.rating))].sort();
             //language
-            const languageOptions = [...new Set(data.flatMap(item=> item.language))];
+            const languageOptions = [
+                ...new Set(doctors.flatMap(item => item.language).filter(Boolean)) 
+            ];
             //location
-            const locationOptions = [...new Set(data.map(item => item.location))];
-
-            //Show calculated average star rating based on reviews
-            const renderStars = (rating) => "⭐".repeat(Math.round(rating));
+            const locationOptions = [
+                ...new Set(doctors.map(item => item.location).filter(Boolean))
+            ];
 
     return(
         <div>
@@ -108,6 +193,12 @@ export default function Search() {
             <div className="review-container">
                 <h1>Doctors Reviews</h1>
                 <h2>Look at reviews for each doctor or leave a review</h2>
+                {/* show error if cannot reach backend, just show dummy data instead */}
+                {error && (
+                    <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: '#fdecea', color: '#b71c1c' }}>
+                        {error}
+                    </div>
+                )}
 
                 {/*Search bar*/}
                 <div className="search-bar">
@@ -177,25 +268,33 @@ export default function Search() {
 
                 {/*Displays of doctor ratings and info*/}
                 <div className="doctor-container">
-                    {filteredDoctors.map((items) => (
+                    {filteredDoctors.length === 0 ? (
+                        <p>No doctors match your filters.</p>
+                    ) : (
+                        filteredDoctors.map((items) => (
+                            <div className="doctor-card" key={items.id} onClick={() => navigate(`/doctor/${items.id}`)}>
+                                <img src={items.profileIcon} alt={items.name} className="doc-profile-icon"/>
+                                <div className="doctor-info">
+                                    <h3>{items.name}</h3>
+                                    <p><b>Specialty: </b>{items.specialty}</p>
+                                    <p><b>Gender: </b>{items.gender}</p>
+                                    <p><b>Language: </b>{items.language.join(", ")}</p>
+                                    <p><b>Location: </b>{items.location}</p>
+                                </div>
 
-                        <div className="doctor-card" key={items.id} onClick={() => navigate(`/doctor/${items.id}`)}>
-                            <img src={items.profileIcon} alt={items.name} className="doc-profile-icon"/>
-                            <div className="doctor-info">
-                                <h3>{items.name}</h3>
-                                <p><b>Specialty: </b>{items.specialty}</p>
-                                <p><b>Gender: </b>{items.gender}</p>
-                                <p><b>Language: </b>{items.language.join(", ")}</p>
-                                <p><b>Location: </b>{items.location}</p>
+                                <div className="doctor-rating"> 
+                                    <StarRating rating={items.rating || 0} />
+                                    <p>
+                                        {items.rating && items.rating > 0
+                                            ? `${items.rating.toFixed(1)} / 5` 
+                                            : "No reviews yet"}
+                                    </p>
+                                    <p>View details →</p>
+                                </div>
+
                             </div>
-
-                            <div className="doctor-rating"> 
-                                <StarRating rating={items.rating} />
-                                <p>View more information about this doctor →</p>
-                            </div>
-
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
 
             </div>
