@@ -817,16 +817,14 @@ def restore_chat(chat_id):
         redirects to the chat or user_dashboard.
     """
     if session.get('role') != 'user':
-        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+        return jsonify({"status": 403, "message": "You need to be logged in as a patient."}), 403
 
     chat_obj = db.session.get(Chat, chat_id)
     if not chat_obj or chat_obj.sender_id != session.get('user_id'):
-        flash('Chat not found.')
-        return redirect(url_for('main.user_dashboard'))
+        return jsonify({"status": 404, "message": "Chat not found."}), 404
 
     if not chat_obj.can_be_restored():
-        flash('This chat can no longer be restored. The 10-minute window has passed.')
-        return redirect(url_for('main.user_dashboard'))
+        return jsonify({"status": 400, "message": "This chat can no longer be restored. The 10-minute window has passed."}), 400
 
     try:
         chat_obj.status       = "CHAT_STATUS_ACTIVE"
@@ -834,12 +832,12 @@ def restore_chat(chat_id):
         db.session.commit()
         flash('Chat restored successfully.')
         logger.info(sanitisationForLogs(f"User {session.get('user')} restored chat {chat_id}"))
-        return redirect(url_for('main.chat', chat_id=chat_id))
+        return jsonify({"status": 200, "message": "Chat restored successfully."}), 200
     except Exception as e:
         db.session.rollback()
         logger.error(sanitisationForLogs(f"Error restoring chat {chat_id}: {str(e)}"))
         flash('An error occurred while restoring the chat. Please try again.')
-        return redirect(url_for('main.user_dashboard'))
+        return jsonify({"status": 500, "message": "An error occurred while restoring the chat. Please try again."}), 500
 
 
 
