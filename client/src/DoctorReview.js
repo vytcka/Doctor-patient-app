@@ -1,64 +1,191 @@
-import { useState } from "react";
-import { useParams, Link } from 'react-router-dom';
-import { data } from "./doctorItems";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { Link } from 'react-router-dom';
+import './reviews.css'; 
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
 
-export default function DoctorReview({ isLoggedIn }) {
-    const [reviews, setReviews] = useState([]);
-    const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
+export default function DoctorReview({ isLoggedIn }){
+    const [doctor, setDoctor] = useState(null);
+    const [reviews, setReviews] = useState([]); // reviews loaded from backend
+    const [loading, setLoading] = useState(true); 
+    const [error, setError] = useState(""); 
+    const [submitMessage, setSubmitMessage] = useState("");
+
+    // Store new review inputted by user
+    const [newReview, setNewReview] = useState({
+        rating: 0,
+        comment: ""
+    });
+
     const [editedReviewId, setEditedReviewId] = useState(null);
-    const [editedReview, setEditedReview] = useState({ rating: 0, comment: "" });
+    // Store temporary edited review values while editing
+    const [editedReview, setEditedReview] = useState({
+        rating: 0,
+        comment: ""
+    });
 
-    const { id } = useParams();
-    const doctor = data.find(doc => doc.id === Number(id));
+    // route parameter for doctor id or nhs_number
+    const { id } = useParams(); 
 
-    if (!doctor) {
+    const loadReviews = async () => {
+        setLoading(true); 
+        setError("");
+        setSubmitMessage(""); 
+
+        //get doctor info and reviews from backend using doctor id (nhs_number)
+        try {
+            const response = await fetch("http://127.0.0.1:5000/doctor/reviews", {
+                method: "POST",
+                credentials: "include", 
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ nhs_number: String(id) })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || data.status !== 200) {
+                throw new Error(data.message || "Unable to load reviews from backend."); 
+            }
+
+            setDoctor(data.doctor || null); // set doctor info or null if not provided
+            setReviews(Array.isArray(data.reviews) ? data.reviews : []); // ensure reviews is an array
+        } catch (err) {
+            setError(err.message || "Cannot reach backend.");
+            setDoctor(null);
+            setReviews([]); // clear reviews
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadReviews(); // load backend reviews when the doctor id changes
+    }, [id]);
+
+    if (loading) {
         return (
-            <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>
-                <p>Doctor not found</p>
-                <Link to="/reviews">Back to Search</Link>
+            <div className="review-container">
+                <p>Loading doctor reviews...</p>
             </div>
         );
     }
 
-    const handleAddReview = () => {
-        if (newReview.rating === 0 || newReview.comment === "") return;
-        setReviews([...reviews, { id: Date.now(), rating: newReview.rating, comment: newReview.comment }]);
-        setNewReview({ rating: 0, comment: "" });
-    };
+    if (!doctor) {
+        return (
+            <div className="review-container">
+                <p>Doctor not found</p>
+                {error && <div className="error-message">{error}</div>}
+            </div>
+        );
+    }
 
+    // Adding reviews by sending them to the backend submit-review route
+    const handleAddReview = async () => {
+        if (newReview.rating === 0 || newReview.comment.trim() === "") {
+            setError("Please add a rating and a comment before submitting.");
+            return;
+        }
+
+
+        try {
+            const formData = new URLSearchParams(); 
+            formData.append("rating", String(newReview.rating));
+            formData.append("comment", newReview.comment.trim());
+
+            // Send the review to the backend
+            const response = await fetch(`http://127.0.0.1:5000/submit-review/${String(id)}`, {
+                method: "POST",
+                credentials: "include",
+                body: formData
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Failed to submit review.");
+            }
+
+            setSubmitMessage(data.message || "Review submitted successfully.");
+            setError("");
+            setNewReview({ rating: 0, comment: "" });
+            setEditedReviewId(null);
+            await loadReviews(); // refresh the approved review list after submission
+        } catch (err) {
+            setError(err.message || "Failed to submit review.");
+        }
+    }
+
+    //Enable edit mode for selected review
     const handleEdit = (review) => {
         setEditedReviewId(review.id);
-        setEditedReview({ rating: review.rating, comment: review.comment });
+        setEditedReview({
+            rating: review.rating,
+            comment: review.comment
+        });
     };
 
-    const handleSaveEdit = (id) => {
-        setReviews(reviews.map(r => r.id === id ? { ...r, ...editedReview } : r));
-        setEditedReviewId(null);
+    // Save edited review to the backend or locally when backend is unavailable
+    const handleSaveEdit = async (reviewId) => {
+        if (editedReview.rating === 0 || editedReview.comment.trim() === "") {
+            setError("Please add a rating and comment before saving your edit.");
+            return;
+        }
+
+
+        try {
+            const formData = new URLSearchParams();
+            formData.append("rating", String(editedReview.rating)); 
+            formData.append("comment", editedReview.comment.trim());
+
+            // Send the edited review to the backend
+            const response = await fetch(`http://127.0.0.1:5000/submit-review/${String(id)}`, {
+                method: "POST",
+                credentials: "include",
+                body: formData
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Failed to save review edit.");
+            }
+
+            setSubmitMessage(data.message || "Review updated successfully.");
+            setError("");
+            setEditedReviewId(null);
+            await loadReviews(); // reload reviews after edit
+        } catch (err) {
+            setError(err.message || "Failed to save review edit.");
+            setEditedReviewId(null);
+        }
+    }
+
+    // calculate average rating if reviews exist
+    const averageRating = reviews.length > 0 ? (
+        reviews.reduce((sum, r) => sum + Number(r.rating), 0) /
+        reviews.length
+    ).toFixed(1) : 0;
+
+    // Convert numeric rating into star rating strings 
+    const renderStars = (rating) => {
+        const numericRating = Number(rating);
+        return Number.isFinite(numericRating) && numericRating > 0
+            ? "⭐".repeat(Math.round(numericRating))
+            : "";
     };
 
-    const averageRating = reviews.length > 0
-        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-        : null;
+    // Show average rating if reviews exist, otherwise show N/A
+    const displayedRating = reviews.length > 0 ? averageRating : "N/A";
 
-    return (
-        <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-            {/* Navbar */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
-                <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-                    <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-                    <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
-                </Link>
-                <div style={{ display: "flex", gap: "10px" }}>
-                    <Link to="/post-request" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
-                    </Link>
-                    {isLoggedIn ? (
+    return(
+        <div>
+
+            {isLoggedIn ? (
                         <Link to="/dashboard" style={{ textDecoration: "none" }}>
                             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
                         </Link>
-                    ) : (
+                        ) : (
                         <>
                             <Link to="/login-choice" style={{ textDecoration: "none" }}>
                                 <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
@@ -67,8 +194,24 @@ export default function DoctorReview({ isLoggedIn }) {
                                 <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
                             </Link>
                         </>
-                    )}
-                </div>
+                    )
+            }
+
+            {/* Doctor Information Section */}
+            <div className="doctor-info">
+                <p><img src={doctor.profileIcon || "/profile-icon.svg"} alt={doctor.name} className="doc-profile-icon"/></p>
+                <h1>{doctor.name}</h1>
+                <p><b>Rating: </b>{renderStars(displayedRating)} {displayedRating}</p>
+                {doctor.specialty && <p><b>Specialty: </b>{doctor.specialty}</p>}
+                {doctor.gender && <p><b>Gender: </b>{doctor.gender}</p>}
+                {doctor.language && (
+                    <p><b>Language: </b>{typeof doctor.language === 'string' ? doctor.language : doctor.language.join(", ")}</p>
+                )}
+                {doctor.location && <p><b>Location: </b>{doctor.location}</p>}
+                {'availability' in doctor && (
+                    <p><b>Availability: </b>{doctor.availability ? 'Available' : 'Not available'}</p>
+                )}
+                {doctor.bio && <p><b>Bio: </b>{doctor.bio}</p>}
             </div>
 
             <div style={{ maxWidth: "1100px", margin: "30px auto", padding: "0 20px" }}>
@@ -225,6 +368,45 @@ export default function DoctorReview({ isLoggedIn }) {
                     </div>
                 </div>
             </div>
+
+            {/* Add review form */}
+            <div className="review-form">
+                <h3>Leave a Review</h3>
+
+                {/* Star Rating */}
+                <StarRating
+                    rating={newReview.rating}
+                    onRatingChange={(value) =>
+                        setNewReview({ ...newReview, rating: value })
+                    }
+                />
+
+                {/* comments */}
+                <textarea
+                    placeholder="Write your review here..."
+                    value={newReview.comment}
+                    onChange={(e) =>
+                        setNewReview({...newReview, comment:e.target.value})}
+                />
+
+                {/* show backend or validation error messages */}
+                {error && (
+                    <div className="error-message">{error}</div>
+                )}
+
+                {/* show successful submit/edit feedback */}
+                {submitMessage && (
+                    <div className="success-message">{submitMessage}</div>
+                )}
+
+                <button onClick={handleAddReview}>Submit</button>
+
+                <Link to="/Chat"><button>Start Chat!</button></Link>
+
+                <Link to="/search"> ← Back to Reviews Page </Link>
+
+            </div>
+            
         </div>
     );
 }

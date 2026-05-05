@@ -500,7 +500,7 @@ def logout():
 
 @main.route('/filter', methods=['GET'])
 def getDoctor():
-    filterValues = ["location", "languange", "specialty", "gender", "min_rating"]
+    filterValues = ["location", "language", "specialty", "gender", "min_rating"]
     if not any(key in request.args for key in filterValues):
         query = text("SELECT * FROM doctor")
         doctors = db.session.execute(query).mappings().all()
@@ -1124,7 +1124,7 @@ def get_notifications():
 
     return render_template('notifications.html', notifications=user_notifications)
 
-@main.route('/submit-review', methods=['POST'])
+@main.route('/submit-review/<string:nhs_number>', methods=['POST'])
 def submit_review(nhs_number):
     """Submit review route allows logged-in patients to leave a review for a doctor.
     Enforces FR26 (no review after early withdrawal), FR28 (can review if reported),
@@ -1265,7 +1265,7 @@ def doctor_reviews():
         return jsonify({"status": 400, "message": "the doctor does not exist"})
 
     approved_reviews = Review.query.filter_by(
-        nhs_number=data["nhs_number"],  
+        doctor_id=data["nhs_number"],
         status=True
     ).order_by(Review.created_at.desc()).all()
 
@@ -1274,16 +1274,20 @@ def doctor_reviews():
     else:
         avg_rating = None
 
-    
     query = text("SELECT * FROM doctors WHERE nhs_number = :nhs_number")
     results = db.session.execute(query, {"nhs_number": data["nhs_number"]}).mappings().all()
 
-   
     return jsonify({
         "status": 200,
         "doctor": {
             "nhs_number": obj.nhs_number,
-            "name": obj.name,
+            "name": f"{obj.first_name} {obj.last_name}",
+            "specialty": obj.specialty,
+            "gender": obj.gender,
+            "language": obj.language,
+            "location": obj.location,
+            "availability": obj.availability,
+            "bio": obj._decrypt(obj.bio) if obj.bio else None, #display decrypted bio
         },
         "avg_rating": avg_rating,
         "reviews": [

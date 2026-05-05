@@ -197,6 +197,7 @@ class Doctor(db.Model):
     location      = db.Column(db.String(100), nullable=False)
     rating        = db.Column(db.Float,       nullable=True, default=None)
     specialty     = db.Column(db.String(60),  nullable=False)
+    gender        = db.Column(db.String(20),  nullable=True)
     language      = db.Column(db.String(60),  nullable=False)
     availability  = db.Column(db.Boolean,     nullable=False, default=True)
     bio           = db.Column(db.String(3000), nullable=False)
@@ -244,8 +245,20 @@ class Doctor(db.Model):
         fernet = Fernet(ENCRYPTIONKEY)
         return fernet.encrypt(text.encode('utf-8')).decode('utf-8')
 
+    def _decrypt(self, encrypted_text: str) -> str:
+        """Decrypt method decrypts an encrypted string using Fernet symmetric encryption.
+
+        Args:
+            encrypted_text (str): the encrypted string to decrypt.
+
+        Returns:
+            str: the decrypted plain text string.
+        """
+        fernet = Fernet(ENCRYPTIONKEY)
+        return fernet.decrypt(encrypted_text.encode('utf-8')).decode('utf-8')
+
     def __init__(self, nhs_number, first_name, last_name, username, password,
-                 date_of_birth, location, specialty, language, bio,
+                 date_of_birth, location, specialty, gender, language, bio,
                  availability=True, rating=None):
         """Constructor for creating a Doctor object. Role is always set to 'doctor'.
         Password is hashed and bio is encrypted on creation.
@@ -274,6 +287,7 @@ class Doctor(db.Model):
         self.location      = location
         self.rating        = rating
         self.specialty     = specialty
+        self.gender        = gender
         self.language      = language
         self.availability  = availability
         self.bio           = self._encrypt(bio)
