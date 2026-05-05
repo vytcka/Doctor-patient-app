@@ -257,11 +257,14 @@ def doctor_login():
     error = None
     data = request.get_json()
     
-    forms.username.data = data["username"]
-    forms.password.data = data["password"]
+    if not data:
+        return jsonify({
+            "status": 400,
+            "message": "No data provided"}), 400
 
-    session['role'] = 'doctor'
-    session['username'] = data["username"]
+    forms = validation_form()
+    username = data.get("username")
+    password = data.get("password")
     
     if request.method == 'POST':
         if forms.validate_on_submit():
@@ -436,7 +439,7 @@ def change_password():
         
         if 'user' not in session:
             logger.warning(sanitisationForLogs(f"user has tried to change the password without being logged in from the ip address {request.remote_addr}"))
-            return jsonify({"status" : 400, "message" : "you need to be logged in to change your password"})        
+            return jsonify({"status" : 400, "message" : "you need to be logged in to change your password"})  ,   
         form = password_form() 
         
         if form.validate_on_submit():
@@ -452,7 +455,7 @@ def change_password():
                 row = db.session.execute(query, {"username": username}).mappings().first()
                 if not row:
                     session.clear()
-                    return render_template('change_password.html', form=form)
+                    return jsonify({"status" : 400, "message" : "user not found, session cleared"}) 
                 account          = db.session.get(Doctor, row['nhs_number'])
                 password_correct = account.check_password(current_password) if account else False
             else:
@@ -460,28 +463,28 @@ def change_password():
                 row     = db.session.execute(query, {"username": username}).mappings().first()
                 if not row:
                     session.clear()
-                    return render_template('change_password.html', form=form)
+                    return jsonify({"status" : 400, "message" : "user not found, session cleared"})
                 account          = db.session.get(User, row['id'])
                 password_correct = account.check_hash(current_password) if account else False
 
             if not account or not password_correct:
                 flash('Current password is incorrect')
                 logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
-                return render_template('change_password.html', form=form)
+                return jsonify({"status" : 400, "message" : "current password is incorrect"})
 
             if new_password == current_password:
                 flash('New password must be different from the current password')
-                return render_template('change_password.html', form=form)
+                return jsonify({"status" : 400, "message" : "new password must be different from the current password"})   
 
             account.set_password(new_password)
             db.session.commit()
 
             flash('Password changed successfully')
-            return redirect(url_for('main.dashboard'))
+            return jsonify({"status" : 200, "message" : "password changed successfully"})
         else:
-            return render_template('change_password.html', form=form)
+            return jsonify({"status" : 400, "message" : "invalid data provided"})
 
-    return render_template('change_password.html', form=password_form())
+    return jsonify({"status" : 400, "message" : "only POST method is allowed on this endpoint"})
 
 
 @main.route('/logout', methods=['GET'])
