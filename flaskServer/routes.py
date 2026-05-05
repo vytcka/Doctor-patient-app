@@ -201,7 +201,7 @@ def register():
             if row:
                 flash('There already is a user registered with that username... \n Please register with a different username.')
                 logging.info(sanitisationForLogs(f"user tried to create an account with the username {forms.username.data} from the ip {request.remote_addr} "))
-                return jsonify({"success" : False,"message" : "The name is taken."})
+                return jsonify({"status" : 409, "message" : "The name is taken."}), 409
 
             safe_bio = bleach.clean(forms.bio.data, 
                                  tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
@@ -231,7 +231,7 @@ def register():
             db.session.commit()
 
             logging.info(sanitisationForLogs(f"user has been registered with the name {forms.username.data} from the ip {request.remote_addr}"))
-            return jsonify({"success" : True}), 200
+            return jsonify({"status" : 200, "message" : "User registered successfully"}), 200
     else:
         listOfErrors = []
         for fieldName, errorMessages in forms.errors.items():
@@ -239,10 +239,11 @@ def register():
                 listOfErrors.append(f"{fieldName} : {err}")
 
         return jsonify({
-            "success": False,
+            "status": 400,
+            "message": "Invalid data provided",
             "errors": listOfErrors
-        })
-    return jsonify({"message" : "Please input some data."})
+        }), 400
+    return jsonify({"status" : 400, "message" : "Please input some data."}), 400
 
 
 @main.route('/doctor/login', methods=['POST'])
@@ -298,7 +299,7 @@ def doctor_login():
             if not doctor.check_password(password):
                 flash('Login credentials are invalid, please try again.')
                 logger.warning(sanitisationForLogs(f"Incorrect password for doctor: {username} from {request.remote_addr}"))
-                return jsonify({"status": 400, "message" : "the credentials provided are invalid"})
+                return jsonify({"status": 400, "message" : "the credentials provided are invalid"}), 400
 
             session['user']       = doctor.username
             session['role']       = doctor.role
@@ -619,7 +620,7 @@ def accept_request(request_id):
         redirects to the new chat on success, or back to view_requests on failure.
     """
     if session.get('role') != 'doctor':
-        return jsonify({"status" : 400, "message" : "you need to be logged in as a doctor to perform this action"})
+        return jsonify({"status" : 400, "message" : "you need to be logged in as a doctor to perform this action"}), 400
 
     doctor = get_current_doctor()
     medical_request = db.session.get(Request, request_id)
