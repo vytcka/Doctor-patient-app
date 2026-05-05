@@ -848,7 +848,7 @@ def delete_account():
 
         if 'user' not in session:
             logger.warning(sanitisationForLogs(f"user has tried to delete an account without being logged in from the ip address {request.remote_addr}"))
-            return render_template("forbidden.html", message="you need to be logged in to view this page."), 403 
+            return jsonify({"status": 403, "message": "You need to be logged in to delete your account."}), 403
         
         form = password_form()
 
@@ -862,24 +862,22 @@ def delete_account():
 
             if not row:
                 session.clear()
-                return render_template('delete_account.html', form=form)
+                return jsonify({"status": 404, "message": "User not found."}), 404
 
             user = db.session.get(User, row['id'])
 
             if not user or not user.check_hash(current_password):
-                flash('Current password is incorrect')
-                logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
-                return render_template('delete_account.html', form=form)           
+                return jsonify({"status": 400, "message": "Current password is incorrect."}), 400
 
             db.session.delete(user)
             db.session.commit() 
 
             flash('Account Deleted Successfully!')
             session.clear()
-            return redirect(url_for('main.login'))
+            return jsonify({"status": 200, "message": "Account deleted successfully."}), 200
         else:
             session.clear()
-            return render_template('delete_account.html', form=form)
+            return jsonify({"status": 400, "message": "Invalid data provided."}), 400
 
 
 @main.route('/approve_review', methods=['POST'])
@@ -890,7 +888,7 @@ def approveReview():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator."}), 403
 
     review_id = request.form.get('review_id')
     review = db.session.get(Review, review_id)
@@ -898,7 +896,7 @@ def approveReview():
         review.approveReview()
         db.session.commit()
 
-    return redirect(url_for('main.reviewRequest'))
+    return jsonify({"status": 200, "message": "Review approved successfully."}), 200
 
 
 @main.route('/requestAppointment', methods=['POST'])
@@ -909,7 +907,7 @@ def requestAppointment():
         redirects to dashboard.
     """
     if 'user_id' not in session:
-        return render_template('forbidden.html')
+        return jsonify({"status": 403, "message": "You need to be logged in to request an appointment."}), 403
 
     request_obj = Request(
         age = request.form.get('age'),
@@ -926,7 +924,7 @@ def requestAppointment():
     db.session.commit()
 
     flash("Appointment request submitted")
-    return redirect(url_for('main.dashboard'))
+    return jsonify({"status": 200, "message": "Appointment request submitted successfully."}), 200
 
 
 @main.route('/approveAppointment', methods=['POST'])
@@ -937,7 +935,7 @@ def approveAppointment():
         redirects to dashboard.
     """
     if session.get('role') != 'doctor':
-        return render_template('forbidden.html')
+        return jsonify({"status": 403, "message": "You need to be logged in as a doctor."}), 403
 
     request_id = request.form.get('request_id')
     req = db.session.get(Request, request_id)
@@ -947,7 +945,7 @@ def approveAppointment():
         db.session.commit()
 
     flash("Appointment approved")
-    return redirect(url_for('main.dashboard'))
+    return jsonify({"status": 200, "message": "Appointment approved successfully."}), 200
 
 
 @main.route('/reviewRequest', methods=['GET', 'POST'])
@@ -958,16 +956,16 @@ def reviewRequest():
         renders moderator_dashboard.html with pending reviews and reports.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator."}), 403
 
     pending_reviews = Review.query.filter_by(status=False).all()
     pending_reports = Report.query.filter_by(status='pending').all()
 
-    return render_template(
-        'moderator_dashboard.html',
-        reviews=pending_reviews,
-        reports=pending_reports
-    )
+    return jsonify({
+        "status": 200,
+        "reviews": [review.to_dict() for review in pending_reviews],
+        "reports": [report.to_dict() for report in pending_reports]
+    }), 200
 
 
 @main.route('/approve_report', methods=['POST'])
@@ -978,7 +976,7 @@ def approve_report():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator."}), 403
 
     report_id = request.form.get('report_id')
     report = db.session.get(Report, report_id)
@@ -986,7 +984,7 @@ def approve_report():
         report.status = 'approved'
         db.session.commit()
 
-    return redirect(url_for('main.reviewRequest'))
+    return jsonify({"status": 200, "message": "Report approved successfully."}), 200
 
 
 @main.route('/reportChat', methods=['POST'])
@@ -997,14 +995,13 @@ def reportChat():
         redirects back to the referring page.
     """
     if 'user' not in session:
-        return render_template('forbidden.html')
+        return jsonify({"status": 403, "message": "You need to be logged in to report a message."}), 403
 
     message_id = request.form.get('message_id')
     reason = request.form.get('reason')
 
     if not reason or len(reason) > 2000:
-        flash("Reason must be between 1 and 2000 characters")
-        return redirect(request.referrer)
+        return jsonify({"status": 400, "message": "Reason must be between 1 and 2000 characters."}), 400
 
     report = Report(
         message_id  = message_id,
@@ -1016,7 +1013,7 @@ def reportChat():
     db.session.commit()
 
     flash("Report submitted successfully")
-    return redirect(request.referrer)
+    return jsonify({"status": 200, "message": "Report submitted successfully."}), 200
 
 
 @main.route('/filterResults', methods=['POST'])
@@ -1040,7 +1037,10 @@ def filterResults():
         query = query.filter(Doctor.language.ilike(f"%{language}%"))
 
     results = query.all()
-    return render_template('search_results.html', doctors=results)
+    return jsonify({
+        "status": 200,
+        "doctors": [doctor.to_dict() for doctor in results]
+    }), 200
 
 @main.route('/moderate_user', methods=['POST'])
 def moderate_user():
@@ -1050,7 +1050,7 @@ def moderate_user():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator."}), 403
 
     user_id = request.form.get('user_id')
     action = request.form.get('action')
@@ -1077,7 +1077,8 @@ def moderate_user():
 
         db.session.commit()
 
-    return redirect(url_for('main.reviewRequest'))
+    return jsonify({"status": 200, "message": "User moderation action completed successfully."}), 200
+
 @main.route('/moderate_doctor', methods=['POST'])
 def moderate_doctor():
     """Moderate doctor route allows a moderator to take action on a doctor.
@@ -1086,7 +1087,7 @@ def moderate_doctor():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator."}), 403
 
     nhs_number = request.form.get('nhs_number')
     action = request.form.get('action')
@@ -1113,7 +1114,7 @@ def moderate_doctor():
 
         db.session.commit()
 
-    return redirect(url_for('main.reviewRequest'))
+    return jsonify({"status": 200, "message": "Doctor moderation action completed successfully."}), 200
 
 @main.route('/edit_review>', methods=['GET', 'POST'])
 def edit_review(review_id):
@@ -1126,15 +1127,14 @@ def edit_review(review_id):
         renders edit_review.html or redirects to user_dashboard.
     """
     if session.get('role') != 'user':
-        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+        return jsonify({"status": 403, "message": "You need to be logged in as a patient."}), 403
 
     review = db.session.get(Review, review_id)
     user = get_current_user()
 
     if not review or review.user_id != user.id:
-        flash('Review not found.')
-        return redirect(url_for('main.user_dashboard'))
-    
+        return jsonify({"status": 404, "message": "Review not found."}), 404
+
     #time_limit = review.created_at + timedelta(minutes=5)
 
     #if datetime.utcnow() > time_limit:
@@ -1150,23 +1150,23 @@ def edit_review(review_id):
             db.session.commit()
             flash('Your review has been updated.')
             logger.info(sanitisationForLogs(f"Review {review_id} edited by {user.username}"))
-            return redirect(url_for('main.user_dashboard'))
+            return jsonify({"status": 200, "message": "Review updated successfully."}), 200
         except Exception as e:
             db.session.rollback()
             logger.error(sanitisationForLogs(f"Error editing review {review_id} by {user.username}: {str(e)}"))
-            flash('An error occurred while updating your review. Please try again.')
+            return jsonify({"status": 500, "message": "An error occurred while updating your review. Please try again."}), 500
             
     return redirect(url_for('main.user_dashboard'))
 
 @main.route('/notifications', methods=['POST'])
 def get_notifications():
     if session.get('role') != 'user':
-        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+        return jsonify({"status": 403, "message": "You need to be logged in as a patient."}), 403
 
     user = get_current_user()
     user_notifications = Notification.query.filter_by(user_id=user.id).all()
 
-    return render_template('notifications.html', notifications=user_notifications)
+    return jsonify({"status": 200, "notifications": [notification.to_dict() for notification in user_notifications]}), 200
 
 @main.route('/submit-review', methods=['POST'])
 def submit_review(nhs_number):
