@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
-export default function DoctorLogin() {
+export default function DoctorLogin({ setIsLoggedIn, setUserRole }) {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',
@@ -45,9 +45,10 @@ export default function DoctorLogin() {
             const data = await response.json();
 
             if (data.status === 200) {
+                setIsLoggedIn(true);
+                setUserRole('doctor');
                 setSuccessMessage(data.message);
                 setErrorMessage("");
-                // Redirect to doctor dashboard after 1 second
                 setTimeout(() => {
                     navigate('/doctor-dashboard');
                 }, 1000);
@@ -71,21 +72,11 @@ export default function DoctorLogin() {
                     <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
                 </Link>
                 <div style={{ display: "flex", gap: "10px" }}>
-                    {/* Home button REMOVED - logo handles it */}
                     <Link to="/post-request" style={{ textDecoration: "none" }}>
                         <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
                     </Link>
-                    <Link to="/reviews" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Reviews</button>
-                    </Link>
-                    <Link to="/login-choice" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                    </Link>
-                    <Link to="/signup" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-                    </Link>
-                    <Link to="/chat" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+                    <Link to="/search" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
                     </Link>
                 </div>
             </div>
@@ -121,8 +112,8 @@ export default function DoctorLogin() {
                     {successMessage && <p className="success">{successMessage}</p>}
                     <button type="submit">Login</button>
 
+                    <p>Don't have an account yet? <Link to="/DoctorSignup">Sign up</Link></p>
                     <p>Not a doctor? <Link to="/login">Log in as a Patient</Link></p>
-                    <p>Don't have an account yet? <Link to="/signup">Sign up</Link></p>
                 </form>
             </div>
         </div>
