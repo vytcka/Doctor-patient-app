@@ -217,7 +217,7 @@ export default function DoctorReview({ isLoggedIn }){
             <div style={{ maxWidth: "1100px", margin: "30px auto", padding: "0 20px" }}>
 
                 {/* Back link */}
-                <Link to="/reviews" style={{ color: "#3b82f6", textDecoration: "none", fontSize: "0.9rem", display: "inline-block", marginBottom: "20px" }}>
+                <Link to="/search" style={{ color: "#3b82f6", textDecoration: "none", fontSize: "0.9rem", display: "inline-block", marginBottom: "20px" }}>
                     ← Back to Search
                 </Link>
 

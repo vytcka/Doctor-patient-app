@@ -93,7 +93,7 @@ function PostRequest({ isLoggedIn }) {
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
         </Link>
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/reviews" style={{ textDecoration: "none" }}>
+          <Link to="/search" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
           </Link>
           {isLoggedIn ? (

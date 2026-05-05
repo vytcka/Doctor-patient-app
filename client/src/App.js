@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Home from "./Home";
 import Check from "./Check";
 import PostRequest from './PostRequest'; 
-import Reviews from './Reviews'; 
+import Search from './Search'; 
 import DoctorReview from "./DoctorReview";
 import Login from "./login";
 import Signup from "./signup";
@@ -26,8 +26,7 @@ function App() {
         <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
         <Route path="/Check" element={<Check />} />
         <Route path="/post-request" element={<PostRequest isLoggedIn={isLoggedIn} />} />
-        <Route path="/reviews" element={<Reviews isLoggedIn={isLoggedIn} />} />
-        <Route path="/search" element={<Reviews isLoggedIn={isLoggedIn} />} />
+        <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
         <Route path="/doctor/:id" element={<DoctorReview isLoggedIn={isLoggedIn} />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
         <Route path="/signup" element={<Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />

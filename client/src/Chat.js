@@ -85,7 +85,7 @@ export default function Chat({ isLoggedIn }) {
           <Link to="/post-request" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
           </Link>
-          <Link to="/reviews" style={{ textDecoration: "none" }}>
+          <Link to="/search" style={{ textDecoration: "none" }}>
             <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
           </Link>
           <Link to="/dashboard" style={{ textDecoration: "none" }}>
