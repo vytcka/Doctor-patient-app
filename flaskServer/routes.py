@@ -564,7 +564,7 @@ def new_request():
         renders new_request.html on GET or failed POST, redirects to user_dashboard on success.
     """
     if session.get('role') != 'user':
-        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+        return jsonify({"status" : 403, "message" : "you need to be logged in as a patient to submit a request"}) , 403
 
     form = request_form()
     user = get_current_user()
@@ -582,14 +582,14 @@ def new_request():
             db.session.add(new_request)
             db.session.commit()
             flash('Your request has been submitted successfully.')
-            return redirect(url_for('main.user_dashboard'))
+            return jsonify({"status" : 200, "message" : "request submitted successfully"}) , 200
         except Exception as e:
             db.session.rollback()
             logger.error(sanitisationForLogs(f"Error submitting medical request for user {session.get('user')}: {str(e)}"))
             flash('An error occurred while submitting your request. Please try again.')
-            return render_template('new_request.html', form=form)
+            return jsonify({"status" : 500, "message" : "An error occurred while submitting the request. Please try again."}) , 500
 
-    return render_template('new_request.html', form=form)
+    return jsonify({"status" : 400, "message" : "invalid data provided"}) , 400
 
 @main.route('/view-requests')
 def view_requests():
@@ -600,7 +600,7 @@ def view_requests():
     """
     if session.get('role') != 'doctor':
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
-        return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
+        return jsonify({"status" : 403, "message" : "You need to be logged in as a doctor to view this page."}), 403
 
     pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
     return render_template('view_requests.html', requests=pending_requests)
@@ -682,7 +682,7 @@ def reject_request(request_id):
         return jsonify({"status" : 400, "message" : "An error occurred while rejecting the request. Please try again."}
         )
 
-    return redirect(url_for('main.view_requests'))
+    return jsonify({"status" : 400, "message" : "An error occurred while rejecting the request. Please try again."})
 
 
 @main.route('/chat/<int:chat_id>', methods=['GET', 'POST'])
@@ -696,69 +696,112 @@ def chat(chat_id):
         renders chat.html with the message history.
     """
     if 'user' not in session:
-        return redirect(url_for('main.login'))
+        return jsonify({"status" : 401, "message" : "you need to be logged in to access this page"}), 401
 
     chat_obj = db.session.get(Chat, chat_id)
     if not chat_obj:
-        return render_template("forbidden.html", message="Chat not found."), 404
+        return jsonify({"status" : 404, "message" : "Chat not found."}), 404
 
     role = session.get('role')
 
-    # FR9 — only the two participants can access this chat
+   
     if role == 'user':
         if chat_obj.sender_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by user {session.get('user')} from {request.remote_addr}"))
-            return render_template("forbidden.html", message="You do not have access to this chat."), 403
+            return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
         sender_id   = str(session.get('user_id'))
         sender_type = 'user'
     elif role == 'doctor':
         if chat_obj.receiver_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by doctor {session.get('user')} from {request.remote_addr}"))
-            return render_template("forbidden.html", message="You do not have access to this chat."), 403
+            return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
         sender_id   = str(session.get('nhs_number'))
         sender_type = 'doctor'
     else:
-        return render_template("forbidden.html", message="You do not have access to this chat."), 403
+        return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
 
-    # FR32 — auto-close if inactive for more than 10 minutes
+    
     if chat_obj.status == "CHAT_STATUS_ACTIVE" and chat_obj.is_inactive():
         chat_obj.status = "CHAT_STATUS_CLOSED"
         db.session.commit()
         flash('This chat has been automatically closed due to inactivity.')
 
-    if request.method == 'POST' and chat_obj.status == "CHAT_STATUS_ACTIVE":
-        if chat.withdrawn:
-            #FR25 - block messaging if the chat has been withdrawn
-            flash('This chat has been withdrawn. You cannot send messages.')
-            return redirect(url_for('main.chat', chat_id=chat_id))
-        
-        content = request.form.get('content', '').strip()
-        file = request.files.get('file')
-        if content:
+    if request.method == 'POST':
+        # FR25 — block messages if chat is withdrawn
+        if chat_obj.withdrawn:
+            return jsonify({"status": 403, "message": "This chat has been withdrawn. You cannot send messages."}), 403
+
+        if chat_obj.status != "CHAT_STATUS_ACTIVE":
+            return jsonify({"status": 403, "message": "This chat is closed. You cannot send messages."}), 403
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": 400, "message": "No data provided."}), 400
+
+        content = bleach.clean(data.get('content', '').strip(), tags=[], strip=True)
+
+        if not content:
+            return jsonify({"status": 400, "message": "Message content cannot be empty."}), 400
+
+        if len(content) > 2000:
+            return jsonify({"status": 400, "message": "Message cannot exceed 2000 characters."}), 400
+
+        try:
             new_message = Message(
                 chat_id     = chat_id,
                 sender_id   = sender_id,
                 sender_type = sender_type,
                 content     = content,
             )
-            try:
-                db.session.add(new_message)
-                chat_obj.increment_message_count()
+            db.session.add(new_message)
+            chat_obj.increment_message_count()
 
-                # award 1 point to the patient for each message sent
-                if sender_type == 'user':
-                    patient = db.session.get(User, chat_obj.sender_id)
-                    if patient:
-                        patient.add_points(1)
+            # FR23 — award 1 point to patient per message sent
+            if sender_type == 'user':
+                patient = db.session.get(User, chat_obj.sender_id)
+                if patient and hasattr(patient, 'points'):
+                    patient.points = (patient.points or 0) + 1
 
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                logger.error(sanitisationForLogs(f"Error sending message in chat {chat_id} for user {session.get('user')}: {str(e)}"))
-                flash('An error occurred while sending your message. Please try again.')
+            db.session.commit()
+            logger.info(sanitisationForLogs(
+                f"Message sent in chat {chat_id} by {session.get('user')}"
+            ))
+            return jsonify({
+                "status": 201,
+                "message": "Message sent successfully.",
+                "new_message": {
+                    "sender_id":   sender_id,
+                    "sender_type": sender_type,
+                    "content":     content,
+                    "timestamp":   new_message.timestamp.isoformat()
+                }
+            }), 201
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(sanitisationForLogs(
+                f"Error sending message in chat {chat_id} for {session.get('user')}: {str(e)}"
+            ))
+            return jsonify({"status": 500, "message": "An error occurred while sending your message."}), 500
+
 
     messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
-    return render_template('chat.html', chat=chat_obj, messages=messages)
+    return jsonify({
+        "status": 200,
+        "chat_id": chat_id,
+        "chat_status": chat_obj.status,
+        "withdrawn": chat_obj.withdrawn,
+        "messages": [
+            {
+                "id":          m.id,
+                "sender_id":   m.sender_id,
+                "sender_type": m.sender_type,
+                "content":     m.content,
+                "timestamp":   m.timestamp.isoformat()
+            }
+            for m in messages
+        ]
+    }), 200
 
 
 
