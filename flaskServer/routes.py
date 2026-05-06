@@ -799,42 +799,86 @@ def restore_chat(chat_id):
 
 
 
-@main.route('/delete_account', methods=['GET', 'POST'])
+@main.route('/delete_account', methods=['POST'])
 def delete_account():
-    if request.method == "POST":
+    """Delete account route allows both patients and doctors to permanently
+    delete their account after confirming their current password.
 
-        if 'user' not in session:
-            logger.warning(sanitisationForLogs(f"user has tried to delete an account without being logged in from the ip address {request.remote_addr}"))
-            return jsonify({"status" : 400, "message" : "you need to be logged in to view this page."}), 403
-        
-        form = password_form()
+    Returns:
+        JSON response with success status and message.
+    """
+    if 'user' not in session:
+        logger.warning(sanitisationForLogs(
+            f"Unauthenticated deletion attempt from {request.remote_addr}"
+        ))
+        return jsonify({"status": 401, "message": "You must be logged in to delete your account."}), 401
 
-        if form.validate_on_submit():
-            username = session['user']
-            logger.warning(sanitisationForLogs(f"Account deletion attempt for {username}"))
-            current_password = form.current_password.data
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": 400, "message": "No data provided."}), 400
 
-            query = text("SELECT * FROM user WHERE username = :username LIMIT 1")
-            row = db.session.execute(query, {"username": username}).mappings().first()
+    current_password = data.get("current_password")
+    if not current_password:
+        return jsonify({"status": 400, "message": "Password is required to delete your account."}), 400
 
-            if not row:
-                session.clear()
-                return jsonify({"status" : 400, "message" : "Account not found."}), 400
+    username = session.get('user')
+    role = session.get('role')
 
-            user = db.session.get(User, row['id'])
+    logger.warning(sanitisationForLogs(
+        f"Account deletion attempt for {username} (role={role}) from {request.remote_addr}"
+    ))
 
-            if not user or not user.check_hash(current_password):
-                flash('Current password is incorrect')
-                logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
-                return jsonify({"status" : 400, "message" : "Current password is incorrect."}), 400
+    if role == 'doctor':
+        row = db.session.execute(
+            text("SELECT * FROM doctor WHERE username = :username LIMIT 1"),
+            {"username": username}
+        ).mappings().first()
 
-            db.session.delete(user)
-            db.session.commit() 
+        if not row:
             session.clear()
-            return jsonify({"status" : 200, "message" : "Account deleted successfully."}), 200
-        else:
+            return jsonify({"status": 404, "message": "Account not found."}), 404
+
+        account = db.session.get(Doctor, row['nhs_number'])
+
+        if not account or not account.check_password(current_password):
+            logger.warning(sanitisationForLogs(
+                f"Incorrect password on deletion attempt for doctor {username} from {request.remote_addr}"
+            ))
+            return jsonify({"status": 401, "message": "Current password is incorrect."}), 401
+
+    else:
+        row = db.session.execute(
+            text("SELECT * FROM user WHERE username = :username LIMIT 1"),
+            {"username": username}
+        ).mappings().first()
+
+        if not row:
             session.clear()
-            return jsonify({"status" : 400, "message" : "Invalid data provided."}), 400
+            return jsonify({"status": 404, "message": "Account not found."}), 404
+
+        account = db.session.get(User, row['id'])
+
+        if not account or not account.check_hash(current_password):
+            logger.warning(sanitisationForLogs(
+                f"Incorrect password on deletion attempt for user {username} from {request.remote_addr}"
+            ))
+            return jsonify({"status": 401, "message": "Current password is incorrect."}), 401
+
+    try:
+        db.session.delete(account)
+        db.session.commit()
+        session.clear()
+        logger.warning(sanitisationForLogs(
+            f"Account deleted for {username} (role={role}) from {request.remote_addr}"
+        ))
+        return jsonify({"status": 200, "message": "Your account has been successfully deleted."}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(sanitisationForLogs(
+            f"Error deleting account for {username}: {str(e)}"
+        ))
+        return jsonify({"status": 500, "message": "An error occurred while deleting your account."}), 500
 
 
 @main.route('/approve_review', methods=['POST'])
