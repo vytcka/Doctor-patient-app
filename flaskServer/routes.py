@@ -564,7 +564,7 @@ def new_request():
         renders new_request.html on GET or failed POST, redirects to user_dashboard on success.
     """
     if session.get('role') != 'user':
-        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+        return jsonify({"status" : 400, "message" : "you need to be logged in as a patient to submit a request"})
 
     form = request_form()
     user = get_current_user()
@@ -582,14 +582,14 @@ def new_request():
             db.session.add(new_request)
             db.session.commit()
             flash('Your request has been submitted successfully.')
-            return redirect(url_for('main.user_dashboard'))
+            return jsonify({"status" : 200, "message" : "Your request has been submitted successfully."})
         except Exception as e:
             db.session.rollback()
             logger.error(sanitisationForLogs(f"Error submitting medical request for user {session.get('user')}: {str(e)}"))
             flash('An error occurred while submitting your request. Please try again.')
-            return render_template('new_request.html', form=form)
+            return jsonify({"status" : 400, "message" : "An error occurred while submitting your request. Please try again."})
 
-    return render_template('new_request.html', form=form)
+    return jsonify({"status" : 400, "message" : "invalid data provided"})
 
 @main.route('/view-requests')
 def view_requests():
@@ -600,10 +600,10 @@ def view_requests():
     """
     if session.get('role') != 'doctor':
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
-        return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
+        return jsonify({"status" : 400, "message" : "You need to be logged in as a doctor to view this page."}), 403
 
     pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
-    return render_template('view_requests.html', requests=pending_requests)
+    return jsonify({"status" : 200, "requests" : pending_requests})
 
 
 
@@ -646,7 +646,7 @@ def accept_request(request_id):
 
         logger.info(sanitisationForLogs(f"Doctor {doctor.username} accepted request {request_id}"))
         flash('Request accepted successfully.')
-        return redirect(url_for('main.chat', chat_id=chat.id))
+        return jsonify({"status" : 200, "message" : "Request accepted successfully.", "chat_id" : chat.id})
 
     except Exception as e:
         db.session.rollback()
