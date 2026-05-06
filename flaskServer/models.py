@@ -358,7 +358,6 @@ class Chat(db.Model):
     id                = db.Column(db.Integer,  primary_key=True)
     sender_id         = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
     receiver_id       = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
-    bookedAppointment = db.Column(db.Boolean,  nullable=False, default=False)
     status            = db.Column(db.String(20), default="CHAT_STATUS_ACTIVE", nullable=False)
     message_count     = db.Column(db.Integer,  default=0, nullable=False)
     created_at        = db.Column(db.DateTime, default=datetime.now, nullable=False)
@@ -369,13 +368,61 @@ class Chat(db.Model):
     messages = db.relationship('Message', backref='chat', lazy='dynamic',
                                cascade='all, delete-orphan')
     
-    def approveAppointment(self):
-        """Approves the appointment between the patient and doctor."""
-        if self.status == "CHAT_STATUS_ACTIVE":
-            if self.withdrawn == False:
-                if Doctor.get_availability(self.receiver_id) == True:
-                    if self.message_count >= 3:
-                        self.bookedAppointment = True
+    def _user_message_count(self) -> int:
+        """Return the number of messages sent by the patient (sender_type='user')
+        in this chat.
+ 
+        Returns:
+            int: Count of user messages in this chat.
+        """
+        return Message.query.filter_by(
+            chat_id=self.id, sender_type='user'
+        ).count()
+ 
+    def appointment_booking_available(self) -> bool:
+        """In-person appointment booking becomes available only after the
+        user has sent at least 3 messages in this chat, and the chat is still
+        active (not withdrawn or closed).
+ 
+        Returns:
+            bool: True if booking is unlocked for this chat, False otherwise.
+        """
+        return (
+            self.status == "CHAT_STATUS_ACTIVE"
+            and not self.withdrawn
+            and self._user_message_count() >= 3
+        )
+ 
+
+    def request_appointment(self, proposed_time: datetime) -> 'Appointment':
+        """Allow a user to request an in-person appointment once
+        at least 3 user messages have been exchanged in this chat.
+ 
+        The method enforces the FR36 gate before creating an Appointment record,
+        so the booking is only possible once a meaningful chat has taken place.
+ 
+        Args:
+            proposed_time (datetime): The date and time proposed for the appointment.
+ 
+        Raises:
+            ValueError: If booking is not yet available (fewer than 3 user messages
+                        sent, or the chat is not active).
+ 
+        Returns:
+            Appointment: The newly created Appointment instance (not yet committed
+                         to the database — the caller must call db.session.commit()).
+        """
+        if not self.appointment_booking_available():
+            raise ValueError(
+                "Appointment booking is only available after at least 3 user "
+                "messages have been sent in an active chat."
+            )
+        appointment = Appointment(
+            chat_id=self.id,
+            proposed_time=proposed_time,
+        )
+        db.session.add(appointment)
+        return appointment
 
     def withdraw(self, early=False):
         """Marks the chat as withdrawn.
@@ -438,6 +485,51 @@ class Chat(db.Model):
         ).count()
         withdrew_early = (self.status == "CHAT_STATUS_WITHDRAWN" and user_messages <= 3)
         return user_messages > 5 and not withdrew_early
+
+class Appointment(db.Model):
+    """Appointment model tracks an in-person appointment request
+    that originated from a chat session.
+ 
+    An appointment can only be created once the threshold of 3 user messages
+    has been reached (enforced by Chat.request_appointment). The status progresses
+    from 'pending' (awaiting doctor confirmation) → 'confirmed' or 'rejected'.
+    """
+ 
+    __tablename__ = 'appointment'
+ 
+    id = db.Column(db.Integer,    primary_key=True)
+    chat_id = db.Column(db.Integer,    db.ForeignKey('chat.id'), nullable=False)
+    proposed_time = db.Column(db.DateTime,   nullable=False)
+    confirmed_time = db.Column(db.DateTime,  nullable=True)
+    status = db.Column(db.String(20), default='pending', nullable=False)
+    created_at = db.Column(db.DateTime,   default=datetime.now, nullable=False)
+ 
+    def confirm(self, confirmed_time: datetime = None):
+        """Doctor confirms the in-person appointment. An optional
+        confirmed_time can be provided if the doctor proposes a different time;
+        otherwise the proposed_time is used.
+ 
+        Args:
+            confirmed_time (datetime, optional): The time the doctor confirms for
+                the appointment. Defaults to the originally proposed time.
+        """
+        self.status = 'confirmed'
+        self.confirmed_time = confirmed_time if confirmed_time else self.proposed_time
+ 
+    def reject(self):
+        """Doctor rejects the in-person appointment request.
+        The status is set to 'rejected' and no confirmed time is stored.
+        """
+        self.status = 'rejected'
+        self.confirmed_time = None
+ 
+    def is_confirmed(self) -> bool:
+        """Check whether this appointment has been confirmed by the doctor.
+ 
+        Returns:
+            bool: True if the appointment status is 'confirmed'.
+        """
+        return self.status == 'confirmed'
  
  
 class Message(db.Model):
