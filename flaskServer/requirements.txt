@@ -8,3 +8,4 @@ dotenv
 cryptography
 flask_talisman
 flask_cors
+psycopg2-binary
