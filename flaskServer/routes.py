@@ -607,7 +607,7 @@ def view_requests():
 
 
 
-@main.route('/accept-request', methods=['POST'])
+@main.route('/accept-request/<int:request_id>', methods=['POST'])
 def accept_request(request_id):
     """Accept request route allows a doctor to accept a pending patient request.
     A Chat is created linking the doctor and patient.
@@ -654,7 +654,7 @@ def accept_request(request_id):
         return jsonify({"status" : 400, "message" : "An error occurred while accepting the request. Please try again."})
 
 
-@main.route('/reject-request', methods=['POST'])
+@main.route('/reject-request/<int:request_id>', methods=['POST'])
 def reject_request(request_id):
     """Reject request route allows a doctor to reject a pending patient request.
 
