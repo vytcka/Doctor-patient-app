@@ -705,7 +705,6 @@ def chat(chat_id):
 
     role = session.get('role')
 
-    # FR9 — only the two participants can access this chat
     if role == 'user':
         if chat_obj.sender_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by user {session.get('user')} from {request.remote_addr}"))
@@ -721,7 +720,6 @@ def chat(chat_id):
     else:
         return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
 
-    # FR32 — auto-close if inactive for more than 10 minutes
     if chat_obj.status == "CHAT_STATUS_ACTIVE" and chat_obj.is_inactive():
         chat_obj.status = "CHAT_STATUS_CLOSED"
         db.session.commit()
@@ -729,7 +727,7 @@ def chat(chat_id):
 
     if request.method == 'POST' and chat_obj.status == "CHAT_STATUS_ACTIVE":
         if chat_obj.withdrawn:
-            #FR25 - block messaging if the chat has been withdrawn
+
             flash('This chat has been withdrawn. You cannot send messages.')
             return jsonify({"status" : 400, "message" : "This chat has been withdrawn. You cannot send messages."}), 400
         
@@ -746,7 +744,7 @@ def chat(chat_id):
                 db.session.add(new_message)
                 chat_obj.increment_message_count()
 
-                # award 1 point to the patient for each message sent
+
                 if sender_type == 'user':
                     patient = db.session.get(User, chat_obj.sender_id)
                     if patient:
