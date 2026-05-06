@@ -1269,18 +1269,18 @@ def submit_review():
         logger.warning(sanitisationForLogs(
             f"Forbidden review attempt: role={session.get('role')} from {request.remote_addr}"
         ))
-        return jsonify({"success": False, "message": "You must be logged in as a user to submit a review."}), 403
+        return jsonify({"status": 403, "message": "Forbidden"}), 403
 
     doctor = db.session.get(Doctor, session.get('nhs_number'))
     if not doctor:
-        return jsonify({"success": False, "message": "Doctor not found."}), 404
+        return jsonify({"status": 404, "message": "Doctor not found."}), 404
 
     username = session.get('user')
     user_row = db.session.execute(
         text("SELECT id FROM user WHERE username = :username"), {"username": username}).mappings().first()
     if not user_row:
         session.clear()
-        return jsonify({"success": False, "message": "User not found."}), 404
+        return jsonify({"status": 404, "message": "User not found."}), 404
 
     user_id = user_row['id']
 
@@ -1300,7 +1300,7 @@ def submit_review():
             f"User {username} attempted to review doctor {session.get('nhs_number')} "
             f"after early withdrawal from {request.remote_addr}"
         ))
-        return jsonify({"success": False, "message": "You cannot review a doctor you withdrew from within 3 messages."}), 403
+        return jsonify({"status": 403, "message": "You cannot review a doctor you withdrew from within 3 messages."}), 403
 
     
     message_count = 0
