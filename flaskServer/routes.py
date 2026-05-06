@@ -1151,7 +1151,6 @@ def get_moderator_notifications():
         for n in notifications
     ]
 
-    # Mark all unseen notifications as seen now they've been fetched
     for n in notifications:
         if not n.seen:
             n.seen = True
@@ -1315,7 +1314,7 @@ def submit_review():
         logger.warning(sanitisationForLogs(
             f"User {username} attempted to review doctor {session.get('nhs_number')} "
             f"with only {message_count} messages from {request.remote_addr}"))
-        return jsonify({"success": False, "message": "You can only review a doctor after sending at least 5 messages."}), 400
+        return jsonify({"status": 400, "message": "You can only review a doctor after sending at least 5 messages."}), 400
 
     existing_review = Review.query.filter_by(
         user_id=user_id,
@@ -1331,12 +1330,12 @@ def submit_review():
             if not (1.0 <= rating <= 5.0):
                 raise ValueError
         except (TypeError, ValueError):
-            return jsonify({"success": False, "message": "Rating must be a number between 1 and 5."}), 400
+            return jsonify({"status": 400, "message": "Rating must be a number between 1 and 5."}), 400
 
         safe_comment = bleach.clean(comment, tags=[], strip=True)
 
         if len(safe_comment) > 200:
-            return jsonify({"success": False, "message": "Comment must be 200 characters or fewer."}), 400
+            return jsonify({"status": 400, "message": "Comment must be 200 characters or fewer."}), 400
 
         if existing_review:
             existing_review.rating = rating
@@ -1346,7 +1345,7 @@ def submit_review():
             logger.info(sanitisationForLogs(
                 f"User {username} updated review for doctor {session.get('nhs_number')}"
             ))
-            return jsonify({"success": True, "message": "Your review has been updated and is pending moderation."})
+            return jsonify({"status": 200, "message": "Your review has been updated and is pending moderation."})
         else:
             new_review = Review(
                 user_id=user_id,
@@ -1360,7 +1359,7 @@ def submit_review():
             logger.info(sanitisationForLogs(
                 f"User {username} submitted review for doctor {session.get('nhs_number')}"
             ))
-            return jsonify({"success": True, "message": "Your review has been submitted and is pending moderation."})
+            return jsonify({"status": 200, "message": "Your review has been submitted and is pending moderation."})
 
 @main.route('/doctor/reviews', methods=['POST'])
 def doctor_reviews():
@@ -1408,7 +1407,7 @@ def doctor_reviews():
             "language": obj.language,
             "location": obj.location,
             "availability": obj.availability,
-            "bio": obj._decrypt(obj.bio) if obj.bio else None, #display decrypted bio
+            "bio": obj._decrypt(obj.bio) if obj.bio else None, 
         },
         "avg_rating": avg_rating,
         "reviews": [
