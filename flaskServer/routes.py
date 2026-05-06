@@ -701,7 +701,7 @@ def chat(chat_id):
     data = request.get_json()
     chat_obj = db.session.get(Chat, data["chat_id"])
     if not chat_obj:
-        return render_template("forbidden.html", message="Chat not found."), 404
+        return jsonify({"status" : 404, "message" : "Chat not found."})
 
     role = session.get('role')
 
@@ -709,17 +709,17 @@ def chat(chat_id):
     if role == 'user':
         if chat_obj.sender_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by user {session.get('user')} from {request.remote_addr}"))
-            return render_template("forbidden.html", message="You do not have access to this chat."), 403
+            return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
         sender_id   = str(session.get('user_id'))
         sender_type = 'user'
     elif role == 'doctor':
         if chat_obj.receiver_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by doctor {session.get('user')} from {request.remote_addr}"))
-            return render_template("forbidden.html", message="You do not have access to this chat."), 403
+            return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
         sender_id   = str(session.get('nhs_number'))
         sender_type = 'doctor'
     else:
-        return render_template("forbidden.html", message="You do not have access to this chat."), 403
+        return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
 
     # FR32 — auto-close if inactive for more than 10 minutes
     if chat_obj.status == "CHAT_STATUS_ACTIVE" and chat_obj.is_inactive():
@@ -728,10 +728,10 @@ def chat(chat_id):
         flash('This chat has been automatically closed due to inactivity.')
 
     if request.method == 'POST' and chat_obj.status == "CHAT_STATUS_ACTIVE":
-        if chat.withdrawn:
+        if chat_obj.withdrawn:
             #FR25 - block messaging if the chat has been withdrawn
             flash('This chat has been withdrawn. You cannot send messages.')
-            return redirect(url_for('main.chat', chat_id=chat_id))
+            return jsonify({"status" : 400, "message" : "This chat has been withdrawn. You cannot send messages."}), 400
         
         content = request.form.get('content', '').strip()
         file = request.files.get('file')
@@ -759,7 +759,7 @@ def chat(chat_id):
                 flash('An error occurred while sending your message. Please try again.')
 
     messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
-    return render_template('chat.html', chat=chat_obj, messages=messages)
+    return jsonify({"status" : 200, "message" : "Request accepted successfully.", "chat_id" : chat.id})
 
 
 
@@ -924,7 +924,7 @@ def requestAppointment():
     db.session.commit()
 
     flash("Appointment request submitted")
-    return redirect(url_for('main.dashboard'))
+    return jsonify({"status" : 200, "message" : "Appointment request submitted successfully"})
 
 
 @main.route('/approveAppointment', methods=['POST'])
@@ -935,7 +935,7 @@ def approveAppointment():
         redirects to dashboard.
     """
     if session.get('role') != 'doctor':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 403, "message" : "You are not a doctor."}), 403
 
     request_id = request.form.get('request_id')
     req = db.session.get(Request, request_id)
@@ -945,7 +945,7 @@ def approveAppointment():
         db.session.commit()
 
     flash("Appointment approved")
-    return redirect(url_for('main.dashboard'))
+    return jsonify({"status" : 200, "message" : "appointment approved successfully"})
 
 
 @main.route('/reviewRequest', methods=['GET', 'POST'])
@@ -956,16 +956,36 @@ def reviewRequest():
         renders moderator_dashboard.html with pending reviews and reports.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 403, "message" : "You are not a moderator."}), 403
 
     pending_reviews = Review.query.filter_by(status=False).all()
     pending_reports = Report.query.filter_by(status='pending').all()
-
-    return render_template(
-        'moderator_dashboard.html',
-        reviews=pending_reviews,
-        reports=pending_reports
-    )
+    
+    return jsonify({
+        "status": 200,
+        "reviews": [
+            {
+                "id": r.id,
+                "user_id": r.user_id,
+                "doctor_id": r.doctor_id,
+                "rating": r.rating,
+                "comment": r.comment,
+                "created_at": r.created_at.isoformat()
+            }
+            for r in pending_reviews
+        ],
+        "reports": [
+            {
+                "id": r.id,
+                "message_id": r.message_id,
+                "reporter_id": r.reporter_id,
+                "reason": r.reason,
+                "created_at": r.created_at.isoformat(),
+                "status": r.status
+            }
+            for r in pending_reports
+        ]
+    }), 200
 
 
 @main.route('/approve_report', methods=['POST'])
@@ -976,7 +996,7 @@ def approve_report():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 403, "message" : "You are not a moderator."}), 403
 
     report_id = request.form.get('report_id')
     report = db.session.get(Report, report_id)
@@ -1045,7 +1065,7 @@ def moderate_user():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 403, "message" : "You are not a moderator."}), 403
 
     user_id = request.form.get('user_id')
     action = request.form.get('action')
