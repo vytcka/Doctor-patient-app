@@ -415,8 +415,8 @@ def doctorDashboard():
         logger.warning(sanitisationForLogs(f"Forbidden access to doctor dashboard: role={session.get('role')} from {request.remote_addr}"))
         return jsonify({"status" : 400, "message" : "incorrect role provided"})
     try:
-        query = text("SELECT * from Chat WHERE  doctor_nhs_number = :doctor_nhs)number")
-        row = db.session.execute(query, {"doctor_nhs_number": data["nhs number"]}).mappings().first()
+        query = text("SELECT * from Chat WHERE  doctor_nhs_number = :doctor_nhs_number")
+        row = db.session.execute(query, {"doctor_nhs_number": data["nhs_number"]}).mappings().first()
     except:
         return jsonify({"status" : 400, "message" : "the data is unreachable"})
 
@@ -744,12 +744,6 @@ def chat(chat_id):
                 db.session.add(new_message)
                 chat_obj.increment_message_count()
 
-
-                if sender_type == 'user':
-                    patient = db.session.get(User, chat_obj.sender_id)
-                    if patient:
-                        patient.add_points(1)
-
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -1028,6 +1022,7 @@ def reportChat():
 
     db.session.add(report)
     db.session.commit()
+    widthdraw_chat(message_id)
 
     return jsonify({"status" : 200, "message" : "report submitted successfully"})
 
@@ -1445,7 +1440,7 @@ def widthdraw_chat():
 
     if session.get('role') != 'user':
         logger.warning(sanitisationForLogs(f"Forbidden chat withdrawal attempt: role={session.get('role')} from {request.remote_addr}"))
-        return jsonify({"success": False, "message": "You must be logged in as a patient to perform this action."}), 403
+        return jsonify({"status": 403, "message": "Forbidden"}), 403
     
     username = session.get('user')
     user_row = db.session.execute(
@@ -1453,16 +1448,16 @@ def widthdraw_chat():
 
     if user_row is None:
         session.clear()
-        return jsonify({"success": False, "message": "User not found."}), 404
+        return jsonify({"status": 404, "message": "User not found"}), 404
 
     user_id = user_row['id']
     
     chat = Chat.query.get(session.get('chat_id'))
     if not chat or chat.sender_id != user_id:
-        return jsonify({"success": False, "message": "Chat not found or you do not have permissions to view this."}), 404
-    #what?
+        return jsonify({"status": 404, "message": "Chat not found or you do not have permissions to view this."}), 404
+   
     if chat.withdrawn:
-        return jsonify({"success": False, "message": "Chat is already withdrawn."}), 400
+        return jsonify({"status": 400, "message": "Chat is already withdrawn"}), 400
 
     user_message_count = Message.query.filter_by(
         chat_id=session.get('chat_id'),
@@ -1474,10 +1469,10 @@ def widthdraw_chat():
             f"User {username} tried to withdraw from chat {session.get('chat_id')} "
             f"after {user_message_count} messages from {request.remote_addr}"
         ))
-        return jsonify({"success": False, "message": "You can no longer withdraw from this chat."}), 400
+        return jsonify({"status": 400, "message": "You can no longer withdraw from this chat"}), 400
 
     chat.withdraw(early=True)
     db.session.commit()
 
     logger.info(sanitisationForLogs(f"Chat {session.get('chat_id')} withdrawn by user {username} from {request.remote_addr}"))
-    return jsonify({"success": True, "message": "You have withdrawn from the chat. The appointment is now ended."})
+    return jsonify({"status": 200, "message": "You have withdrawn from the chat. The appointment is now ended."})
