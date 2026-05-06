@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import './reviews.css'; 
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
-
+console.log("SEARCH FILE LOADED");
 const doctor = (doc) => {
     let avgRating = 0;
     if (Array.isArray(doc.reviews) && doc.reviews.length > 0) {
@@ -31,6 +31,7 @@ const doctor = (doc) => {
 };
 
 export default function Search() {
+    console.log("Search component rendered");
     const [query, setQuery] = useState("")
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -51,15 +52,20 @@ export default function Search() {
         const loadDoctors = async () => {
             try {
                 const response = await fetch("http://127.0.0.1:5000/filter", {
-                    credentials: "include"
+                    method : "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(selectedFilters)
                 });
                 if (!response.ok) {
                     throw new Error(`Could not load doctors: ${response.status}`);
                 }
                 const data = await response.json();
-
+                console.log(data)
                 // First, map doctors without ratings
-                let mappedDoctors = Array.isArray(data) ? data.map(doctor) : [];
+                let mappedDoctors = Array.isArray(data.objects) ? data.objects.map(doctor) : [];
 
                 // Then, fetch reviews for each doctor to calculate average rating
                 const doctorsWithRatings = await Promise.all(
@@ -85,17 +91,16 @@ export default function Search() {
                             }
                         } catch (err) {
                             console.error(`Failed to load reviews for doctor ${doc.id}:`, err);
+                            console.log(err)
                         }
                         return doc; 
+                        console.log(doc)
                     })
                 );
 
                 setDoctors(doctorsWithRatings);
                 setError(null);
             } catch (err) {
-                console.error(err);
-                console.log("hello world")
-                console.log(err)
                 setDoctors([]);
                 setError("Cannot reach backend.");
             } finally {

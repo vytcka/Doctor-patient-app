@@ -501,31 +501,35 @@ def logout():
 
 
 
-@main.route('/filter', methods=['GET'])
+@main.route('/filter', methods=['POST'])
 def getDoctor():
+    logger.info("hello world1")
     data = request.get_json()
     filterValues = ["location", "language", "specialty", "gender", "min_rating"]
     if not any(key in request.args for key in filterValues):
         query = text("SELECT * FROM doctor")
         doctors = db.session.execute(query).mappings().all()
-        return jsonify([dict(d) for d in doctors])
-    
-    filters = {}
-    if data["location"]:
-        filters['location'] = data["location"]
-    if data["language"]:
-        filters['language'] = data["language"]
-    if data["specialty"]:
-        filters['specialty'] = data["specialty"]
-    if data["gender"]:
-        filters['gender'] = data["gender"]
-    if data["min_rating"]:
-        filters['rating'] = data["min_rating"]
+        return jsonify({ "status" : 200,"objects": [dict(d) for d in doctors]})
+    try:
+        logger.info("hello world2")
+        filters = {}
+        if data["location"]:
+            filters['location'] = data["location"]
+        if data["language"]:
+            filters['language'] = data["language"]
+        if data["specialty"]:
+            filters['specialty'] = data["specialty"]
+        if data["gender"]:
+            filters['gender'] = data["gender"]
+        if data["min_rating"]:
+            filters['rating'] = data["min_rating"]
 
-    query = " AND ".join(f"{filter} = :{filter}" for filter in filters)
-    executeQuery = text(f"SELECT * FROM doctor WHERE {query}")
-    doctors = db.session.execute(executeQuery, filters).mappings().all()
-    return jsonify([dict(d) for d in doctors])
+        query = " AND ".join(f"{filter} = :{filter}" for filter in filters)
+        executeQuery = text(f"SELECT * FROM doctor WHERE {query}")
+        doctors = db.session.execute(executeQuery, filters).mappings().all()
+        return jsonify([dict(d) for d in doctors])
+    except:
+        return jsonify({"status":400,"objects" : "None"})
 
 
 @main.route('/cases', methods=['POST'])
