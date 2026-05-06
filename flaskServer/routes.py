@@ -1243,6 +1243,7 @@ def doctor_reviews():
         returns a json object.
     """
     data = request.get_json()
+    logger.info(f"here is the data {data}")
 
     if not data or "nhs_number" not in data:
         return jsonify({"status": 400, "message": "nhs_number is required"})

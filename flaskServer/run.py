@@ -3,8 +3,6 @@ import os
 
 #can be set to production if needed in the env file
 env = os.getenv('FLASK_ENV')
-print("hello world")
-
 
 app = create_app()
 

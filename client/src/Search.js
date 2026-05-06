@@ -6,7 +6,6 @@ import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
 
 const doctor = (doc) => {
-    // Calculate average rating from reviews if available
     let avgRating = 0;
     if (Array.isArray(doc.reviews) && doc.reviews.length > 0) {
         const sum = doc.reviews.reduce((total, r) => total + Number(r.rating), 0);
@@ -87,7 +86,7 @@ export default function Search() {
                         } catch (err) {
                             console.error(`Failed to load reviews for doctor ${doc.id}:`, err);
                         }
-                        return doc; // Return doctor as is if reviews fetch fails
+                        return doc; 
                     })
                 );
 
@@ -95,6 +94,8 @@ export default function Search() {
                 setError(null);
             } catch (err) {
                 console.error(err);
+                console.log("hello world")
+                console.log(err)
                 setDoctors([]);
                 setError("Cannot reach backend.");
             } finally {

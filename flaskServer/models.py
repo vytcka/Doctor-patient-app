@@ -187,7 +187,7 @@ class Doctor(db.Model):
 
     __tablename__ = 'doctor'
 
-    nhs_number    = db.Column(db.String(10),  primary_key=True, nullable=False)
+    nhs_number    = db.Column(db.String(20),  primary_key=True, nullable=False)
     first_name    = db.Column(db.String(50),  nullable=False)
     last_name     = db.Column(db.String(50),  nullable=False)
     username      = db.Column(db.String(80),  unique=True, nullable=False)

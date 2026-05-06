@@ -50,10 +50,10 @@ export default function DoctorReview({ isLoggedIn }){
                 throw new Error(data.message || "Unable to load reviews from backend."); 
             }
 
-            setDoctor(data.doctor || null); // set doctor info or null if not provided
+            setDoctor(data.doctor || null); 
             setReviews(Array.isArray(data.reviews) ? data.reviews : []); // ensure reviews is an array
         } catch (err) {
-            setError(err.message || "Cannot reach backend.");
+            setError(err.message || "Cannot reach backend1.");
             setDoctor(null);
             setReviews([]); // clear reviews
         } finally {

@@ -1,13 +1,11 @@
 from flask import Flask, render_template 
 from flask_sqlalchemy import SQLAlchemy
 from .config import Config
-from flask_wtf import CSRFProtect
 from flask_talisman import Talisman
 import logging
 from logging.handlers import RotatingFileHandler
 import re
 import os
-
 from flask_cors import CORS
 from datetime import date
 
@@ -55,6 +53,7 @@ def create_app():
 
     from .routes import main
     app.register_blueprint(main)
+
 
 
     users = [
@@ -137,100 +136,102 @@ def create_app():
         "suspension_reason": None
     }
 ]
-    from .models import User, Doctor, Review
-    with app.app_context():
-            db.create_all()
-            if User.query.count() == 0:
-                for user_data in users:
-                    user = User(
-                        username=user_data["username"],
-                        password=user_data["password"],
-                        role=user_data["role"],
-                        bio=user_data["bio"],
-                        first_name=user_data["first_name"],
-                        last_name=user_data["last_name"],
-                        date_of_birth=user_data["date_of_birth"],
-                        location=user_data["location"],
-                        is_banned=user_data["is_banned"],
-                        is_suspended=user_data["is_suspended"],
-                        suspension_reason=user_data["suspension_reason"]
-                    )
-                    db.session.add(user)
-                db.session.commit()
-            
-            # Doctor data with reviews
-            doctors = [
-                {
-                    "nhs_number": "1234567890",
-                    "first_name": "James",
-                    "last_name": "Turner",
-                    "username": "jamesturner@email.com",
-                    "password": "Doctorpass!23",
-                    "role": "doctor",
-                    "date_of_birth": date(1980, 1, 1),
-                    "location": "Newcastle, UK",
-                    "specialty": "Cardiology",
-                    "gender": "Male",
-                    "language": "English,Spanish,French",
-                    "bio": "My name is James Turner and I've been working as a cardiologist for 10 years.",
-                    "availability": True,
-                    "reviews": [
-                        {"rating": 5, "comment": "Excellent doctor! Very knowledgeable and caring."},
-                        {"rating": 4, "comment": "Good experience, but the wait time was a bit long."}
-                    ]
-                },
-                {
-                    "nhs_number": "0987654321",
-                    "first_name": "Jane",
-                    "last_name": "Smith",
-                    "username": "janesmith@email.com",
-                    "password": "Doctorpass!23",
-                    "role": "doctor",
-                    "date_of_birth": date(1985, 5, 15),
-                    "location": "Liverpool, UK",
-                    "specialty": "Pediatrics",
-                    "gender": "Female",
-                    "language": "English,Spanish",
-                    "bio": "Hi! I'm Jane Smith. I'm a pediatrician working for 12 years.",
-                    "availability": True,
-                    "reviews": [
-                        {"rating": 3, "comment": "Average experience."},
-                        {"rating": 4, "comment": "Good doctor! My child felt comfortable and well cared for."}
-                    ]
-                }
+    doctors = [
+        {
+            "nhs_number": "1234567890",
+            "first_name": "James",
+            "last_name": "Turner",
+            "username": "jamesturner@email.com",
+            "password": "Doctorpass!23",
+            "date_of_birth": date(1980, 1, 1),
+            "location": "Newcastle, UK",
+            "specialty": "Cardiology",
+            "gender": "Male",
+            "language": "English,Spanish,French",
+            "bio": "My name is James Turner and I've been working as a cardiologist for 10 years.",
+            "availability": True,
+            "reviews": [
+                {"rating": 5, "comment": "Excellent doctor! Very knowledgeable and caring."},
+                {"rating": 4, "comment": "Good experience, but the wait time was a bit long."}
             ]
-            
-            # Seed doctors and reviews
-            if Doctor.query.count() == 0:
-                for doc_data in doctors:
-                    doctor = Doctor(
-                        nhs_number=doc_data["nhs_number"],
-                        first_name=doc_data["first_name"],
-                        last_name=doc_data["last_name"],
-                        username=doc_data["username"],
-                        password=doc_data["password"],
-                        date_of_birth=doc_data["date_of_birth"],
-                        location=doc_data["location"],
-                        specialty=doc_data["specialty"],
-                        gender=doc_data["gender"],
-                        language=doc_data["language"],
-                        bio=doc_data["bio"],
-                        availability=doc_data["availability"]
+        },
+        {
+            "nhs_number": "0987654321",
+            "first_name": "Jane",
+            "last_name": "Smith",
+            "username": "janesmith@email.com",
+            "password": "Doctorpass!23",
+            "date_of_birth": date(1985, 5, 15),
+            "location": "Liverpool, UK",
+            "specialty": "Pediatrics",
+            "gender": "Female",
+            "language": "English,Spanish",
+            "bio": "Hi! I'm Jane Smith. I'm a pediatrician working for 12 years.",
+            "availability": True,
+            "reviews": [
+                {"rating": 3, "comment": "Average experience."},
+                {"rating": 4, "comment": "Good doctor! My child felt comfortable and well cared for."}
+            ]
+        }
+    ]
+
+    with app.app_context():
+        db.create_all()
+        from .models import User, Doctor, Review
+
+        if User.query.count() == 0:
+            for user_data in users:
+                user = User(
+                    username=user_data["username"],
+                    password=user_data["password"],
+                    role=user_data["role"],
+                    bio=user_data["bio"],
+                    first_name=user_data["first_name"],
+                    last_name=user_data["last_name"],
+                    date_of_birth=user_data["date_of_birth"],
+                    location=user_data["location"],
+                    is_banned=user_data["is_banned"],
+                    is_suspended=user_data["is_suspended"],
+                    suspension_reason=user_data["suspension_reason"]
+                )
+                db.session.add(user)
+            db.session.commit()  
+
+        if Doctor.query.count() == 0:
+            for doc_data in doctors:
+                doctor = Doctor(
+                    nhs_number=doc_data["nhs_number"],
+                    first_name=doc_data["first_name"],
+                    last_name=doc_data["last_name"],
+                    username=doc_data["username"],
+                    password=doc_data["password"],
+                    date_of_birth=doc_data["date_of_birth"],
+                    location=doc_data["location"],
+                    specialty=doc_data["specialty"],
+                    gender=doc_data["gender"],
+                    language=doc_data["language"],
+                    bio=doc_data["bio"],
+                    availability=doc_data["availability"]
+                )
+                db.session.add(doctor)
+                db.session.flush()
+
+                ratings = []
+                for review_data in doc_data["reviews"]:
+                    review = Review(
+                        user_id=1,
+                        doctor_id=doctor.nhs_number,
+                        rating=review_data["rating"],
+                        comment=review_data["comment"],
+                        status=True
                     )
-                    db.session.add(doctor)
-                    db.session.flush()  # Get doctor ID for reviews
-                    
-                    # Seed reviews
-                    for review_data in doc_data["reviews"]:
-                        review = Review(
-                            user_id=1,  # Link to seeded user (patient1)
-                            doctor_id=doctor.nhs_number,
-                            rating=review_data["rating"],
-                            comment=review_data["comment"],
-                            status=True  # Approved
-                        )
-                        db.session.add(review)
-                
-                db.session.commit()
+                    db.session.add(review)
+                    ratings.append(review_data["rating"])
+
+                avg_rating = sum(ratings) / len(ratings)
+                doctor.set_rating(round(avg_rating, 1))
+
+            db.session.commit()
+
     CORS(app, supports_credentials=True)
     return app
