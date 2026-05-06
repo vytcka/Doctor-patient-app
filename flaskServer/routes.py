@@ -1128,6 +1128,82 @@ def moderate_doctor():
         db.session.commit()
     return jsonify({"status" : 200, "message" : "doctor moderated successfully"})
 
+@main.route('/moderator/notifications', methods=['GET'])
+def get_moderator_notifications():
+    """Returns all moderator notifications, ordered by most recent first.
+    Marks unseen notifications as seen after returning them.
+
+    Returns:
+        JSON response with list of notifications.
+    """
+    if session.get('role') != 'moderator':
+        logger.warning(sanitisationForLogs(
+            f"Unauthorized access to moderator notifications from {request.remote_addr}"
+        ))
+        return jsonify({"status": 403, "message": "You must be logged in as a moderator."}), 403
+
+    notifications = ModeratorNotification.query.order_by(
+        ModeratorNotification.created_at.desc()
+    ).all()
+
+    result = [
+        {
+            "id": n.id,
+            "message": n.message,
+            "seen": n.seen,
+            "created_at": n.created_at.isoformat()
+        }
+        for n in notifications
+    ]
+
+    # Mark all unseen notifications as seen now they've been fetched
+    for n in notifications:
+        if not n.seen:
+            n.seen = True
+    db.session.commit()
+
+    return jsonify({
+        "status": 200,
+        "notifications": result
+    }), 200
+
+
+@main.route('/moderator/notifications/create', methods=['POST'])
+def create_moderator_notification():
+    """Creates a new moderator notification. Called internally when a report
+    or review is submitted that requires moderator attention (FR21).
+
+    Returns:
+        JSON response with success status and message.
+    """
+    if session.get('role') not in ['moderator', 'user', 'doctor']:
+        return jsonify({"status": 401, "message": "You must be logged in."}), 401
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": 400, "message": "No data provided."}), 400
+
+    message = data.get("message", "").strip()
+    if not message:
+        return jsonify({"status": 400, "message": "Notification message is required."}), 400
+
+    if len(message) > 255:
+        return jsonify({"status": 400, "message": "Message cannot exceed 255 characters."}), 400
+
+    safe_message = bleach.clean(message, tags=[], strip=True)
+
+    notification = ModeratorNotification(
+        message=safe_message,
+        seen=False
+    )
+    db.session.add(notification)
+    db.session.commit()
+
+    logger.info(sanitisationForLogs(
+        f"Moderator notification created: '{safe_message}' from {request.remote_addr}"
+    ))
+    return jsonify({"status": 201, "message": "Notification created."}), 201
+
 @main.route('/edit_review>', methods=['GET', 'POST'])
 def edit_review(review_id):
     """Edit review route allows a user to edit a pending review within five minutes of submission.
