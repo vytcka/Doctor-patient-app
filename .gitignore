@@ -1,7 +1,6 @@
 __pycache__/
 instance/
 logs/
-.env
 .venv/
 package-lock.json
 package.json
