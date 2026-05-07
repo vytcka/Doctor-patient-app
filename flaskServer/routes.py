@@ -1245,8 +1245,8 @@ def doctor_reviews():
     else:
         avg_rating = None
 
-    query = text("SELECT * FROM doctors WHERE nhs_number = :nhs_number")
-    results = db.session.execute(query, {"nhs_number": data["nhs_number"]}).mappings().all()
+    # query = text("SELECT * FROM doctors WHERE nhs_number = :nhs_number")
+    # results = db.session.execute(query, {"nhs_number": data["nhs_number"]}).mappings().all()
 
     return jsonify({
         "status": 200,
@@ -1255,7 +1255,7 @@ def doctor_reviews():
             "name": f"{obj.first_name} {obj.last_name}",
             "specialty": obj.specialty,
             "gender": obj.gender,
-            "language": obj.language,
+            "language": obj.language.split(", ") if obj.language else [], #return array
             "location": obj.location,
             "availability": obj.availability,
             "bio": obj._decrypt(obj.bio) if obj.bio else None, #display decrypted bio

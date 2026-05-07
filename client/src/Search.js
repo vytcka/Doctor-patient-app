@@ -196,15 +196,17 @@ export default function Search() {
                 </div>
               </div>
 
+              
+
             <div className="review-container">
-                <h1>Doctors Reviews</h1>
-                <h2>Look at reviews for each doctor or leave a review</h2>
-                {/* show error if cannot reach backend, just show dummy data instead */}
+                {/* show error if cannot reach backend */}
                 {error && (
                     <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: '#fdecea', color: '#b71c1c' }}>
                         {error}
                     </div>
                 )}
+                <h1>Doctors Reviews</h1>
+                <h2>Look at reviews for each doctor or leave a review</h2>
 
                 {/*Search bar*/}
                 <div className="search-bar">
@@ -279,9 +281,11 @@ export default function Search() {
                     ) : (
                         filteredDoctors.map((items) => (
                             <div className="doctor-card" key={items.id} onClick={() => navigate(`/doctor/${items.id}`)}>
-                                <img src={items.profileIcon} alt={items.name} className="doc-profile-icon"/>
-                                <div className="doctor-info">
+                                <div className="doctor-left">
+                                    <img src={items.profileIcon} alt={items.name} className="doc-profile-icon"/>
                                     <h3>{items.name}</h3>
+                                </div>
+                                <div className="doctor-info">
                                     <p><b>Specialty: </b>{items.specialty}</p>
                                     <p><b>Gender: </b>{items.gender}</p>
                                     <p><b>Language: </b>{items.language.join(", ")}</p>
