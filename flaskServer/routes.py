@@ -247,73 +247,52 @@ def register():
 
 @main.route('/doctor/login', methods=['POST'])
 def doctor_login():
-    """Doctor login route is responsible for authenticating doctor accounts.
-    On a successful login the doctor's username, role, NHS number, and encrypted
-    bio are stored in the session and the doctor is redirected to the doctor dashboard.
-
-    Returns:
-        renders doctor_login.html on GET or failed POST, redirects to doctor_dashboard on success.
-    """
-    error = None
     data = request.get_json()
-    
-    username = data["username"]
 
     forms = validation_form()
     forms.username.data = data["username"]
     forms.password.data = data["password"]
 
-    session['role'] = 'doctor'
-    session['username'] = data["username"]
-    
     if request.method == 'POST':
         if forms.validate_on_submit():
             session.permanent = True
             username = forms.username.data
             password = forms.password.data
 
-            query = text("SELECT * FROM doctor WHERE username = :username")
-            row = db.session.execute(query, {"username": username}).mappings().first()
+            doctor = Doctor.query.filter_by(username=username).first()
+
+            if doctor is None:
+                logger.warning(sanitisationForLogs(f"Failed doctor login for unknown user from {request.remote_addr}"))
+                return jsonify({"status": 400, "message": "No doctor with that email exists."})
+
 
             if doctor.is_banned:
-                flash('Your account has been banned.')
                 logging.warning(sanitisationForLogs(f"Banned doctor {username} attempted to log in from {request.remote_addr}"))
-                return render_template('doctor_login.html', forms=forms, error="Your account is banned.")
-            
+                return jsonify({"status": 400, "message": "This doctor account has been banned."})
+
             if doctor.is_suspended:
-                flash(f'Your account is suspended. Reason: {doctor.suspension_reason}')
                 logging.warning(sanitisationForLogs(f"Suspended doctor {username} attempted to log in from {request.remote_addr}. Reason: {doctor.suspension_reason}"))
-                return jsonify({"status" : 400, "message" : "this doctor account has been suspended"})
-
-
-            if row is None:
-                flash("No doctor account with that email exists.")
-                error = "No doctor with that email exists."
-                logger.warning(sanitisationForLogs(f"Failed doctor login for unknown user from {request.remote_addr}"))
-                return jsonify({"status" : 400, "message" : "no doctor with the provided email exists"})
-
-            doctor = db.session.get(Doctor, row['nhs_number'])
-            session.clear()
+                return jsonify({"status": 400, "message": "This doctor account has been suspended."})
 
             if not doctor.check_password(password):
-                flash('Login credentials are invalid, please try again.')
                 logger.warning(sanitisationForLogs(f"Incorrect password for doctor: {username} from {request.remote_addr}"))
-                return jsonify({"status": 400, "message" : "the credentials provided are invalid"})
+                return jsonify({"status": 400, "message": "The credentials provided are invalid."})
 
+            session.clear()
             session['user']       = doctor.username
             session['role']       = doctor.role
             session['bio']        = doctor.bio
             session['nhs_number'] = doctor.nhs_number
             session['user_id']    = doctor.nhs_number
+
             logger.info(sanitisationForLogs(f"Doctor logged in: {doctor.username} from {request.remote_addr}"))
-            return jsonify({"status" : 200, "message" : f"doctor {session['user']} logged in"})
+            return jsonify({"status": 200, "message": f"Doctor {session['user']} logged in."})
 
         else:
             logger.error(sanitisationForLogs(f"Invalid doctor login form submission from {request.remote_addr}"))
-            return jsonify({"status" : 400, "message" : "invalid login credentials provided"})
+            return jsonify({"status": 400, "message": "Invalid login credentials provided."})
 
-    return jsonify ({"status" : 400, "message" : "incorrect data sending format"})
-
+    return jsonify({"status": 400, "message": "Incorrect data sending format."})
 
 @main.route('/doctor/register', methods=[ 'POST'])
 def doctor_register():
