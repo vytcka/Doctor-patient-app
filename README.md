@@ -87,6 +87,20 @@ Open:
 http://localhost:3000
 ```
 
+## Mapping Criteria to Your Codebase
+
+This table shows where each criteria is implemented in the TreatMe project.
+
+| **Criteria** | **Where to Find It (File Paths, Links, or Explanations)** |
+|--------------|-----------------------------------------------------------|
+| **Team Standards: Cohesion** | Code is structured into clear modules: `client` (frontend React app), `flaskServer` (backend API), and `docs/` (screenshots). |
+| **Team Standards: Documentation** | Main documentation is in `README.md` and `teamLetter.md`. Inline comments are used throughout. |
+| **Team Standards: Version Control Workflow** | GitHub repository: https://github.com/vytcka/Doctor-patient-app. Commit history shows feature-based commits. |
+| **Design & Structure** | Frontend structure in `client'. Backend structured in `flaskServer` using Flask routes. |
+| **GUI: Clever and Interesting Design** | React UI located in `client`. Includes login, signup, doctor search, and request forms. Screenshots found in 'docs'. |
+| **Testing Documentation** | Basic testing is handled manually. API endpoints tested via frontend interaction and browser console. |
+| **Functionality and Features** | Full system implemented in `client` and `flaskServer`: user authentication, doctor-patient matching, messaging system, rating system, and health request submission. |
+
 ## Authors and acknowledgment
 
 - Boshra Chaanoune
