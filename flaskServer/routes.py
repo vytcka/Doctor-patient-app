@@ -109,7 +109,7 @@ def login():
     if forms.validate_on_submit():
 
         query = text(
-            "SELECT * FROM user WHERE username = :username"
+            'SELECT * FROM "user" WHERE username = :username'
         )
 
         row = db.session.execute(
@@ -201,7 +201,7 @@ def register():
             if row:
                 flash('There already is a user registered with that username... \n Please register with a different username.')
                 logging.info(sanitisationForLogs(f"user tried to create an account with the username {forms.username.data} from the ip {request.remote_addr} "))
-                return jsonify({"success" : False,"message" : "The name is taken."})
+                return jsonify({"status" : 400, "message" : "There already is a user registered with that username... Please register with a different username."}), 400
 
             safe_bio = bleach.clean(forms.bio.data, 
                                  tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
@@ -239,10 +239,10 @@ def register():
                 listOfErrors.append(f"{fieldName} : {err}")
 
         return jsonify({
-            "success": False,
+            "status": 400,
             "errors": listOfErrors
         })
-    return jsonify({"message" : "Please input some data."})
+    return jsonify({"status" : 400, "message" : "Please input some data."})
 
 
 @main.route('/doctor/login', methods=['POST'])
@@ -324,11 +324,11 @@ def doctor_register():
 
             nhs_check = text("SELECT nhs_number FROM doctor WHERE nhs_number = :nhs_number")
             if db.session.execute(nhs_check, {"nhs_number": forms.nhs_number.data}).first():
-                return jsonify({"status" : 400, "message" : "There akready exusts a dictir with that bhs data"})
+                return jsonify({"status" : 400, "message" : "There already exists a doctor with that NHS number."}), 400
 
             username_check = text("SELECT username FROM doctor WHERE username = :username")
             if db.session.execute(username_check, {"username": forms.username.data}).first():
-                return jsonify({"status" : 400, "message" : "That username is taken please use a different username"})
+                return jsonify({"status" : 400, "message" : "That username is taken. Please use a different username."}), 400
 
             session.clear()
 
@@ -547,7 +547,7 @@ def new_request():
         renders new_request.html on GET or failed POST, redirects to user_dashboard on success.
     """
     if session.get('role') != 'user':
-        return render_template("forbidden.html", message="You need to be logged in as a patient."), 403
+        return jsonify({"status" : 400, "message" : "You need to be logged in as a patient."}), 403
 
     form = request_form()
     user = get_current_user()
@@ -565,14 +565,14 @@ def new_request():
             db.session.add(new_request)
             db.session.commit()
             flash('Your request has been submitted successfully.')
-            return redirect(url_for('main.user_dashboard'))
+            return jsonify({"status" : 200, "message" : "Your request has been submitted successfully."})
         except Exception as e:
             db.session.rollback()
             logger.error(sanitisationForLogs(f"Error submitting medical request for user {session.get('user')}: {str(e)}"))
             flash('An error occurred while submitting your request. Please try again.')
-            return render_template('new_request.html', form=form)
+            return jsonify({"status" : 400, "message" : "An error occurred while submitting your request. Please try again."})
 
-    return render_template('new_request.html', form=form)
+    return jsonify({"status" : 400, "message" : "Invalid form data."})
 
 @main.route('/view-requests')
 def view_requests():
@@ -583,10 +583,10 @@ def view_requests():
     """
     if session.get('role') != 'doctor':
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
-        return render_template("forbidden.html", message="You need to be logged in as a doctor to view this page."), 403
+        return jsonify({"status" : 403, "message" : "You need to be logged in as a doctor to view requests."}), 403
 
     pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
-    return render_template('view_requests.html', requests=pending_requests)
+    return jsonify({"status" : 200, "requests" : pending_requests}), 200
 
 
 
@@ -629,7 +629,7 @@ def accept_request(request_id):
 
         logger.info(sanitisationForLogs(f"Doctor {doctor.username} accepted request {request_id}"))
         flash('Request accepted successfully.')
-        return redirect(url_for('main.chat', chat_id=chat.id))
+        return jsonify({"status" : 200, "message" : "Request accepted successfully.", "chat_id": chat.id})
 
     except Exception as e:
         db.session.rollback()
@@ -679,12 +679,12 @@ def chat(chat_id):
         renders chat.html with the message history.
     """
     if 'user' not in session:
-        return redirect(url_for('main.login'))
+        return jsonify({"status" : 400, "message" : "you need to be logged in to access this page."}), 403
 
     data = request.get_json()
     chat_obj = db.session.get(Chat, data["chat_id"])
     if not chat_obj:
-        return render_template("forbidden.html", message="Chat not found."), 404
+        return jsonify({"status" : 404, "message" : "Chat not found."}), 404
 
     role = session.get('role')
 
@@ -692,30 +692,28 @@ def chat(chat_id):
     if role == 'user':
         if chat_obj.sender_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by user {session.get('user')} from {request.remote_addr}"))
-            return render_template("forbidden.html", message="You do not have access to this chat."), 403
+            return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
         sender_id   = str(session.get('user_id'))
         sender_type = 'user'
     elif role == 'doctor':
         if chat_obj.receiver_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by doctor {session.get('user')} from {request.remote_addr}"))
-            return render_template("forbidden.html", message="You do not have access to this chat."), 403
+            return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
         sender_id   = str(session.get('nhs_number'))
         sender_type = 'doctor'
     else:
-        return render_template("forbidden.html", message="You do not have access to this chat."), 403
+        return jsonify({"status" : 403, "message" : "You do not have access to this chat."}), 403
 
-    # FR32 — auto-close if inactive for more than 10 minutes
     if chat_obj.status == "CHAT_STATUS_ACTIVE" and chat_obj.is_inactive():
         chat_obj.status = "CHAT_STATUS_CLOSED"
         db.session.commit()
         flash('This chat has been automatically closed due to inactivity.')
 
     if request.method == 'POST' and chat_obj.status == "CHAT_STATUS_ACTIVE":
-        if chat.withdrawn:
-            #FR25 - block messaging if the chat has been withdrawn
+        if chat_obj.withdrawn:
             flash('This chat has been withdrawn. You cannot send messages.')
-            return redirect(url_for('main.chat', chat_id=chat_id))
-        
+            return jsonify({"status" : 400, "message" : "This chat has been withdrawn. You cannot send messages."}), 400
+
         content = request.form.get('content', '').strip()
         file = request.files.get('file')
         if content:
@@ -742,7 +740,7 @@ def chat(chat_id):
                 flash('An error occurred while sending your message. Please try again.')
 
     messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
-    return render_template('chat.html', chat=chat_obj, messages=messages)
+    return jsonify({"status" : 200, "messages" : messages}), 200
 
 
 
@@ -772,12 +770,12 @@ def restore_chat(chat_id):
         db.session.commit()
         flash('Chat restored successfully.')
         logger.info(sanitisationForLogs(f"User {session.get('user')} restored chat {chat_id}"))
-        return redirect(url_for('main.chat', chat_id=chat_id))
+        return jsonify({"status" : 200, "message" : "Chat restored successfully."})
     except Exception as e:
         db.session.rollback()
         logger.error(sanitisationForLogs(f"Error restoring chat {chat_id}: {str(e)}"))
         flash('An error occurred while restoring the chat. Please try again.')
-        return redirect(url_for('main.user_dashboard'))
+        return jsonify({"status" : 400, "message" : "An error occurred while restoring the chat. Please try again."})
 
 
 
@@ -874,7 +872,7 @@ def approveAppointment():
         redirects to dashboard.
     """
     if session.get('role') != 'doctor':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 400, "message" : "you need to be logged in as a doctor to perform this action"})
 
     request_id = request.form.get('request_id')
     req = db.session.get(Request, request_id)
@@ -884,7 +882,7 @@ def approveAppointment():
         db.session.commit()
 
     flash("Appointment approved")
-    return redirect(url_for('main.dashboard'))
+    return jsonify({"status" : 200, "message" : "Appointment approved successfully."})
 
 
 @main.route('/reviewRequest', methods=['GET', 'POST'])
@@ -895,16 +893,12 @@ def reviewRequest():
         renders moderator_dashboard.html with pending reviews and reports.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 400, "message" : "you need to be logged in as a moderator to perform this action"})
 
     pending_reviews = Review.query.filter_by(status=False).all()
     pending_reports = Report.query.filter_by(status='pending').all()
 
-    return render_template(
-        'moderator_dashboard.html',
-        reviews=pending_reviews,
-        reports=pending_reports
-    )
+    return jsonify({"status" : 200, "pending_reviews" : pending_reviews, "pending_reports" : pending_reports})
 
 
 @main.route('/approve_report', methods=['POST'])
@@ -915,7 +909,7 @@ def approve_report():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 400, "message" : "you need to be logged in as a moderator to perform this action"})
 
     report_id = request.form.get('report_id')
     report = db.session.get(Report, report_id)
@@ -984,7 +978,7 @@ def moderate_user():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 400, "message" : "you need to be logged in as a moderator to perform this action"})
 
     user_id = request.form.get('user_id')
     action = request.form.get('action')
@@ -1021,7 +1015,7 @@ def moderate_doctor():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return render_template('forbidden.html')
+        return jsonify({"status" : 400, "message" : "you need to be logged in as a moderator to perform this action"})
 
     nhs_number = request.form.get('nhs_number')
     action = request.form.get('action')
@@ -1067,7 +1061,7 @@ def edit_review(review_id):
 
     if not review or review.user_id != user.id:
         flash('Review not found.')
-        return redirect(url_for('main.user_dashboard'))
+        return jsonify({"status" : 404, "message" : "Review not found."}), 404
     
     #time_limit = review.created_at + timedelta(minutes=5)
 
@@ -1119,18 +1113,18 @@ def submit_review():
         logger.warning(sanitisationForLogs(
             f"Forbidden review attempt: role={session.get('role')} from {request.remote_addr}"
         ))
-        return jsonify({"success": False, "message": "You must be logged in as a user to submit a review."}), 403
+        return jsonify({"status": 403, "message": "You must be logged in as a user to submit a review."}), 403
 
     doctor = db.session.get(Doctor, session.get('nhs_number'))
     if not doctor:
-        return jsonify({"success": False, "message": "Doctor not found."}), 404
+        return jsonify({"status": 404, "message": "Doctor not found."}), 404
 
     username = session.get('user')
     user_row = db.session.execute(
         text("SELECT id FROM user WHERE username = :username"), {"username": username}).mappings().first()
     if not user_row:
         session.clear()
-        return jsonify({"success": False, "message": "User not found."}), 404
+        return jsonify({"status": 404, "message": "User not found."}), 404
 
     user_id = user_row['id']
 
@@ -1150,7 +1144,7 @@ def submit_review():
             f"User {username} attempted to review doctor {session.get('nhs_number')} "
             f"after early withdrawal from {request.remote_addr}"
         ))
-        return jsonify({"success": False, "message": "You cannot review a doctor you withdrew from within 3 messages."}), 403
+        return jsonify({"status": 403, "message": "You cannot review a doctor you withdrew from within 3 messages."}), 403
 
     
     message_count = 0
@@ -1165,7 +1159,7 @@ def submit_review():
         logger.warning(sanitisationForLogs(
             f"User {username} attempted to review doctor {session.get('nhs_number')} "
             f"with only {message_count} messages from {request.remote_addr}"))
-        return jsonify({"success": False, "message": "You can only review a doctor after sending at least 5 messages."}), 400
+        return jsonify({"status": 400, "message": "You can only review a doctor after sending at least 5 messages."}), 400
 
     existing_review = Review.query.filter_by(
         user_id=user_id,
@@ -1181,12 +1175,12 @@ def submit_review():
             if not (1.0 <= rating <= 5.0):
                 raise ValueError
         except (TypeError, ValueError):
-            return jsonify({"success": False, "message": "Rating must be a number between 1 and 5."}), 400
+            return jsonify({"status": 400, "message": "Rating must be a number between 1 and 5."}), 400
 
         safe_comment = bleach.clean(comment, tags=[], strip=True)
 
         if len(safe_comment) > 200:
-            return jsonify({"success": False, "message": "Comment must be 200 characters or fewer."}), 400
+            return jsonify({"status": 400, "message": "Comment must be 200 characters or fewer."}), 400
 
         if existing_review:
             existing_review.rating = rating
@@ -1196,7 +1190,7 @@ def submit_review():
             logger.info(sanitisationForLogs(
                 f"User {username} updated review for doctor {session.get('nhs_number')}"
             ))
-            return jsonify({"success": True, "message": "Your review has been updated and is pending moderation."})
+            return jsonify({"status": 200, "message": "Your review has been updated and is pending moderation."})
         else:
             new_review = Review(
                 user_id=user_id,
@@ -1210,7 +1204,7 @@ def submit_review():
             logger.info(sanitisationForLogs(
                 f"User {username} submitted review for doctor {session.get('nhs_number')}"
             ))
-            return jsonify({"success": True, "message": "Your review has been submitted and is pending moderation."})
+            return jsonify({"status": 200, "message": "Your review has been submitted and is pending moderation."})
 
 @main.route('/doctor/reviews', methods=['POST'])
 def doctor_reviews():
@@ -1290,7 +1284,7 @@ def widthdraw_chat():
 
     if session.get('role') != 'user':
         logger.warning(sanitisationForLogs(f"Forbidden chat withdrawal attempt: role={session.get('role')} from {request.remote_addr}"))
-        return jsonify({"success": False, "message": "You must be logged in as a patient to perform this action."}), 403
+        return jsonify({"status": 403, "message": "You must be logged in as a patient to perform this action."}), 403
     
     username = session.get('user')
     user_row = db.session.execute(
@@ -1298,16 +1292,16 @@ def widthdraw_chat():
 
     if user_row is None:
         session.clear()
-        return jsonify({"success": False, "message": "User not found."}), 404
+        return jsonify({"status": 404, "message": "User not found."}), 404
 
     user_id = user_row['id']
     
     chat = Chat.query.get(session.get('chat_id'))
     if not chat or chat.sender_id != user_id:
-        return jsonify({"success": False, "message": "Chat not found or you do not have permissions to view this."}), 404
-    #what?
+        return jsonify({"status": 404, "message": "Chat not found or you do not have permissions to view this."}), 404
+    
     if chat.withdrawn:
-        return jsonify({"success": False, "message": "Chat is already withdrawn."}), 400
+        return jsonify({"status": 400, "message": "Chat is already withdrawn."}), 400
 
     user_message_count = Message.query.filter_by(
         chat_id=session.get('chat_id'),
@@ -1319,10 +1313,10 @@ def widthdraw_chat():
             f"User {username} tried to withdraw from chat {session.get('chat_id')} "
             f"after {user_message_count} messages from {request.remote_addr}"
         ))
-        return jsonify({"success": False, "message": "You can no longer withdraw from this chat."}), 400
+        return jsonify({"status": 400, "message": "You can no longer withdraw from this chat."}), 400
 
     chat.withdraw(early=True)
     db.session.commit()
 
     logger.info(sanitisationForLogs(f"Chat {session.get('chat_id')} withdrawn by user {username} from {request.remote_addr}"))
-    return jsonify({"success": True, "message": "You have withdrawn from the chat. The appointment is now ended."})
+    return jsonify({"status": 200, "message": "You have withdrawn from the chat. The appointment is now ended."})
