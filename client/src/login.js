@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
@@ -49,6 +50,8 @@ export default function Login({ setIsLoggedIn, setUserRole, setUsername, setUser
                 setUserRole('user');
                 setUsername(data.username);
                 setUserData(data.user);
+                setSuccessMessage(data.message);
+                toast.success("Login successful!");
 
                 localStorage.setItem('isLoggedIn', 'true');
                 localStorage.setItem('userRole', 'user');

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
@@ -63,6 +64,7 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
                 setIsLoggedIn(true);
                 setUserRole('user');
                 setSuccessMessage('Account created! Redirecting...');
+                toast.success("Account created successfully!");
                 setTimeout(() => navigate('/dashboard'), 100);
             } else if (data.errors && data.errors.length > 0) {
                 setErrorList(data.errors);

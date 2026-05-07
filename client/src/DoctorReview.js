@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './reviews.css'; 
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
@@ -115,10 +116,12 @@ export default function DoctorReview({ isLoggedIn }){
             setError("");
             setNewReview({ rating: 0, comment: "" });
             setEditedReviewId(null);
+            toast.success("Review submitted successfully!");
             await loadReviews(); // refresh the approved review list after submission
         } catch (err) {
             console.log(err)
             setError(err.message || "Failed to submit review.");
+            toast.error("Failed to submit review.");
         }
     }
 
@@ -160,11 +163,13 @@ export default function DoctorReview({ isLoggedIn }){
             setSubmitMessage(data.message || "Review updated successfully.");
             setError("");
             setEditedReviewId(null);
+            toast.success("Review updated successfully!");
             await loadReviews(); // reload reviews after edit
         } catch (err) {
             console.log(err)
             setError(err.message || "Failed to save review edit.");
             setEditedReviewId(null);
+            toast.error("Failed to save review edit.");
         }
     }
 
@@ -359,26 +364,6 @@ export default function DoctorReview({ isLoggedIn }){
                 </div>
             </div>
 
-            {/* Add review form */}
-            <div className="review-form">
-                <h3>Leave a Review</h3>
-
-                {/* Star Rating */}
-                <StarRating
-                    rating={newReview.rating}
-                    onRatingChange={(value) =>
-                        setNewReview({ ...newReview, rating: value })
-                    }
-                />
-
-                {/* comments */}
-                <textarea
-                    placeholder="Write your review here..."
-                    value={newReview.comment}
-                    onChange={(e) =>
-                        setNewReview({...newReview, comment:e.target.value})}
-                />
-
                 {/* show backend or validation error messages */}
                 {error && (
                     <div className="error-message">{error}</div>
@@ -388,12 +373,6 @@ export default function DoctorReview({ isLoggedIn }){
                 {submitMessage && (
                     <div className="success-message">{submitMessage}</div>
                 )}
-
-                <button onClick={handleAddReview}>Submit</button>
-
-                <Link to="/Chat"><button>Start Chat!</button></Link>
-
-            </div>
             
         </div>
     );
