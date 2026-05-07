@@ -5,12 +5,17 @@ import StarRating from './StarRating';
 
 function DoctorDashboard() {
   const navigate = useNavigate();
+  // State for doctor's profile information
   const [doctor, setDoctor] = useState(null);
+  // Lists of patient requests awaiting doctor's response
   const [pendingRequests, setPendingRequests] = useState([]);
+  // Active chat conversations with patients
   const [activeChats, setActiveChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('requests');
 
+  // Fetch doctor dashboard data on component mount
+  // Falls back to dummy data if API is unavailable (development/demo purposes)
   useEffect(() => {
     const fetchDoctorData = async () => {
       try {
@@ -53,6 +58,7 @@ function DoctorDashboard() {
     fetchDoctorData();
   }, []);
 
+  // Accept a patient request and start consultation
   const handleAcceptRequest = async (requestId) => {
   try {
     const response = await fetch("http://127.0.0.1:5000/accept-request", {
@@ -74,7 +80,8 @@ function DoctorDashboard() {
   }
 };
 
-const handleRejectRequest = async (requestId) => {
+  // Decline a patient request
+  const handleRejectRequest = async (requestId) => {
   try {
     const response = await fetch("http://127.0.0.1:5000/reject-request", {
       method: "POST",
@@ -95,7 +102,8 @@ const handleRejectRequest = async (requestId) => {
   }
 };
 
-const handleLogout = async () => {
+  // Log out the doctor and redirect to home
+  const handleLogout = async () => {
   try {
     await fetch("http://127.0.0.1:5000/logout", {
       credentials: "include"
@@ -123,7 +131,7 @@ const handleLogout = async () => {
 
   return (
     <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-      {/* Header / Navbar */}
+      {/* Header/Navigation with doctor identity */}
       <div style={{ backgroundColor: "white", borderBottom: "1px solid #e2e8f0", padding: "0 30px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: "1400px", margin: "0 auto" }}>
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
@@ -140,7 +148,7 @@ const handleLogout = async () => {
       {/* Main Dashboard Content */}
       <div style={{ maxWidth: "1400px", margin: "30px auto", padding: "0 30px" }}>
         
-        {/* Stats Cards Row */}
+        {/* Dashboard metrics overview cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", marginBottom: "30px" }}>
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
             <div style={{ fontSize: "0.85rem", color: "#607593", marginBottom: "8px" }}>Total Patients</div>
@@ -160,7 +168,7 @@ const handleLogout = async () => {
           </div>
         </div>
 
-        {/* Two Column Layout */}
+        {/* Doctor profile + Quick action buttons */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
           
           {/* Left Column - Doctor Profile Card */}
@@ -195,7 +203,7 @@ const handleLogout = async () => {
           </div>
         </div>
 
-        {/* Pending Requests Section - Full Width Below */}
+        {/* Tabbed patient management interface */}
         <div style={{ marginTop: "30px", backgroundColor: "white", borderRadius: "12px", padding: "25px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap" }}>
             <h3 style={{ color: "#1b4cb6", fontSize: "1.3rem", margin: 0 }}>Pending Requests</h3>
@@ -205,6 +213,7 @@ const handleLogout = async () => {
             </div>
           </div>
 
+          {/* Requests tab: pending patient requests for acceptance/rejection */}
           {activeTab === 'requests' && (
             pendingRequests.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>No pending requests. Great job!</div>
@@ -230,6 +239,7 @@ const handleLogout = async () => {
             )
           )}
 
+          {/* Chats tab: active conversations with patients */}
           {activeTab === 'chats' && (
             activeChats.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>No active chats yet.</div>
