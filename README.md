@@ -32,6 +32,18 @@ Our application is an easier solution for patients in rural areas and we provide
 
 ## Visuals
 
+### Homepage
+! [Homepage Screenshot](./docs/homepage.jpeg)
+
+### Login Page
+! [Login Page Screenshot](./docs/login.jpeg)
+
+### Request Form
+! [Request Form Screenshot](./docs/requestform.jpeg)
+
+### Doctor Profile Page
+! [Doctor Profile Page Screenshot](./docs/doctorprofile.jpeg)
+
 ## Installation
 1. Clone the repository
 ```bash
