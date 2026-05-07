@@ -4,7 +4,11 @@ import { Link } from 'react-router-dom';
 import './reviews.css'; 
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
+
+// Debug entrypoint for the search module
 console.log("SEARCH FILE LOADED");
+
+// Normalize raw doctor objects into a consistent display model
 const doctor = (doc) => {
     let avgRating = 0;
     if (Array.isArray(doc.reviews) && doc.reviews.length > 0) {
@@ -33,12 +37,16 @@ const doctor = (doc) => {
 export default function Search() {
     console.log("Search component rendered");
     const [query, setQuery] = useState("")
+    // Loaded doctors from the backend, normalized for display
     const [doctors, setDoctors] = useState([]);
+    // Loading state while fetching doctors and reviews
     const [loading, setLoading] = useState(true);
+    // Error message shown when backend requests fail
     const [error, setError] = useState(null);
 
     const navigate = useNavigate();
 
+    // Selected filter values controlling doctor list narrowing
     const [selectedFilters, setSelectedFilters] = useState({
             name: "",
             specialty: "",
@@ -48,6 +56,7 @@ export default function Search() {
             location: "",
         }); 
 
+    // Load doctors and their reviews when the component mounts
     useEffect(() => {
         const loadDoctors = async () => {
             try {
@@ -114,6 +123,7 @@ export default function Search() {
         return <div className="review-container"><p>Loading doctors...</p></div>;
     }
 
+        // Filter configuration for the search form dropdowns
         const filters = [
                          {key: "specialty", label:"Specialty"},
                          {key: "rating", label: "Rating"},
@@ -122,6 +132,7 @@ export default function Search() {
                          {key: "location", label: "Location"}
                         ];
     
+        // Apply search text and selected dropdown filters to the loaded doctors list
         const filteredDoctors = doctors.filter((item) => {
                 return (
                     //search
@@ -196,15 +207,17 @@ export default function Search() {
                 </div>
               </div>
 
+              
+
             <div className="review-container">
-                <h1>Doctors Reviews</h1>
-                <h2>Look at reviews for each doctor or leave a review</h2>
-                {/* show error if cannot reach backend, just show dummy data instead */}
+                {/* show error if cannot reach backend */}
                 {error && (
                     <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: '#fdecea', color: '#b71c1c' }}>
                         {error}
                     </div>
                 )}
+                <h1>Doctors Reviews</h1>
+                <h2>Look at reviews for each doctor or leave a review</h2>
 
                 {/*Search bar*/}
                 <div className="search-bar">
@@ -279,9 +292,11 @@ export default function Search() {
                     ) : (
                         filteredDoctors.map((items) => (
                             <div className="doctor-card" key={items.id} onClick={() => navigate(`/doctor/${items.id}`)}>
-                                <img src={items.profileIcon} alt={items.name} className="doc-profile-icon"/>
-                                <div className="doctor-info">
+                                <div className="doctor-left">
+                                    <img src={items.profileIcon} alt={items.name} className="doc-profile-icon"/>
                                     <h3>{items.name}</h3>
+                                </div>
+                                <div className="doctor-info">
                                     <p><b>Specialty: </b>{items.specialty}</p>
                                     <p><b>Gender: </b>{items.gender}</p>
                                     <p><b>Language: </b>{items.language.join(", ")}</p>

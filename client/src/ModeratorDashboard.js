@@ -4,13 +4,17 @@ import Icon from './LogoIcon.png';
 
 function ModeratorDashboard() {
   const navigate = useNavigate();
+  // State for moderator's profile information
   const [moderator, setModerator] = useState(null);
+  // Lists of moderation items requiring action
   const [reportedChats, setReportedChats] = useState([]);
   const [pendingReviews, setPendingReviews] = useState([]);
   const [flaggedAccounts, setFlaggedAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('reports');
 
+  // Fetch moderator dashboard data on component mount
+  // Falls back to dummy data if API is unavailable (development/demo purposes)
   useEffect(() => {
     const fetchModeratorData = async () => {
       try {
@@ -52,6 +56,7 @@ function ModeratorDashboard() {
     fetchModeratorData();
   }, []);
 
+  // Remove a report from the queue after review
   const handleDismissReport = async (reportId) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/moderator/dismiss-report", {
@@ -73,6 +78,7 @@ function ModeratorDashboard() {
     }
   };
 
+  // Send report to admin for further investigation
   const handleEscalateReport = async (reportId) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/moderator/escalate-report", {
@@ -94,6 +100,7 @@ function ModeratorDashboard() {
     }
   };
 
+  // Publish an approved review to the platform
   const handleApproveReview = async (reviewId) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/moderator/approve-review", {
@@ -115,6 +122,7 @@ function ModeratorDashboard() {
     }
   };
 
+  // Prevent a rejected review from being published
   const handleRejectReview = async (reviewId) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/moderator/reject-review", {
@@ -136,6 +144,7 @@ function ModeratorDashboard() {
     }
   };
 
+  // Permanently remove an account after confirmation
   const handleBanAccount = async (accountId, accountType) => {
     if (!window.confirm(`Are you sure you want to ban this ${accountType.toLowerCase()}? This action cannot be undone.`)) return;
     try {
@@ -158,6 +167,7 @@ function ModeratorDashboard() {
     }
   };
 
+  // Temporarily restrict an account pending investigation
   const handleSuspendAccount = async (accountId, accountType) => {
     try {
       const response = await fetch("http://127.0.0.1:5000/moderator/suspend-account", {
@@ -189,12 +199,14 @@ function ModeratorDashboard() {
     }
   };
 
+  // Return styling object based on report severity level (high/medium/low)
   const getSeverityStyle = (severity) => {
     if (severity === 'high') return { backgroundColor: "#fef2f2", borderLeft: "4px solid #e74c3c" };
     if (severity === 'medium') return { backgroundColor: "#fffbeb", borderLeft: "4px solid #f39c12" };
     return { backgroundColor: "#f0fdf4", borderLeft: "4px solid #27ae60" };
   };
 
+  // Generate colored badge component for severity
   const getSeverityBadge = (severity) => {
     const base = { padding: "2px 10px", borderRadius: "20px", fontSize: "0.7rem", fontWeight: "bold", textTransform: "uppercase" };
     if (severity === 'high') return { ...base, backgroundColor: "#fee2e2", color: "#dc2626" };
@@ -202,6 +214,7 @@ function ModeratorDashboard() {
     return { ...base, backgroundColor: "#dcfce7", color: "#16a34a" };
   };
 
+  // Render star rating visualisation (filled/unfilled stars)
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
       <span key={i} style={{ color: i < rating ? "#f39c12" : "#d1d5db", fontSize: "0.9rem" }}>★</span>
@@ -226,7 +239,7 @@ function ModeratorDashboard() {
 
   return (
     <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-      {/* Header / Navbar */}
+      {/* Header/Navigation with moderator identity */}
       <div style={{ backgroundColor: "white", borderBottom: "1px solid #e2e8f0", padding: "0 30px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: "1400px", margin: "0 auto" }}>
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
@@ -244,7 +257,7 @@ function ModeratorDashboard() {
       {/* Main Dashboard Content */}
       <div style={{ maxWidth: "1400px", margin: "30px auto", padding: "0 30px" }}>
 
-        {/* Stats Cards Row */}
+        {/* Dashboard metrics overview cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", marginBottom: "30px" }}>
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
             <div style={{ fontSize: "0.85rem", color: "#607593", marginBottom: "8px" }}>Reported Chats</div>
@@ -264,7 +277,7 @@ function ModeratorDashboard() {
           </div>
         </div>
 
-        {/* Two Column Layout */}
+        {/* Moderator profile + Quick action buttons */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
 
           {/* Left Column - Moderator Profile Card */}
@@ -294,7 +307,7 @@ function ModeratorDashboard() {
           </div>
         </div>
 
-        {/* Tabbed Section - Full Width Below */}
+        {/* Tabbed moderation queue interface */}
         <div style={{ marginTop: "30px", backgroundColor: "white", borderRadius: "12px", padding: "25px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
             <h3 style={{ color: "#1b4cb6", fontSize: "1.3rem", margin: 0 }}>Moderation Queue</h3>
@@ -311,7 +324,7 @@ function ModeratorDashboard() {
             </div>
           </div>
 
-          {/* Reported Chats Tab */}
+          {/* Reports tab: reported chats for review and action */}
           {activeTab === 'reports' && (
             reportedChats.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>No reported chats. All clear!</div>
@@ -340,7 +353,7 @@ function ModeratorDashboard() {
             )
           )}
 
-          {/* Pending Reviews Tab */}
+          {/* Reviews tab: user submissions requiring moderation approval */}
           {activeTab === 'reviews' && (
             pendingReviews.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>No pending reviews. All caught up!</div>
@@ -367,7 +380,7 @@ function ModeratorDashboard() {
             )
           )}
 
-          {/* Flagged Accounts Tab */}
+          {/* Accounts tab: flagged user profiles for suspension/ban */}
           {activeTab === 'accounts' && (
             flaggedAccounts.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>No flagged accounts at this time.</div>

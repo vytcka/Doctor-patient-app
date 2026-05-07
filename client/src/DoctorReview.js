@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom';
 import './reviews.css'; 
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
-
+console.log("DoctorReviews File Loaded");
 export default function DoctorReview({ isLoggedIn }){
+    console.log("DoctorReviews component rendered");
     const [doctor, setDoctor] = useState(null);
     const [reviews, setReviews] = useState([]); // reviews loaded from backend
     const [loading, setLoading] = useState(true); 
@@ -45,6 +46,7 @@ export default function DoctorReview({ isLoggedIn }){
             });
 
             const data = await response.json();
+            console.log(data)
 
             if (!response.ok || data.status !== 200) {
                 throw new Error(data.message || "Unable to load reviews from backend."); 
@@ -53,6 +55,7 @@ export default function DoctorReview({ isLoggedIn }){
             setDoctor(data.doctor || null); 
             setReviews(Array.isArray(data.reviews) ? data.reviews : []); // ensure reviews is an array
         } catch (err) {
+            console.log(err)
             setError(err.message || "Cannot reach backend1.");
             setDoctor(null);
             setReviews([]); // clear reviews
@@ -103,6 +106,7 @@ export default function DoctorReview({ isLoggedIn }){
             });
 
             const data = await response.json();
+            console.log(data)
             if (!response.ok || !data.success) {
                 throw new Error(data.message || "Failed to submit review.");
             }
@@ -113,6 +117,7 @@ export default function DoctorReview({ isLoggedIn }){
             setEditedReviewId(null);
             await loadReviews(); // refresh the approved review list after submission
         } catch (err) {
+            console.log(err)
             setError(err.message || "Failed to submit review.");
         }
     }
@@ -147,6 +152,7 @@ export default function DoctorReview({ isLoggedIn }){
             });
 
             const data = await response.json();
+            console.log(data)
             if (!response.ok || !data.success) {
                 throw new Error(data.message || "Failed to save review edit.");
             }
@@ -156,6 +162,7 @@ export default function DoctorReview({ isLoggedIn }){
             setEditedReviewId(null);
             await loadReviews(); // reload reviews after edit
         } catch (err) {
+            console.log(err)
             setError(err.message || "Failed to save review edit.");
             setEditedReviewId(null);
         }
@@ -197,23 +204,6 @@ export default function DoctorReview({ isLoggedIn }){
                     )
             }
 
-            {/* Doctor Information Section */}
-            <div className="doctor-info">
-                <p><img src={doctor.profileIcon || "/profile-icon.svg"} alt={doctor.name} className="doc-profile-icon"/></p>
-                <h1>{doctor.name}</h1>
-                <p><b>Rating: </b>{renderStars(displayedRating)} {displayedRating}</p>
-                {doctor.specialty && <p><b>Specialty: </b>{doctor.specialty}</p>}
-                {doctor.gender && <p><b>Gender: </b>{doctor.gender}</p>}
-                {doctor.language && (
-                    <p><b>Language: </b>{typeof doctor.language === 'string' ? doctor.language : doctor.language.join(", ")}</p>
-                )}
-                {doctor.location && <p><b>Location: </b>{doctor.location}</p>}
-                {'availability' in doctor && (
-                    <p><b>Availability: </b>{doctor.availability ? 'Available' : 'Not available'}</p>
-                )}
-                {doctor.bio && <p><b>Bio: </b>{doctor.bio}</p>}
-            </div>
-
             <div style={{ maxWidth: "1100px", margin: "30px auto", padding: "0 20px" }}>
 
                 {/* Back link */}
@@ -230,7 +220,7 @@ export default function DoctorReview({ isLoggedIn }){
                         {/* Doctor header card */}
                         <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "30px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
                             <div style={{ display: "flex", gap: "20px", alignItems: "center", marginBottom: "20px" }}>
-                                <img src={doctor.profileIcon} alt={doctor.name}
+                                <img src={doctor.profileIcon || "/profile-icon.svg"} alt={doctor.name}
                                     style={{ width: "90px", height: "90px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                                 <div>
                                     <h1 style={{ margin: "0 0 4px 0", color: "#1b4cb6", fontSize: "1.6rem" }}>{doctor.name}</h1>
@@ -251,7 +241,7 @@ export default function DoctorReview({ isLoggedIn }){
                                 <p style={{ margin: 0, color: "#374151", fontSize: "0.9rem" }}><span style={{ color: "#607593", fontWeight: "600" }}>Gender: </span>{doctor.gender}</p>
                                 <p style={{ margin: 0, color: "#374151", fontSize: "0.9rem" }}><span style={{ color: "#607593", fontWeight: "600" }}>Language: </span>{doctor.language.join(", ")}</p>
                                 <p style={{ margin: 0, color: "#374151", fontSize: "0.9rem" }}><span style={{ color: "#607593", fontWeight: "600" }}>Location: </span>{doctor.location}</p>
-                                <p style={{ margin: 0, color: "#374151", fontSize: "0.9rem" }}><span style={{ color: "#607593", fontWeight: "600" }}>Availability: </span>{doctor.availability.days} {doctor.availability.time}</p>
+                                <p style={{ margin: 0, color: "#374151", fontSize: "0.9rem" }}><span style={{ color: "#607593", fontWeight: "600" }}>Availability: </span>{doctor.availability ? "Available ✅" : "Not Available ❌"}</p>
                             </div>
                         </div>
 
@@ -357,7 +347,7 @@ export default function DoctorReview({ isLoggedIn }){
                                 </div>
                                 <div style={{ padding: "12px", backgroundColor: "#f5f7fa", borderRadius: "8px" }}>
                                     <p style={{ margin: "0 0 2px 0", fontSize: "0.8rem", color: "#94a3b8" }}>Availability</p>
-                                    <p style={{ margin: 0, fontWeight: "600", color: "#374151" }}>{doctor.availability.days} {doctor.availability.time}</p>
+                                    <p style={{ margin: 0, fontWeight: "600", color: "#374151" }}>{doctor.availability ? "Available ✅" : "Not Available ❌"}</p>
                                 </div>
                                 <div style={{ padding: "12px", backgroundColor: "#f5f7fa", borderRadius: "8px" }}>
                                     <p style={{ margin: "0 0 2px 0", fontSize: "0.8rem", color: "#94a3b8" }}>Languages</p>
@@ -402,8 +392,6 @@ export default function DoctorReview({ isLoggedIn }){
                 <button onClick={handleAddReview}>Submit</button>
 
                 <Link to="/Chat"><button>Start Chat!</button></Link>
-
-                <Link to="/search"> ← Back to Reviews Page </Link>
 
             </div>
             

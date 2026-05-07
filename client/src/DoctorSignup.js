@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
+// Available medical specialties for doctor registration
 const SPECIALTIES = [
     "General Practice", "Cardiology", "Dermatology", "Emergency Medicine",
     "Endocrinology", "Gastroenterology", "Haematology", "Neurology",
@@ -13,6 +14,7 @@ const SPECIALTIES = [
 
 export default function DoctorSignup() {
     const navigate = useNavigate();
+    // Form data for doctor registration details
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -27,13 +29,17 @@ export default function DoctorSignup() {
         bio: ''
     });
 
+    // Error message for registration failures
     const [errorMessage, setErrorMessage] = useState('');
+    // Success message for successful registration
     const [successMessage, setSuccessMessage] = useState('');
 
+    // Update form data when input fields change
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // Handle form submission and doctor registration
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -112,6 +118,7 @@ export default function DoctorSignup() {
                 </div>
             </div>
 
+            {/* Doctor registration form container */}
             <div className="form-container">
                 <h1>Doctor Sign Up</h1>
                 <h2>Create your TreatMe doctor account</h2>

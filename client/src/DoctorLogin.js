@@ -5,14 +5,18 @@ import Icon from "./LogoIcon.png";
 
 export default function DoctorLogin({ setIsLoggedIn, setUserRole }) {
     const navigate = useNavigate();
+    // Form data for login credentials
     const [formData, setFormData] = useState({
         username: '',
         password: ''
     });
 
+    // Error message for login failures
     const [errorMessage, setErrorMessage] = useState('');
+    // Success message for successful login
     const [successMessage, setSuccessMessage] = useState('');
 
+    // Update form data when input fields change
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -20,6 +24,7 @@ export default function DoctorLogin({ setIsLoggedIn, setUserRole }) {
         });
     };
 
+    // Handle form submission and authentication
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -81,6 +86,7 @@ export default function DoctorLogin({ setIsLoggedIn, setUserRole }) {
                 </div>
             </div>
 
+            {/* Doctor login form container */}
             <div className="form-container">
                 <h1>Doctor Login</h1>
                 <h2>Welcome back, Doctor! Please login to your account</h2>
