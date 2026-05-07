@@ -193,7 +193,7 @@ def register():
             
             logging.info(sanitisationForLogs(f"forms validated during registration for the user: {forms.username.data} from the ip {request.remote_addr} "))
 
-            check_query = text("SELECT username FROM user WHERE username = :username")
+            check_query = text('SELECT username FROM "user" WHERE username = :username')
             result = db.session.execute(check_query, {"username": forms.username.data})
             row = result.first()
 
@@ -215,7 +215,7 @@ def register():
             )
 
             query = text("""
-                INSERT INTO user (username, password, role, bio, first_name, last_name, date_of_birth, location, points)
+                INSERT INTO "user" (username, password, role, bio, first_name, last_name, date_of_birth, location, points)
                 VALUES (:username, :password, :role, :bio, :first_name, :last_name, :date_of_birth, :location, 0)
             """)
             db.session.execute(query, {
@@ -248,51 +248,50 @@ def register():
 @main.route('/doctor/login', methods=['POST'])
 def doctor_login():
     data = request.get_json()
+    if not data:
+        return jsonify({"status": 400, "message": "No data provided."}), 400
 
     forms = validation_form()
-    forms.username.data = data["username"]
-    forms.password.data = data["password"]
+    forms.username.data = data.get("username")
+    forms.password.data = data.get("password")
 
-    if request.method == 'POST':
-        if forms.validate_on_submit():
-            session.permanent = True
-            username = forms.username.data
-            password = forms.password.data
+    if forms.validate():
+        username = forms.username.data
+        password = forms.password.data
 
-            doctor = Doctor.query.filter_by(username=username).first()
+        query = text('SELECT * FROM "doctor" WHERE username = :username')
+        row = db.session.execute(query, {"username": username}).mappings().first()
 
-            if doctor is None:
-                logger.warning(sanitisationForLogs(f"Failed doctor login for unknown user from {request.remote_addr}"))
-                return jsonify({"status": 400, "message": "No doctor with that email exists."})
+        if row is None:
+            logger.warning(sanitisationForLogs(f"Failed doctor login for unknown user from {request.remote_addr}"))
+            return jsonify({"status": 404, "message": "No doctor with that email exists."}), 404
 
+        doctor = db.session.get(Doctor, row['nhs_number'])
+        session.clear()
 
-            if doctor.is_banned:
-                logging.warning(sanitisationForLogs(f"Banned doctor {username} attempted to log in from {request.remote_addr}"))
-                return jsonify({"status": 400, "message": "This doctor account has been banned."})
+        if doctor.is_banned:
+            logger.warning(sanitisationForLogs(f"Banned doctor {username} attempted to log in from {request.remote_addr}"))
+            return jsonify({"status": 403, "message": "This account has been banned."}), 403
 
-            if doctor.is_suspended:
-                logging.warning(sanitisationForLogs(f"Suspended doctor {username} attempted to log in from {request.remote_addr}. Reason: {doctor.suspension_reason}"))
-                return jsonify({"status": 400, "message": "This doctor account has been suspended."})
+        if doctor.is_suspended:
+            logger.warning(sanitisationForLogs(f"Suspended doctor {username} attempted to log in from {request.remote_addr}"))
+            return jsonify({"status": 403, "message": f"This account has been suspended. Reason: {doctor.suspension_reason}"}), 403
 
-            if not doctor.check_password(password):
-                logger.warning(sanitisationForLogs(f"Incorrect password for doctor: {username} from {request.remote_addr}"))
-                return jsonify({"status": 400, "message": "The credentials provided are invalid."})
+        if not doctor.check_password(password):
+            logger.warning(sanitisationForLogs(f"Incorrect password for doctor: {username} from {request.remote_addr}"))
+            return jsonify({"status": 401, "message": "Incorrect credentials."}), 401
 
-            session.clear()
-            session['user']       = doctor.username
-            session['role']       = doctor.role
-            session['bio']        = doctor.bio
-            session['nhs_number'] = doctor.nhs_number
-            session['user_id']    = doctor.nhs_number
+        session.permanent = True
+        session['user']       = doctor.username
+        session['role']       = doctor.role
+        session['bio']        = doctor.bio
+        session['nhs_number'] = doctor.nhs_number
+        session['user_id']    = doctor.nhs_number
 
-            logger.info(sanitisationForLogs(f"Doctor logged in: {doctor.username} from {request.remote_addr}"))
-            return jsonify({"status": 200, "message": f"Doctor {session['user']} logged in."})
+        logger.info(sanitisationForLogs(f"Doctor logged in: {doctor.username} from {request.remote_addr}"))
+        return jsonify({"status": 200, "message": "Login successful."}), 200
 
-        else:
-            logger.error(sanitisationForLogs(f"Invalid doctor login form submission from {request.remote_addr}"))
-            return jsonify({"status": 400, "message": "Invalid login credentials provided."})
-
-    return jsonify({"status": 400, "message": "Incorrect data sending format."})
+    return jsonify({"status": 400, "message": "Invalid credentials format."}), 400
 
 @main.route('/doctor/register', methods=[ 'POST'])
 def doctor_register():
@@ -322,11 +321,11 @@ def doctor_register():
 
             logger.info(sanitisationForLogs(f"Doctor registration attempt for {forms.usernmae.data} from {request.remote_addr}"))
 
-            nhs_check = text("SELECT nhs_number FROM doctor WHERE nhs_number = :nhs_number")
+            nhs_check = text('SELECT nhs_number FROM "doctor" WHERE nhs_number = :nhs_number')
             if db.session.execute(nhs_check, {"nhs_number": forms.nhs_number.data}).first():
                 return jsonify({"status" : 400, "message" : "There already exists a doctor with that NHS number."}), 400
 
-            username_check = text("SELECT username FROM doctor WHERE username = :username")
+            username_check = text('SELECT username FROM "doctor" WHERE username = :username')
             if db.session.execute(username_check, {"username": forms.username.data}).first():
                 return jsonify({"status" : 400, "message" : "That username is taken. Please use a different username."}), 400
 
@@ -345,7 +344,7 @@ def doctor_register():
             )
 
             query = text("""
-                INSERT INTO doctor (nhs_number, first_name, last_name, username, password, role,
+                INSERT INTO "doctor" (nhs_number, first_name, last_name, username, password, role,
                                     date_of_birth, location, specialty, language, bio, availability)
                 VALUES (:nhs_number, :first_name, :last_name, :username, :password, :role,
                         :date_of_birth, :location, :specialty, :language, :bio, :availability)
@@ -394,7 +393,7 @@ def doctorDashboard():
         logger.warning(sanitisationForLogs(f"Forbidden access to doctor dashboard: role={session.get('role')} from {request.remote_addr}"))
         return jsonify({"status" : 400, "message" : "incorrect role provided"})
     try:
-        query = text("SELECT * from Chat WHERE  doctor_nhs_number = :doctor_nhs)number")
+        query = text('SELECT * from "Chat" WHERE  doctor_nhs_number = :doctor_nhs_number')
         row = db.session.execute(query, {"doctor_nhs_number": data["nhs number"]}).mappings().first()
     except:
         return jsonify({"status" : 400, "message" : "the data is unreachable"})
@@ -432,7 +431,7 @@ def change_password():
             logger.warning(sanitisationForLogs(f"Password change attempt for {username}"))
 
             if role == 'doctor':
-                query = text("SELECT * FROM doctor WHERE username = :username LIMIT 1")
+                query = text('SELECT * FROM "doctor" WHERE username = :username LIMIT 1')
                 row = db.session.execute(query, {"username": username}).mappings().first()
                 if not row:
                     session.clear()
@@ -440,7 +439,7 @@ def change_password():
                 account          = db.session.get(Doctor, row['nhs_number'])
                 password_correct = account.check_password(current_password) if account else False
             else:
-                query   = text("SELECT * FROM user WHERE username = :username LIMIT 1")
+                query   = text('SELECT * FROM "user" WHERE username = :username LIMIT 1')
                 row     = db.session.execute(query, {"username": username}).mappings().first()
                 if not row:
                     session.clear()
@@ -486,7 +485,7 @@ def getDoctor():
     data = request.get_json()
     filterValues = ["location", "language", "specialty", "gender", "min_rating"]
     if not any(key in request.args for key in filterValues):
-        query = text("SELECT * FROM doctor")
+        query = text('SELECT * FROM "doctor"')
         doctors = db.session.execute(query).mappings().all()
         return jsonify({ "status" : 200,"objects": [dict(d) for d in doctors]})
     try:
@@ -504,7 +503,7 @@ def getDoctor():
             filters['rating'] = data["min_rating"]
 
         query = " AND ".join(f"{filter} = :{filter}" for filter in filters)
-        executeQuery = text(f"SELECT * FROM doctor WHERE {query}")
+        executeQuery = text(f'SELECT * FROM "doctor" WHERE {query}')
         doctors = db.session.execute(executeQuery, filters).mappings().all()
         return jsonify([dict(d) for d in doctors])
     except:
@@ -519,7 +518,7 @@ def caseSelector():
     if not data.get("caseID") or data.get("action") not in ('accept', 'reject'):
         return jsonify({"error": "provide a case_id and action"}), 400
 
-    caseQuery = text("SELECT id, status FROM cases WHERE id = :caseID")
+    caseQuery = text('SELECT id, status FROM "cases" WHERE id = :caseID')
     result = db.session.execute(caseQuery, {"caseID": data["caseID"]}).mappings()
 
     if not result:
@@ -529,7 +528,7 @@ def caseSelector():
         return jsonify({"error": "case is already taken"}), 404
 
     if data["action"] == "accept":
-        query = text("UPDATE cases SET status = 'claimed', doctor_username = :username WHERE id = :caseID")
+        query = text('UPDATE "cases" SET status = \'claimed\', doctor_username = :username WHERE id = :caseID')
         db.session.execute(query, {"username": session['user'], "caseID": data["caseID"]})
         db.session.commit()
         return jsonify({"message": "case accepted", "case_id": data["caseID"]}), 200
@@ -688,7 +687,6 @@ def chat(chat_id):
 
     role = session.get('role')
 
-    # FR9 — only the two participants can access this chat
     if role == 'user':
         if chat_obj.sender_id != session.get('user_id'):
             logger.warning(sanitisationForLogs(f"Unauthorized chat access by user {session.get('user')} from {request.remote_addr}"))
@@ -1288,7 +1286,7 @@ def widthdraw_chat():
     
     username = session.get('user')
     user_row = db.session.execute(
-        text("SELECT id FROM user WHERE username = :u"), {"u": username}).mappings().first()
+        text('SELECT id FROM "user" WHERE username = :u'), {"u": username}).mappings().first()
 
     if user_row is None:
         session.clear()
