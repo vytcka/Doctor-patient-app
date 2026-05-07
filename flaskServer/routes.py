@@ -64,8 +64,7 @@ def get_current_user():
 
     if data is None:
         return None
-    username = data.get("username")    
-    return None
+    username = data.get("username")
     return User.query.filter_by(username=username).first()
     
 
