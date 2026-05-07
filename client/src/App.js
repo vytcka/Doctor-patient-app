@@ -16,6 +16,7 @@ import SignupChoice from "./SignupChoice";
 import DoctorSignup from "./DoctorSignup";
 import DoctorDashboard from "./DoctorDashboard";
 import ModeratorDashboard from './ModeratorDashboard';    
+import DoctorProfile from './DoctorProfile';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
@@ -41,6 +42,7 @@ function App() {
         <Route path="/doctorsignup" element={<DoctorSignup />} />
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
         <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
+        <Route path="/doctor/:id" element={<DoctorProfile />} />
       </Routes>
     </BrowserRouter>
   );
