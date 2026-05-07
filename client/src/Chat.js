@@ -5,15 +5,22 @@ import Icon from "./LogoIcon.png";
 
 export default function Chat({ isLoggedIn }) {
   const navigate = useNavigate();
+  // State for chat messages
   const [messages, setMessages] = useState(initialMessages);
+  // Current message input text
   const [input, setInput] = useState("");
+  // Toggle for user profile slide-out panel
   const [panelOpen, setPanelOpen] = useState(false);
+  // Toggle for report submission modal
   const [reportOpen, setReportOpen] = useState(false);
+  // Form data for report submission
   const [reportForm, setReportForm] = useState({ reason: "", details: "" });
+  // Confirmation state after report submission
   const [reportSubmitted, setReportSubmitted] = useState(false);
 
+  // Current logged-in user data (from dummy data)
   const currentUser = users.u1;
-
+  // Additional user profile information
   const user = {
     username: "Johndoe1",
     email: "johndoe@email.com",
@@ -51,6 +58,7 @@ export default function Chat({ isLoggedIn }) {
     );
   }
 
+  // Send a new message to the chat
   function sendMessage() {
     if (!input.trim()) return;
     const newMsg = {
@@ -63,6 +71,7 @@ export default function Chat({ isLoggedIn }) {
     setInput("");
   }
 
+  // Submit a report about the chat/conversation
   function submitReport() {
     console.log("Report submitted:", reportForm);
     setReportSubmitted(true);
@@ -75,7 +84,7 @@ export default function Chat({ isLoggedIn }) {
 
   return (
     <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-      {/* Navbar */}
+      {/* Navigation bar with app logo and action buttons */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
@@ -101,10 +110,10 @@ export default function Chat({ isLoggedIn }) {
         </div>
       </div>
 
-      {/* Chat + slide-out panel wrapper */}
+      {/* Chat interface + slide-out profile panel container */}
       <div style={{ display: "flex", position: "relative" }}>
 
-        {/* Chat area */}
+        {/* Main chat messages display area */}
         <div style={styles.container}>
           <div style={styles.messages}>
             {messages.map(msg => {
@@ -126,6 +135,7 @@ export default function Chat({ isLoggedIn }) {
             })}
           </div>
 
+          {/* Message input and action buttons row */}
           <div style={styles.inputRow}>
             <input
               style={styles.input}
@@ -139,7 +149,7 @@ export default function Chat({ isLoggedIn }) {
           </div>
         </div>
 
-        {/* Slide-out profile panel */}
+        {/* Slide-out user profile panel */}
         {panelOpen && (
           <div style={{ width: "260px", backgroundColor: "white", borderLeft: "1px solid #ccd9ee", padding: "24px 20px", boxShadow: "-4px 0 12px rgba(0,0,0,0.08)", display: "flex", flexDirection: "column", gap: "12px" }}>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -160,7 +170,7 @@ export default function Chat({ isLoggedIn }) {
         )}
       </div>
 
-      {/* Report Modal */}
+      {/* Report submission modal overlay */}
       {reportOpen && (
         <div onClick={() => setReportOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 8, padding: 24, width: 400, maxWidth: "90vw", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}>
@@ -203,10 +213,16 @@ export default function Chat({ isLoggedIn }) {
 }
 
 const styles = {
+  // Main chat container styling
   container: { flex: 1, height: "80vh", width: "100%", display: "flex", flexDirection: "column", padding: 20, background: "#f3f4f6" },
+  // Messages list container
   messages: { flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", paddingBottom: 20 },
+  // Individual message bubble styling
   message: { maxWidth: "60%", padding: "10px 14px", borderRadius: 12, display: "flex", flexDirection: "column", gap: 4 },
+  // Input field and buttons row
   inputRow: { display: "flex", gap: 10 },
+  // Text input field
   input: { flex: 1, padding: 10, borderRadius: 8, border: "1px solid #ccc" },
+  // Action buttons (Send, Report)
   button: { padding: "10px 16px", borderRadius: 8, background: "#3b82f6", color: "white", border: "none", cursor: "pointer" }
 };
