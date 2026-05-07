@@ -5,6 +5,7 @@ import Icon from './LogoIcon.png';
 function Dashboard({ isLoggedIn }) {
   const navigate = useNavigate();
 
+  // User profile data (currently hardcoded for demo)
   const [user] = useState({
     username: "Johndoe1",
     email: "johndoe@email.com",
@@ -12,6 +13,7 @@ function Dashboard({ isLoggedIn }) {
     points: 3,
   });
 
+  // Redirect to login if user is not authenticated
   if (!isLoggedIn) {
     return (
       <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
@@ -43,7 +45,7 @@ function Dashboard({ isLoggedIn }) {
 
   return (
     <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-      {/* Navbar */}
+      {/* Navigation bar with app logo and action buttons */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
@@ -62,7 +64,7 @@ function Dashboard({ isLoggedIn }) {
         </div>
       </div>
 
-      {/* Profile Card */}
+      {/* User profile information card */}
       <div style={{ maxWidth: "420px", margin: "40px auto", backgroundColor: "white", borderRadius: "12px", padding: "40px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", textAlign: "center" }}>
         <div style={{ width: "80px", height: "80px", borderRadius: "50%", backgroundColor: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.2rem", color: "white", margin: "0 auto 16px auto" }}>
           👤
