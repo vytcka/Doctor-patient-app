@@ -81,6 +81,13 @@ function Dashboard({ isLoggedIn }) {
           <Link to="/Settings" style={{ textDecoration: "none" }}>
             <button style={{ width: "100%", backgroundColor: "#f0f4ff", color: "#1b4cb6", padding: "10px", borderRadius: "6px", border: "1px solid #ccd9ee", cursor: "pointer", fontWeight: "bold" }}>Settings</button>
           </Link>
+          <button 
+            onClick={() => {
+              navigate('/login-choice');
+            }} 
+            style={{ width: "100%", backgroundColor: "#f0f4ff", color: "#e53e3e", padding: "10px", borderRadius: "6px", border: "1px solid #e53e3e", cursor: "pointer", fontWeight: "bold" }}>
+            Log Out
+          </button>
         </div>
       </div>
     </div>

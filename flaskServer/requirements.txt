@@ -10,3 +10,4 @@ flask_talisman
 flask_cors
 psycopg2-binary
 pytest
+email_validator
