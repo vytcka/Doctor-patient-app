@@ -5,7 +5,7 @@ from sqlalchemy import text
 from flaskServer import db
 from flaskServer.models import (
     Message, Notification, Request, User, Doctor, Decypher, Chat,
-    Review, Report, ModeratorNotification,
+    Review, Report, ModeratorNotification, Moderator
 )
 """differrent chat statusses:  CHAT_STATUS_ACTIVE, CHAT_STATUS_WITHDRAWN, CHAT_STATUS_CLOSED,
     REQUEST_STATUS_PENDING, REQUEST_STATUS_ACCEPTED, REQUEST_STATUS_REJECTED"""
@@ -64,8 +64,7 @@ def get_current_user():
 
     if data is None:
         return None
-    username = data.get("username")    
-    return None
+    username = data.get("username")
     return User.query.filter_by(username=username).first()
     
 
@@ -242,11 +241,61 @@ def register():
             "status": 400,
             "errors": listOfErrors
         })
-    return jsonify({"status" : 400, "message" : "Please input some data."})
+    return jsonify({"message" : "Please input some data."})
 
+@main.route('/moderator/login', methods=['POST'])
+def moderator_login():
+    """Moderator login route authenticates moderator accounts.
+    On success, stores username and role in the session.
+ 
+    Returns:
+        JSON response with status and message.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": 400, "message": "No data provided"}), 400
+ 
+    username = data.get("username")
+    password = data.get("password")
+ 
+    if not username or not password:
+        return jsonify({"status": 400, "message": "Username and password are required"}), 400
+ 
+    moderator = Moderator.query.filter_by(username=username).first()
+ 
+    if not moderator:
+        logger.warning(sanitisationForLogs(
+            f"Failed moderator login for unknown user '{username}' from {request.remote_addr}"
+        ))
+        return jsonify({"status": 400, "message": "No moderator account with that username exists"}), 400
+ 
+    if not moderator.check_hash(password):
+        logger.warning(sanitisationForLogs(
+            f"Incorrect password for moderator '{username}' from {request.remote_addr}"
+        ))
+        return jsonify({"status": 400, "message": "Incorrect credentials"}), 400
+ 
+    session.clear()
+    session.permanent = True
+    session["user"]   = moderator.username
+    session["role"]   = "moderator"
+    session["mod_id"] = moderator.id
+ 
+    logger.info(sanitisationForLogs(
+        f"Moderator logged in: '{moderator.username}' from {request.remote_addr}"
+    ))
+    return jsonify({"status": 200, "message": "Moderator login successful"}), 200
 
 @main.route('/doctor/login', methods=['POST'])
 def doctor_login():
+    """Doctor login route is responsible for authenticating doctor accounts.
+    On a successful login the doctor's username, role, NHS number, and encrypted
+    bio are stored in the session and the doctor is redirected to the doctor dashboard.
+
+    Returns:
+        renders doctor_login.html on GET or failed POST, redirects to doctor_dashboard on success.
+    """
+    error = None
     data = request.get_json()
     if not data:
         return jsonify({"status": 400, "message": "No data provided."}), 400
@@ -582,10 +631,114 @@ def view_requests():
     """
     if session.get('role') != 'doctor':
         logger.warning(sanitisationForLogs(f"Unauthorized access attempt to view requests by user {session.get('user')} from {request.remote_addr}"))
-        return jsonify({"status" : 403, "message" : "You need to be logged in as a doctor to view requests."}), 403
+        return jsonify({"status": 403, "message": "You need to be logged in as a doctor to view this page."}), 403
 
-    pending_requests = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
-    return jsonify({"status" : 200, "requests" : pending_requests}), 200
+    approved_requests = Request.query.filter_by(status="REQUEST_STATUS_APPROVED").all()
+    return jsonify({
+        "status": 200,
+        "requests": [
+            {
+                "id":               r.id,
+                "user_id":          r.user_id,
+                "age":              r.age,
+                "symptoms":         r.symptoms,
+                "symptoms_details": r.symptoms_details,
+                "family_issues":    r.family_issues,
+                "family_details":   r.family_details,
+            }
+            for r in approved_requests
+        ]
+    }), 200
+
+
+@main.route('/moderator/pending_requests', methods=['GET'])
+def moderator_pending_requests():
+    """Moderator views all requests that are awaiting review.
+
+    Returns:
+        JSON list of pending requests.
+    """
+    if session.get('role') != 'moderator':
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator"}), 403
+
+    pending = Request.query.filter_by(status="REQUEST_STATUS_PENDING").all()
+    return jsonify({
+        "status": 200,
+        "pending_requests": [
+            {
+                "id":               r.id,
+                "user_id":          r.user_id,
+                "age":              r.age,
+                "symptoms":         r.symptoms,
+                "symptoms_details": r.symptoms_details,
+                "family_issues":    r.family_issues,
+                "family_details":   r.family_details,
+            }
+            for r in pending
+        ]
+    }), 200
+
+
+@main.route('/moderator/approve_request', methods=['POST'])
+def moderator_approve_request():
+    """Moderator approves a patient request so it becomes visible to doctors.
+
+    Expected JSON body: { "request_id": <int> }
+
+    Returns:
+        JSON response with status and message.
+    """
+    if session.get('role') != 'moderator':
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator"}), 403
+
+    data = request.get_json()
+    if not data or "request_id" not in data:
+        return jsonify({"status": 400, "message": "request_id is required"}), 400
+
+    req = db.session.get(Request, data["request_id"])
+    if not req:
+        return jsonify({"status": 404, "message": "Request not found"}), 404
+
+    if req.status != "REQUEST_STATUS_PENDING":
+        return jsonify({"status": 400, "message": "Request is not in a pending state"}), 400
+
+    req.status = "REQUEST_STATUS_APPROVED"
+    db.session.commit()
+    logger.info(sanitisationForLogs(
+        f"Moderator '{session.get('user')}' approved request {data['request_id']}"
+    ))
+    return jsonify({"status": 200, "message": "Request approved — now visible to doctors"}), 200
+
+
+@main.route('/moderator/reject_request', methods=['POST'])
+def moderator_reject_request():
+    """Moderator rejects a patient request so it is never shown to doctors.
+
+    Expected JSON body: { "request_id": <int> }
+
+    Returns:
+        JSON response with status and message.
+    """
+    if session.get('role') != 'moderator':
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator"}), 403
+
+    data = request.get_json()
+    if not data or "request_id" not in data:
+        return jsonify({"status": 400, "message": "request_id is required"}), 400
+
+    req = db.session.get(Request, data["request_id"])
+    if not req:
+        return jsonify({"status": 404, "message": "Request not found"}), 404
+
+    if req.status != "REQUEST_STATUS_PENDING":
+        return jsonify({"status": 400, "message": "Request is not in a pending state"}), 400
+
+    req.status = "REQUEST_STATUS_REJECTED"
+    db.session.commit()
+    logger.info(sanitisationForLogs(
+        f"Moderator '{session.get('user')}' rejected request {data['request_id']}"
+    ))
+    return jsonify({"status": 200, "message": "Request rejected"}), 200
 
 
 
@@ -824,14 +977,58 @@ def approveReview():
         redirects to reviewRequest.
     """
     if session.get('role') != 'moderator':
-        return jsonify({"status" : 400, "message" : "you need to be logged in as a moderator to perform this action"})
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator to perform this action"}), 403
 
-    review_id = request.form.get('review_id')
-    review = db.session.get(Review, review_id)
-    if review:
-        review.approveReview()
-        db.session.commit()
-    return jsonify({"status" : 200, "message" : "review approved successfully"})
+    data = request.get_json()
+    if not data or "review_id" not in data:
+        return jsonify({"status": 400, "message": "review_id is required"}), 400
+
+    review = db.session.get(Review, data["review_id"])
+    if not review:
+        return jsonify({"status": 404, "message": "Review not found"}), 404
+
+    review.approveReview()
+
+    # Recalculate the doctor's average rating from all approved reviews
+    approved = Review.query.filter_by(doctor_id=review.doctor_id, status=True).all()
+    if approved:
+        avg = round(sum(r.rating for r in approved) / len(approved), 1)
+        doctor = db.session.get(Doctor, review.doctor_id)
+        if doctor:
+            doctor.set_rating(avg)
+
+    db.session.commit()
+    logger.info(sanitisationForLogs(
+        f"Moderator '{session.get('user')}' approved review {data['review_id']}"
+    ))
+    return jsonify({"status": 200, "message": "Review approved successfully"}), 200
+
+
+@main.route('/reject_review', methods=['POST'])
+def rejectReview():
+    """FR13 — Reject a pending review so it is removed without appearing on the doctor's profile.
+    Only moderators may call this route.
+
+    Returns:
+        JSON response with status and message.
+    """
+    if session.get('role') != 'moderator':
+        return jsonify({"status": 403, "message": "You need to be logged in as a moderator to perform this action"}), 403
+
+    data = request.get_json()
+    if not data or "review_id" not in data:
+        return jsonify({"status": 400, "message": "review_id is required"}), 400
+
+    review = db.session.get(Review, data["review_id"])
+    if not review:
+        return jsonify({"status": 404, "message": "Review not found"}), 404
+
+    db.session.delete(review)
+    db.session.commit()
+    logger.info(sanitisationForLogs(
+        f"Moderator '{session.get('user')}' rejected and deleted review {data['review_id']}"
+    ))
+    return jsonify({"status": 200, "message": "Review rejected and removed"}), 200
 
 
 @main.route('/requestAppointment', methods=['POST'])

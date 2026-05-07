@@ -77,3 +77,6 @@ Since `Tailwind` gives a lot of styling utilities out of the box, we’ll be usi
 
 in the requirements file you will see the command to run it
 
+pytest flaskServer/tests/ -v
+
+

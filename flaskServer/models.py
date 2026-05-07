@@ -350,6 +350,88 @@ class Doctor(db.Model):
         """
         return True
 
+class Moderator(db.Model):
+    """Moderator model represents a platform moderator account.
+    Moderators can view reported chats, approve/reject reviews, and
+    ban or suspend user and doctor accounts.
+    """
+ 
+    __tablename__ = 'moderator'
+ 
+    id       = db.Column(db.Integer,     primary_key=True)
+    username = db.Column(db.String(80),  unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    role     = db.Column(db.String(50),  default='moderator', nullable=False)
+    bio      = db.Column(db.String(3000), nullable=False)
+
+ 
+    def _hash_password(self, password: str) -> str:
+        """Hash the supplied plain-text password with bcrypt + pepper.
+ 
+        Args:
+            password (str): Plain-text password to hash.
+ 
+        Returns:
+            str: bcrypt hash stored as a UTF-8 string.
+        """
+        peppered = password + PEPPER
+        hashed = bcrypt.hashpw(peppered.encode('utf-8'), bcrypt.gensalt(8))
+        return hashed.decode('utf-8')
+ 
+    def check_hash(self, password: str) -> bool:
+        """Verify a plain-text password against the stored hash.
+ 
+        Args:
+            password (str): Plain-text password supplied at login.
+ 
+        Returns:
+            bool: True if the password matches, False otherwise.
+        """
+        peppered = password + PEPPER
+        return bcrypt.checkpw(peppered.encode('utf-8'), self.password.encode('utf-8'))
+ 
+    def _encrypt_bio(self, bio: str) -> str:
+        """Encrypt the bio using the application-level Fernet key.
+ 
+        Args:
+            bio (str): Plain-text biography string.
+ 
+        Returns:
+            str: Base-64 encoded ciphertext stored as a UTF-8 string.
+        """
+        fernet = Fernet(ENCRYPTIONKEY)
+        return fernet.encrypt(bio.encode('utf-8')).decode('utf-8')
+ 
+    def set_password(self, password: str):
+        """Update the moderator's password (re-hashes the new value).
+ 
+        Args:
+            password (str): New plain-text password.
+        """
+        self.password = self._hash_password(password)
+ 
+    def set_bio(self, bio: str):
+        """Update the moderator's bio (re-encrypts the new value).
+ 
+        Args:
+            bio (str): New plain-text biography.
+        """
+        self.bio = self._encrypt_bio(bio)
+ 
+    def __init__(self, username: str, password: str, bio: str):
+        """Create a new Moderator.  Password is hashed and bio is encrypted
+        on construction so plain-text values are never persisted.
+ 
+        Args:
+            username (str): Unique login e-mail / username.
+            password (str): Plain-text password (will be hashed).
+            bio      (str): Short biography (will be encrypted).
+        """
+        self.username = username
+        self.password = self._hash_password(password)
+        self.role     = 'moderator'
+        self.bio      = self._encrypt_bio(bio)
+
 class Request(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     age = db.Column(db.Integer, nullable=False)
