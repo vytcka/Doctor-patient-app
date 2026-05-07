@@ -15,6 +15,7 @@ import DoctorLogin from "./DoctorLogin";
 import SignupChoice from "./SignupChoice";
 import DoctorSignup from "./DoctorSignup";
 import DoctorDashboard from "./DoctorDashboard";
+import ModeratorDashboard from './ModeratorDashboard';    
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -38,6 +39,7 @@ function App() {
         <Route path="/signup-choice" element={<SignupChoice />} />
         <Route path="/doctorsignup" element={<DoctorSignup />} />
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+        <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
       </Routes>
     </BrowserRouter>
   );
