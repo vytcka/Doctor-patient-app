@@ -6,6 +6,7 @@ import Icon from './LogoIcon.png';
 function Home({ isLoggedIn }) {
   return (
     <div>
+      {/* Navigation header with conditional login/logout buttons */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
