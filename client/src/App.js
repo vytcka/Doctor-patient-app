@@ -18,9 +18,10 @@ import DoctorDashboard from "./DoctorDashboard";
 import ModeratorDashboard from './ModeratorDashboard';    
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState(null);
-
+  const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || '');
+  const [username, setUsername] = useState(localStorage.getItem('username') || '');
+  const [userData, setUserData] = useState(JSON.parse(localStorage.getItem('userData')) || null);
   return (
     <BrowserRouter>
       <Routes>
@@ -28,11 +29,11 @@ function App() {
         <Route path="/Check" element={<Check />} />
         <Route path="/post-request" element={<PostRequest isLoggedIn={isLoggedIn} />} />
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
-        <Route path="/doctor/:id" element={<DoctorReview isLoggedIn={isLoggedIn} />} />
-        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
+        <Route path="/doctor-dashboard" element={<DoctorDashboard isLoggedIn={isLoggedIn} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData}setUsername={setUsername}/>} />
+        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} setUsername={setUsername} setUserData={setUserData} />} />
         <Route path="/signup" element={<Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
         <Route path="/chat" element={<Chat isLoggedIn={isLoggedIn} />} />
-        <Route path="/Dashboard" element={<Dashboard isLoggedIn={isLoggedIn} />} />
+        <Route path="/Dashboard" element={<Dashboard isLoggedIn={isLoggedIn} userData={userData} />} />
         <Route path="/Settings" element={<Settings isLoggedIn={isLoggedIn} />} />
         <Route path="/login-choice" element={<LoginChoice />} />
         <Route path="/doctorlogin" element={<DoctorLogin setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
-export default function Login({ setIsLoggedIn, setUserRole }) {
+export default function Login({ setIsLoggedIn, setUserRole, setUsername, setUserData  }) {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',
@@ -47,17 +47,23 @@ export default function Login({ setIsLoggedIn, setUserRole }) {
             if (data.status === 200) {
                 setIsLoggedIn(true);
                 setUserRole('user');
-                setSuccessMessage(data.message);
-                setErrorMessage("");
-                setTimeout(() => {
-                    navigate('/dashboard');
-                }, 1000);
+                setUsername(data.username);
+                setUserData(data.user);
+
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userRole', 'user');
+                localStorage.setItem('username', data.username);
+                localStorage.setItem('userData', JSON.stringify(data.user));
+
+                navigate('/dashboard');
+
             } else {
                 setErrorMessage(data.message);
                 setSuccessMessage("");
             }
 
         } catch (error) {
+            console.log(error + "checking")
             setErrorMessage("Server connection failed");
             setSuccessMessage("");
         }

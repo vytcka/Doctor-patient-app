@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Icon from './LogoIcon.png';
 import StarRating from './StarRating';
 
-function DoctorDashboard() {
+function DoctorDashboard({ isLoggedIn, userData, setIsLoggedIn, setUserData, setUsername }) {
   const navigate = useNavigate();
   // State for doctor's profile information
   const [doctor, setDoctor] = useState(null);
@@ -103,15 +103,14 @@ function DoctorDashboard() {
 };
 
   // Log out the doctor and redirect to home
-  const handleLogout = async () => {
-  try {
-    await fetch("http://127.0.0.1:5000/logout", {
-      credentials: "include"
-    });
-  } finally {
-    navigate('/');
-  }
-};
+const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserData(null);
+    setUsername('');
+    localStorage.clear();
+    navigate('/login');
+}
+
 
   if (loading) {
     return (
