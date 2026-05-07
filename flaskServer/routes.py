@@ -599,7 +599,7 @@ def new_request():
         return jsonify({"status" : 400, "message" : "You need to be logged in as a patient."}), 403
 
     form = request_form()
-    user = get_current_user()
+    user = session["username"]
 
     if form.validate_on_submit():
         new_request = Request(
@@ -757,7 +757,7 @@ def accept_request(request_id):
     if session.get('role') != 'doctor':
         return jsonify({"status" : 400, "message" : "you need to be logged in as a doctor to perform this action"})
 
-    doctor = get_current_doctor()
+    doctor = session["username"]
     medical_request = db.session.get(Request, request_id)
 
     if not medical_request or medical_request.status != "REQUEST_STATUS_PENDING":
@@ -1253,7 +1253,7 @@ def edit_review(review_id):
         return jsonify({"status" : 403, "message" : "You need to be logged in as a patient."}), 403
 
     review = db.session.get(Review, review_id)
-    user = get_current_user()
+    user = session["username"]
 
     if not review or review.user_id != user.id:
         flash('Review not found.')
@@ -1286,7 +1286,7 @@ def get_notifications():
     if session.get('role') != 'user':
         return jsonify({"status" : 403, "message" : "You need to be logged in as a patient."}), 403
 
-    user = get_current_user()
+    user = session["username"]
     user_notifications = Notification.query.filter_by(user_id=user.id).all()
 
     return render_template('notifications.html', notifications=user_notifications)
