@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
@@ -54,6 +55,7 @@ export default function DoctorLogin({ setIsLoggedIn, setUserRole }) {
                 setUserRole('doctor');
                 setSuccessMessage(data.message);
                 setErrorMessage("");
+                toast.success("Doctor login successful!");
                 setTimeout(() => {
                     navigate('/doctor-dashboard');
                 }, 1000);

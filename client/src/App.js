@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Home from "./Home";
 import Check from "./Check";
 import PostRequest from './PostRequest'; 
@@ -42,6 +44,7 @@ function App() {
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
         <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
       </Routes>
+      <ToastContainer />
     </BrowserRouter>
   );
 }
