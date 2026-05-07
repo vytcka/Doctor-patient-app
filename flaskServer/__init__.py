@@ -175,9 +175,17 @@ def create_app():
         }
     ]
 
+    moderators = [
+        {
+            "username": "moderator1@email.com",
+            "password": "Moderatorpass!23",
+            "bio": "Platform moderator responsible for reviewing reports and maintaining community standards."
+        }
+    ]
+
     with app.app_context():
         db.create_all()
-        from .models import User, Doctor, Review
+        from .models import User, Doctor, Review, Moderator
 
         if User.query.count() == 0:
             for user_data in users:
@@ -231,6 +239,16 @@ def create_app():
                 avg_rating = sum(ratings) / len(ratings)
                 doctor.set_rating(round(avg_rating, 1))
 
+            db.session.commit()
+
+        if Moderator.query.count() == 0:
+            for mod_data in moderators:
+                moderator = Moderator(
+                    username=mod_data["username"],
+                    password=mod_data["password"],
+                    bio=mod_data["bio"]
+                )
+                db.session.add(moderator)
             db.session.commit()
 
     CORS(app, supports_credentials=True)
