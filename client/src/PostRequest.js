@@ -164,24 +164,38 @@ function PostRequest({ isLoggedIn }) {
           {/* Family Issues */}
           <label style={labelStyle}>Do you have any family history of medical conditions?</label>
           <div style={{ display: "flex", gap: "30px", marginBottom: "20px" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#374151" }}>
-              <input
-                type="radio"
-                value="yes"
-                checked={familyIssues === "yes"}
-                onChange={(e) => setFamilyIssues(e.target.value)}
-              />
-              Yes
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#374151" }}>
-              <input
-                type="radio"
-                value="no"
-                checked={familyIssues === "no"}
-                onChange={(e) => setFamilyIssues(e.target.value)}
-              />
-              No
-            </label>
+            {["yes", "no"].map((option) => (
+              <label
+                key={option}
+                onClick={() => setFamilyIssues(option)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  cursor: "pointer",
+                  color: "#374151"
+                }}
+              >
+                {/* Custom radio circle */}
+                <div style={{
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  border: `2px solid ${familyIssues === option ? "#1b4cb6" : "#cbd5e1"}`,
+                  backgroundColor: familyIssues === option ? "#1b4cb6" : "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.15s ease",
+                  flexShrink: 0
+                }}>
+                  {familyIssues === option && (
+                    <span style={{ color: "white", fontSize: "12px", fontWeight: "bold", lineHeight: 1 }}>✓</span>
+                  )}
+                </div>
+                {option.charAt(0).toUpperCase() + option.slice(1)}
+              </label>
+            ))}
           </div>
 
           {/* Family Details - only show if yes */}
@@ -214,6 +228,7 @@ function PostRequest({ isLoggedIn }) {
               <img src={TickGif} alt="Submitted" style={{ width: "50px", height: "50px" }} />
             )}
           </div>
+
         </div>
       </div>
     </div>
