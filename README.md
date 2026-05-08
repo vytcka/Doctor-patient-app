@@ -55,6 +55,7 @@ Before running the project, ensure you have installed:
 - Node.js (https://nodejs.org/)
 - Python 3.10+
 - pip (Python package manager)
+- vscode-pdf (to view Contribution Matrix)
 
 ### Clone the repository
 ```bash
