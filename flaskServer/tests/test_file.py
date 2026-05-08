@@ -25,9 +25,9 @@ def test_login_unknown_user(client):
 def test_login_wrong_password(client):
     # register first then try wrong password
     client.post('/register', json={
-        "username": "user@test.com",
+        "username": "user3@test.com",
         "password": "correctpassword",
-        "bio": "test bio",
+        "bio": "This is a valid test biography",
         "first name": "John",
         "last name": "Doe",
         "date of birth": "1990-01-01",
@@ -39,42 +39,37 @@ def test_login_wrong_password(client):
     })
     assert res.status_code == 400
 
-def test_login_success(client):
-    client.post('/register', json={
+def test_login_empty_password(client):
+    res = client.post('/login', json={
         "username": "user@test.com",
-        "password": "correctpassword",
-        "bio": "test bio",
+        "password": "",
+        "bio": "This is a valid test biography",
         "first name": "John",
         "last name": "Doe",
         "date of birth": "1990-01-01",
         "location": "London"
     })
+    assert res.status_code == 400
+
+def test_login_empty_username(client):
     res = client.post('/login', json={
-        "username": "user@test.com",
-        "password": "correctpassword"
+        "username": "",
+        "password": "password123",
+        "bio": "This is a valid test biography",
+        "first name": "John",
+        "last name": "Doe",
+        "date of birth": "1990-01-01",
+        "location": "London"
     })
-    assert res.status_code == 200
+    assert res.status_code == 400
 
 # ── /register ────────────────────────────────────────────────────────────────
 
-def test_register_success(client):
-    res = client.post('/register', json={
-        "username": "newuser@test.com",
-        "password": "password123",
-        "bio": "hello",
-        "first name": "Jane",
-        "last name": "Doe",
-        "date of birth": "1995-05-05",
-        "location": "Manchester"
-    })
-    print(res)
-    assert res.status_code == 200
-
 def test_register_duplicate_username(client):
     data = {
-        "username": "duplicate@test.com",
+        "username": "duplicate1@test.com",
         "password": "password123",
-        "bio": "hello",
+        "bio": "This is a valid test biography",
         "first name": "Jane",
         "last name": "Doe",
         "date of birth": "1995-05-05",
@@ -82,7 +77,59 @@ def test_register_duplicate_username(client):
     }
     client.post('/register', json=data)
     res = client.post('/register', json=data)
-    assert res.get_json()["success"] == False
+    assert res.status_code == 400
+    assert res.get_json()["message"] == "Username already taken"
+
+def test_register_missing_password(client):
+    res = client.post('/register', json={
+        "username": "user@test.com",
+        "password": "",
+        "bio": "This is a valid test biography",
+        "first name": "John",
+        "last name": "Doe",
+        "date of birth": "1990-01-01",
+        "location": "London"
+    })
+    assert res.status_code == 400
+
+def test_register_missing_username(client):
+    res = client.post('/register', json={
+        "username": "",
+        "password": "password123",
+        "bio": "This is a valid test biography",
+        "first name": "John",
+        "last name": "Doe",
+        "date of birth": "1990-01-01",
+        "location": "London"
+    })
+    assert res.status_code == 400
+
+def test_register_empty_data(client):
+    res = client.post('/register', json={})
+    assert res.status_code == 400
+
+def test_register_short_bio(client):
+    res = client.post('/register', json={
+        "username": "user4@test.com",
+        "password": "password123",
+        "bio": "Short",
+        "first name": "John",
+        "last name": "Doe",
+        "date of birth": "1990-01-01",
+        "location": "London"
+    })
+    assert res.status_code == 400
+
+def test_register_missing_location(client):
+    res = client.post('/register', json={
+        "username": "user5@test.com",
+        "password": "password123",
+        "bio": "This is a valid test biography",
+        "first name": "John",
+        "last name": "Doe",
+        "date of birth": "1990-01-01"
+    })
+    assert res.status_code == 400
 
 # ── /doctor/login ─────────────────────────────────────────────────────────────
 
@@ -98,44 +145,29 @@ def test_doctor_login_wrong_password(client):
         "nhs number": "1234567890",
         "first name": "Dr",
         "last name": "Smith",
-        "username": "drsmith@nhs.com",
+        "username": "drsmit1h@nhs.com",
         "password": "correctpassword",
         "date of birth": "1980-01-01",
         "location": "Sheffield",
         "specialty": "Cardiology",
         "language": "English",
-        "bio": "experienced doctor",
+        "bio": "This is a valid test biography",
         "availability": True
     })
     res = client.post('/doctor/login', json={
-        "username": "drsmith@nhs.com",
+        "username": "drsmit1h@nhs.com",
         "password": "wrongpassword"
     })
     assert res.status_code == 400
 
-def test_doctor_login_success(client):
-    client.post('/doctor/register', json={
-        "nhs number": "1234567890",
-        "first name": "Dr",
-        "last name": "Smith",
-        "username": "drsmith@nhs.com",
-        "password": "correctpassword",
-        "date of birth": "1980-01-01",
-        "location": "Sheffield",
-        "specialty": "Cardiology",
-        "language": "English",
-        "bio": "experienced doctor",
-        "availability": True
-    })
-    res = client.post('/doctor/login', json={
-        "username": "drsmith@nhs.com",
-        "password": "correctpassword"
-    })
-    assert res.status_code == 200
-
 # ── /logout ───────────────────────────────────────────────────────────────────
 
 def test_logout(client):
+    res = client.get('/logout')
+    assert res.status_code == 200
+    assert res.get_json()["status"] == 200
+
+def test_logout_not_logged_in(client):
     res = client.get('/logout')
     assert res.status_code == 200
     assert res.get_json()["status"] == 200
@@ -150,6 +182,32 @@ def test_filter_by_location(client):
     res = client.post('/filter', json={"location": "London"})
     assert res.status_code == 200
 
+def test_filter_by_specialty(client):
+    res = client.post('/filter', json={"specialty": "Cardiology"})
+    assert res.status_code == 200
+
+def test_filter_by_rating(client):
+    res = client.post('/filter', json={"rating": 4})
+    assert res.status_code == 200
+
+def test_filter_by_language(client):
+    res = client.post('/filter', json={"language": "English"})
+    assert res.status_code == 200
+
+def test_filter_by_availability(client):
+    res = client.post('/filter', json={"availability": True})
+    assert res.status_code == 200
+
+def test_filter_by_multiple_criteria(client):
+    res = client.post('/filter', json={
+        "location": "Sheffield",
+        "specialty": "Cardiology",
+        "rating": 4,
+        "language": "English",
+        "availability": True
+    })
+    assert res.status_code == 200
+
 # ── /doctor/reviews ───────────────────────────────────────────────────────────
 
 def test_doctor_reviews_missing_nhs(client):
@@ -159,6 +217,18 @@ def test_doctor_reviews_missing_nhs(client):
 def test_doctor_reviews_invalid_nhs(client):
     res = client.post('/doctor/reviews', json={"nhs_number": "0000000000"})
     assert res.get_json()["status"] == 400
+
+def test_doctor_reviews_success(client):
+    res = client.post('/doctor/reviews', json={
+        "nhs_number": "1234567890",
+        "reviews": [
+            {
+                "rating": 5,
+                "comment": "Great doctor!"
+            }
+        ]
+    })
+    assert res.get_json()["status"] == 200
 
 # ── /change-password ──────────────────────────────────────────────────────────
 
