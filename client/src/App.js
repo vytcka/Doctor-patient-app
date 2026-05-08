@@ -20,6 +20,7 @@ import DoctorDashboard from "./DoctorDashboard";
 import ModeratorDashboard from './ModeratorDashboard';    
 import DoctorProfile from './DoctorProfile';
 import SymptomChecker from './SymptomChecker';
+import MyRequests from './MyRequests';
 
 
 function App() {
@@ -33,7 +34,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home isLoggedIn={isLoggedIn} userRole={userRole} />} />
         <Route path="/Check" element={<Check />} />
-        <Route path="/post-request" element={<PostRequest isLoggedIn={isLoggedIn} />} />
+        <Route path="/post-request" element={<PostRequest isLoggedIn={isLoggedIn} userData={userData} />} />
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} setUsername={setUsername} setUserData={setUserData} />} />
         <Route path="/signup" element={<Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
@@ -48,7 +49,8 @@ function App() {
         <Route path="/doctor-dashboard" element={<DoctorDashboard isLoggedIn={isLoggedIn} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername} />} />
         <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
         <Route path="/doctor/:id" element={<DoctorProfile />} />
-        <Route path="/symptomchecker" element={<SymptomChecker isLoggedIn={isLoggedIn} />} />
+        <Route path="/symptomchecker" element={<SymptomChecker isLoggedIn={isLoggedIn} userData={userData} />} />
+        <Route path="/my-requests" element={<MyRequests isLoggedIn={isLoggedIn} userData={userData} />} />
       </Routes>
       <ToastContainer />
     </BrowserRouter>

@@ -664,33 +664,70 @@ def new_request():
     Returns:
         renders new_request.html on GET or failed POST, redirects to user_dashboard on success.
     """
-    if session.get('role') != 'user':
-        return jsonify({"status" : 400, "message" : "You need to be logged in as a patient."}), 403
+    username = session.get('username') or request.headers.get('X-Username')
+    if not username:
+        return jsonify({"status": 400, "message": "You need to be logged in."}), 403
 
-    form = request_form()
-    user = session["username"]
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"status": 400, "message": "User not found."}), 404
 
-    if form.validate_on_submit():
-        new_request = Request(
+    pending_count = Request.query.filter_by(
+        user_id=user.id,
+        status="REQUEST_STATUS_PENDING"
+    ).count()
+
+    if pending_count >= 2:
+        return jsonify({"status": 400, "message": "You already have 2 pending requests. Please wait for them to be reviewed."}), 400
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": 400, "message": "No data provided."}), 400
+
+    try:
+        new_req = Request(
             user_id          = user.id,
-            age              = form.age.data,
-            symptoms         = form.symptoms.data,
-            symptoms_details = form.symptoms_details.data,
-            family_issues    = form.family_issues.data,
-            family_details   = form.family_details.data,
+            age              = data.get('age'),
+            symptoms         = data.get('symptoms'),
+            symptoms_details = data.get('symptoms_details'),
+            family_issues    = bool(data.get('family_issues', False)),
+            family_details   = data.get('family_details', ''),
+            existing_issues  = bool(data.get('existing_issues', False)),
+            existing_details = data.get('existing_details', '')
         )
-        try:
-            db.session.add(new_request)
-            db.session.commit()
-            flash('Your request has been submitted successfully.')
-            return jsonify({"status" : 200, "message" : "Your request has been submitted successfully."})
-        except Exception as e:
-            db.session.rollback()
-            logger.error(sanitisationForLogs(f"Error submitting medical request for user {session.get('user')}: {str(e)}"))
-            flash('An error occurred while submitting your request. Please try again.')
-            return jsonify({"status" : 400, "message" : "An error occurred while submitting your request. Please try again."})
+        db.session.add(new_req)
+        db.session.commit()
+        logger.info(sanitisationForLogs(f"Medical request submitted by {username}"))
+        return jsonify({"status": 200, "message": "Your request has been submitted successfully."})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(sanitisationForLogs(f"Error submitting medical request for {username}: {str(e)}"))
+        return jsonify({"status": 400, "message": "An error occurred while submitting your request."}), 400
+    
+@main.route('/my-requests', methods=['GET'])
+def my_requests():
+    username = session.get('username') or request.headers.get('X-Username')
+    if not username:
+        return jsonify({"status": 400, "message": "Not logged in"}), 400
 
-    return jsonify({"status" : 400, "message" : "Invalid form data."})
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"status": 400, "message": "User not found"}), 404
+
+    requests = Request.query.filter_by(user_id=user.id).order_by(Request.created_at.desc()).all()
+    return jsonify({
+        "status": 200,
+        "requests": [
+            {
+                "id":              r.id,
+                "age":             r.age,
+                "symptoms":        r.symptoms,
+                "symptoms_details": r.symptoms_details,
+                "status":          r.status,
+                "created_at":      r.created_at.isoformat()
+            } for r in requests
+        ]
+    }), 200
 
 @main.route('/view-requests')
 def view_requests():
@@ -1190,29 +1227,37 @@ def rejectReview():
 
 @main.route('/requestAppointment', methods=['POST'])
 def requestAppointment():
-    """Request appointment route submits a medical request from a patient.
-    Returns:
-        redirects to dashboard.
-    """
+    username = session.get('username') or request.headers.get('X-Username')
+    if not username:
+        return jsonify({"status": 400, "message": "You need to be logged in."}), 403
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"status": 400, "message": "User not found."}), 404
+
+    pending_count = Request.query.filter_by(
+        user_id=user.id,
+        status="REQUEST_STATUS_PENDING"
+    ).count()
+    if pending_count >= 2:
+        return jsonify({"status": 400, "message": "You already have 2 pending requests."}), 400
+
     data = request.get_json()
-    if 'username' not in session:
-        return jsonify({"status" : 400, "message" : "you need to be logged in to view this page."}), 403
 
     request_obj = Request(
-        age = data.get('age'),
-        symptoms = data.get('symptoms'),
+        age              = data.get('age'),
+        symptoms         = data.get('symptoms'),
         symptoms_details = data.get('symptoms_details'),
-        family_issues = bool(data.get('family_issues')),
-        family_details = data.get('family_details'),
-        existing_issues = bool(data.get('existing_issues')),
-        existing_details = data.get('existing_details'),
-        user_id = session['user_id']
+        family_issues    = bool(data.get('family_issues', False)),
+        family_details   = data.get('family_details', ''),
+        existing_issues  = bool(data.get('existing_issues', False)),
+        existing_details = data.get('existing_details', ''),
+        user_id          = user.id
     )
 
     db.session.add(request_obj)
     db.session.commit()
 
-    flash("Appointment request submitted")
     return jsonify({"status": 200, "message": "Appointment request submitted"}), 200
 
 

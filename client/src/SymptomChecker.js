@@ -13,7 +13,7 @@ const BODY_REGIONS = {
   back: { label: "Back", symptoms: ["Lower back pain", "Upper back pain", "Stiffness", "Muscle spasm"] },
 };
 
-export default function SymptomChecker({ isLoggedIn }) {
+export default function SymptomChecker({ isLoggedIn, userData }) {
   const navigate = useNavigate();
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
@@ -52,11 +52,7 @@ export default function SymptomChecker({ isLoggedIn }) {
     );
   }
 
-  const handleSubmit = async () => {
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
+ const handleSubmit = async () => {
     if (selectedSymptoms.length === 0) {
       setError("Please select at least one symptom.");
       return;
@@ -66,7 +62,10 @@ export default function SymptomChecker({ isLoggedIn }) {
       const response = await fetch("http://127.0.0.1:5000/requestAppointment", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Username": userData?.username || "" 
+        },
         body: JSON.stringify({
           age: null,
           symptoms: selectedRegion,
@@ -78,7 +77,7 @@ export default function SymptomChecker({ isLoggedIn }) {
         })
       });
       const data = await response.json();
-      if (response.ok) {
+      if (data.status === 200) {
         setSubmitted(true);
       } else {
         setError(data.message || "Failed to submit.");
@@ -86,8 +85,7 @@ export default function SymptomChecker({ isLoggedIn }) {
     } catch {
       setError("Could not reach server.");
     }
-  };
-
+};
   return (
     <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
       {/* Navbar */}

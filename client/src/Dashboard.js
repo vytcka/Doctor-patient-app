@@ -76,6 +76,8 @@ function Dashboard({ isLoggedIn, username, userData, setIsLoggedIn, setUserData,
           <Link to="/search"><button style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>Find a Doctor</button></Link>
           <Link to="/chat"><button style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>Chats</button></Link>
           <Link to="/symptomchecker"><button style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>🩺 Symptoms</button></Link>
+          <Link to="/my-requests" style={{ textDecoration: "none" }}>
+    <button style={{ width: "100%", backgroundColor: "#3b82f6", color: "white", padding: "12px", borderRadius: "10px", border: "1px solid #ccd9ee", cursor: "pointer", fontWeight: "600", fontSize: "0.95rem", maxHeight: 40}}>My Requests</button></Link>
           <button onClick={handleLogout} style={{ backgroundColor: "#ef4444", color: "white", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>Logout</button>
         </div>
         </div>

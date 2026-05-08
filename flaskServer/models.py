@@ -446,7 +446,7 @@ class Request(db.Model):
     existing_details = db.Column(db.Text)
     user_id          = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
     doctor_nhs_number       = db.Column(db.String(10),  db.ForeignKey('doctor.nhs_number'))
-    status           = db.Column(db.String(20), default="REQUEST_STATUS_PENDING", nullable=False)
+    status           = db.Column(db.String(50), default="REQUEST_STATUS_PENDING", nullable=False)
     created_at       = db.Column(db.DateTime, default=datetime.now, nullable=False)
  
     user   = db.relationship('User', foreign_keys=[user_id])

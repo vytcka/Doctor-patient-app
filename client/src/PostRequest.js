@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Icon from './LogoIcon.png';
 import TickGif from './check-green.gif';
 
-function PostRequest({ isLoggedIn }) {
+function PostRequest({ isLoggedIn, userData }) {
   const [showGif, setShowGif] = useState(false);
   const [symptoms, setSymptoms] = useState("");
   const [symptomsDetails, setSymptomsDetails] = useState("");
@@ -12,7 +12,7 @@ function PostRequest({ isLoggedIn }) {
   const [age, setAge] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     if (!symptoms || !symptomsDetails || !age) {
       setErrorMessage("Please fill in all required fields.");
       return;
@@ -23,7 +23,10 @@ function PostRequest({ isLoggedIn }) {
       const response = await fetch("http://127.0.0.1:5000/new-request", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "X-Username": userData?.username || ""
+        },
         body: JSON.stringify({
           age: Number(age),
           symptoms: symptoms,
@@ -33,9 +36,9 @@ function PostRequest({ isLoggedIn }) {
         })
       });
 
-      const data = await response.json();
+      const data = await response.json(); 
 
-      if (data.status === 200 || data.success === true) {
+      if (data.status === 200) {
         setShowGif(true);
         setTimeout(() => setShowGif(false), 2000);
         setSymptoms("");
@@ -44,18 +47,12 @@ function PostRequest({ isLoggedIn }) {
         setFamilyDetails("");
         setAge("");
       } else {
-        setErrorMessage(data.message || "Submission failed. Please try again.");
+        setErrorMessage(data.message || "Submission failed.");
       }
     } catch (error) {
-      setShowGif(true);
-      setTimeout(() => setShowGif(false), 2000);
-      setSymptoms("");
-      setSymptomsDetails("");
-      setFamilyIssues("");
-      setFamilyDetails("");
-      setAge("");
+      setErrorMessage("Could not reach server.");
     }
-  };
+};
 
   const labelStyle = {
     fontSize: "0.95rem",

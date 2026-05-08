@@ -129,7 +129,7 @@ export default function Chat({ isLoggedIn, userData }) {
           <Link to="/post-request"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
           <Link to="/search"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button></Link>
           <Link to="/dashboard"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Profile</button></Link>
-          <button onClick={() => setPanelOpen(!panelOpen)} style={{ backgroundColor: "#3b82f6", color: "white" }}>👤</button>
+
         </div>
       </div>
 
