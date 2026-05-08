@@ -150,6 +150,27 @@ def test_filter_by_location(client):
     res = client.post('/filter', json={"location": "London"})
     assert res.status_code == 200
 
+def test_filter_by_specialty(client):
+    res = client.post('/filter', json={"specialty": "Cardiology"})
+    assert res.status_code == 200
+
+def test_filter_by_language(client):
+    res = client.post('/filter', json={"language": "English"})
+    assert res.status_code == 200
+
+def test_filter_by_rating(client):
+    res = client.post('/filter', json={"rating": 4})
+    assert res.status_code == 200
+
+def test_filter_by_multiple(client):
+    res = client.post('/filter', json={
+        "location": "London",
+        "specialty": "Cardiology",
+        "language": "English",
+        "rating": 4
+    })
+    assert res.status_code == 200
+
 # ── /doctor/reviews ───────────────────────────────────────────────────────────
 
 def test_doctor_reviews_missing_nhs(client):
@@ -160,12 +181,46 @@ def test_doctor_reviews_invalid_nhs(client):
     res = client.post('/doctor/reviews', json={"nhs_number": "0000000000"})
     assert res.get_json()["status"] == 400
 
+def test_doctor_reviews_success(client):
+    # register doctor first
+    client.post('/doctor/register', json={
+        "nhs number": "1234567890",
+        "first name": "Dr",
+        "last name": "Smith",
+        "username": "drsmith@nhs.com",
+        "password": "correctpassword",
+        "date of birth": "1980-01-01",
+        "location": "Sheffield",
+        "specialty": "Cardiology",
+        "language": "English",
+        "bio": "experienced doctor",
+        "availability": True
+    })
+    res = client.post('/doctor/reviews', json={"nhs_number": "1234567890"})
+    assert res.get_json()["status"] == 200
+
 # ── /change-password ──────────────────────────────────────────────────────────
 
 def test_change_password_not_logged_in(client):
     res = client.post('/change-password', json={
         "current_password": "old",
         "new_password": "new"
+    })
+    assert res.get_json()["status"] == 400
+
+def test_change_password_wrong_current(client):
+    client.post('/register', json={
+        "username": "testuser@test.com",
+        "password": "oldpassword",
+        "bio": "hello",
+        "first name": "Jane",
+        "last name": "Doe",
+        "date of birth": "1995-05-05",
+        "location": "Manchester"
+    })
+    res = client.post('/change-password', json={
+        "current_password": "wrongpassword",
+        "new_password": "newpassword"
     })
     assert res.get_json()["status"] == 400
 
