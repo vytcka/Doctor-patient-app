@@ -1,5 +1,4 @@
-You're missing the state declarations. Here's the complete fixed Settings.js:
-jsximport { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from './LogoIcon.png';
 
