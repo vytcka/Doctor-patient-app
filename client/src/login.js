@@ -50,7 +50,7 @@ export default function Login({ setIsLoggedIn, setUserRole }) {
                 setSuccessMessage(data.message);
                 setErrorMessage("");
                 setTimeout(() => {
-                    navigate('/dashboard');
+                    navigate('/Dashboard');
                 }, 1000);
             } else {
                 setErrorMessage(data.message);

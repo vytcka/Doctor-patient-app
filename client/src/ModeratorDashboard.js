@@ -10,8 +10,12 @@ function ModeratorDashboard() {
   const [reportedChats, setReportedChats] = useState([]);
   const [pendingReviews, setPendingReviews] = useState([]);
   const [flaggedAccounts, setFlaggedAccounts] = useState([]);
+  // Doctors awaiting credential verification before going live
+  const [pendingDoctors, setPendingDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('reports');
+  // Notes written by the moderator when approving/rejecting a doctor credential
+  const [credentialNotes, setCredentialNotes] = useState({});
 
   // Fetch moderator dashboard data on component mount
   // Falls back to dummy data if API is unavailable (development/demo purposes)
@@ -27,9 +31,10 @@ function ModeratorDashboard() {
           setReportedChats(data.reported_chats || []);
           setPendingReviews(data.pending_reviews || []);
           setFlaggedAccounts(data.flagged_accounts || []);
+          setPendingDoctors(data.pending_doctors || []);
         }
       } catch (error) {
-        // Dummy data
+        // Dummy data for development/demo
         setModerator({
           username: "mod_bob",
           role: "moderator",
@@ -48,6 +53,29 @@ function ModeratorDashboard() {
         setFlaggedAccounts([
           { id: 1, accountType: "Doctor", name: "Dr. Kevin Marsh", reason: "Multiple patient reports", flagCount: 4, status: "under_review" },
           { id: 2, accountType: "Patient", name: "Patient #3390", reason: "Repeated abusive messages", flagCount: 2, status: "under_review" }
+        ]);
+        // Dummy pending doctor credential submissions
+        setPendingDoctors([
+          {
+            id: 1,
+            name: "Dr. Priya Mehta",
+            nhsNumber: "1234509876",
+            specialty: "Neurology",
+            location: "Bristol, UK",
+            language: "English, Hindi",
+            bio: "Neurologist with 8 years of clinical experience in stroke management and epilepsy.",
+            submittedAt: "2026-05-04T09:00:00"
+          },
+          {
+            id: 2,
+            name: "Dr. Tom Clarke",
+            nhsNumber: "9876501234",
+            specialty: "Psychiatry",
+            location: "Edinburgh, UK",
+            language: "English",
+            bio: "Consultant psychiatrist specialising in anxiety and mood disorders.",
+            submittedAt: "2026-05-03T14:30:00"
+          }
         ]);
       } finally {
         setLoading(false);
@@ -189,11 +217,64 @@ function ModeratorDashboard() {
     }
   };
 
+  // Approve a doctor's NHS credentials and allow them onto the platform
+  const handleApproveDoctor = async (doctorId) => {
+    const notes = credentialNotes[doctorId] || "";
+    try {
+      const response = await fetch("http://127.0.0.1:5000/moderator/approve-doctor", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doctor_id: doctorId, notes })
+      });
+      const data = await response.json();
+      if (data.status === 200) {
+        setPendingDoctors(prev => prev.filter(d => d.id !== doctorId));
+        setCredentialNotes(prev => { const n = { ...prev }; delete n[doctorId]; return n; });
+        alert("✓ Doctor credentials approved. They can now accept patients.");
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      // Optimistic UI update when backend is unavailable
+      setPendingDoctors(prev => prev.filter(d => d.id !== doctorId));
+      setCredentialNotes(prev => { const n = { ...prev }; delete n[doctorId]; return n; });
+      alert("✓ Doctor credentials approved.");
+    }
+  };
+
+  // Reject a doctor's registration, removing them from the pending queue
+  const handleRejectDoctor = async (doctorId) => {
+    const notes = credentialNotes[doctorId] || "";
+    if (!notes.trim()) {
+      alert("Please provide a reason for rejection in the notes field before rejecting.");
+      return;
+    }
+    try {
+      const response = await fetch("http://127.0.0.1:5000/moderator/reject-doctor", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doctor_id: doctorId, notes })
+      });
+      const data = await response.json();
+      if (data.status === 200) {
+        setPendingDoctors(prev => prev.filter(d => d.id !== doctorId));
+        setCredentialNotes(prev => { const n = { ...prev }; delete n[doctorId]; return n; });
+        alert("✗ Doctor registration rejected.");
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      setPendingDoctors(prev => prev.filter(d => d.id !== doctorId));
+      setCredentialNotes(prev => { const n = { ...prev }; delete n[doctorId]; return n; });
+      alert("✗ Doctor registration rejected.");
+    }
+  };
+
   const handleLogout = async () => {
     try {
-      await fetch("http://127.0.0.1:5000/logout", {
-        credentials: "include"
-      });
+      await fetch("http://127.0.0.1:5000/logout", { credentials: "include" });
     } finally {
       navigate('/');
     }
@@ -239,6 +320,7 @@ function ModeratorDashboard() {
 
   return (
     <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
+
       {/* Header/Navigation with moderator identity */}
       <div style={{ backgroundColor: "white", borderBottom: "1px solid #e2e8f0", padding: "0 30px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: "1400px", margin: "0 auto" }}>
@@ -258,7 +340,7 @@ function ModeratorDashboard() {
       <div style={{ maxWidth: "1400px", margin: "30px auto", padding: "0 30px" }}>
 
         {/* Dashboard metrics overview cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", marginBottom: "30px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "30px" }}>
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
             <div style={{ fontSize: "0.85rem", color: "#607593", marginBottom: "8px" }}>Reported Chats</div>
             <div style={{ fontSize: "2rem", fontWeight: "bold", color: "#e74c3c" }}>{reportedChats.length}</div>
@@ -275,12 +357,16 @@ function ModeratorDashboard() {
             <div style={{ fontSize: "0.85rem", color: "#607593", marginBottom: "8px" }}>High Priority</div>
             <div style={{ fontSize: "2rem", fontWeight: "bold", color: "#1b4cb6" }}>{reportedChats.filter(r => r.severity === 'high').length}</div>
           </div>
+          <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+            <div style={{ fontSize: "0.85rem", color: "#607593", marginBottom: "8px" }}>Doctors Pending Verification</div>
+            <div style={{ fontSize: "2rem", fontWeight: "bold", color: "#0891b2" }}>{pendingDoctors.length}</div>
+          </div>
         </div>
 
         {/* Moderator profile + Quick action buttons */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
 
-          {/* Left Column - Moderator Profile Card */}
+          {/* Left Column — Moderator Profile Card */}
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "25px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
             <h3 style={{ color: "#1b4cb6", marginBottom: "20px", fontSize: "1.3rem" }}>Moderator Information</h3>
             <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
@@ -296,7 +382,7 @@ function ModeratorDashboard() {
             </div>
           </div>
 
-          {/* Right Column - Quick Actions */}
+          {/* Right Column — Quick Actions */}
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "25px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
             <h3 style={{ color: "#1b4cb6", marginBottom: "20px", fontSize: "1.3rem" }}>Quick Actions</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -320,6 +406,10 @@ function ModeratorDashboard() {
               </button>
               <button onClick={() => setActiveTab('accounts')} style={{ backgroundColor: activeTab === 'accounts' ? "#3b82f6" : "#f0f4ff", color: activeTab === 'accounts' ? "white" : "#1b4cb6", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}>
                 Flagged Accounts ({flaggedAccounts.length})
+              </button>
+              {/* Doctor credentials tab — highlighted in teal to stand out as a distinct workflow */}
+              <button onClick={() => setActiveTab('credentials')} style={{ backgroundColor: activeTab === 'credentials' ? "#0891b2" : "#f0fdff", color: activeTab === 'credentials' ? "white" : "#0891b2", padding: "8px 20px", borderRadius: "8px", border: activeTab === 'credentials' ? "none" : "1px solid #a5f3fc", cursor: "pointer", fontWeight: activeTab === 'credentials' ? "bold" : "normal" }}>
+                🩺 Doctor Credentials ({pendingDoctors.length})
               </button>
             </div>
           </div>
@@ -406,6 +496,88 @@ function ModeratorDashboard() {
               </div>
             )
           )}
+
+          {/* Credentials tab: new doctor registrations awaiting NHS verification */}
+          {activeTab === 'credentials' && (
+            pendingDoctors.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>
+                <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>✅</div>
+                <p style={{ fontWeight: "600", color: "#374151" }}>All doctor credentials verified.</p>
+                <p style={{ fontSize: "0.9rem" }}>No new registrations are waiting for review.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <p style={{ margin: "0 0 4px 0", fontSize: "0.9rem", color: "#607593" }}>
+                  Review each doctor's submitted details and NHS number before approving them to appear to patients.
+                  A rejection reason is required before you can reject a registration.
+                </p>
+
+                {pendingDoctors.map(doc => (
+                  <div key={doc.id} style={{ border: "1px solid #bae6fd", borderRadius: "12px", padding: "24px", backgroundColor: "#f0fdff" }}>
+
+                    {/* Doctor summary row */}
+                    <div style={{ display: "flex", gap: "16px", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap" }}>
+                      <div style={{ width: "56px", height: "56px", borderRadius: "50%", backgroundColor: "#0891b2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.6rem", color: "white", flexShrink: 0 }}>👨‍⚕️</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: "0 0 4px 0", fontWeight: "700", fontSize: "1.1rem", color: "#0c4a6e" }}>{doc.name}</p>
+                        <p style={{ margin: 0, color: "#0891b2", fontSize: "0.9rem" }}>{doc.specialty} · {doc.location}</p>
+                      </div>
+                      <span style={{ backgroundColor: "#cffafe", color: "#0891b2", padding: "4px 12px", borderRadius: "20px", fontSize: "0.75rem", fontWeight: "bold" }}>PENDING VERIFICATION</span>
+                    </div>
+
+                    {/* Credential details grid */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px", padding: "16px", backgroundColor: "white", borderRadius: "8px", border: "1px solid #e0f2fe" }}>
+                      <div>
+                        <p style={{ margin: "0 0 2px 0", fontSize: "0.75rem", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>NHS Number</p>
+                        <p style={{ margin: 0, fontWeight: "600", color: "#1e293b", fontFamily: "monospace", fontSize: "1rem" }}>{doc.nhsNumber}</p>
+                      </div>
+                      <div>
+                        <p style={{ margin: "0 0 2px 0", fontSize: "0.75rem", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Languages</p>
+                        <p style={{ margin: 0, fontWeight: "600", color: "#1e293b" }}>{doc.language}</p>
+                      </div>
+                      <div style={{ gridColumn: "1 / -1" }}>
+                        <p style={{ margin: "0 0 2px 0", fontSize: "0.75rem", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Biography / Statement</p>
+                        <p style={{ margin: 0, color: "#374151", lineHeight: "1.6", fontSize: "0.9rem" }}>{doc.bio}</p>
+                      </div>
+                      <div>
+                        <p style={{ margin: "0 0 2px 0", fontSize: "0.75rem", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Submitted</p>
+                        <p style={{ margin: 0, color: "#374151", fontSize: "0.85rem" }}>{new Date(doc.submittedAt).toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    {/* Moderator notes input — required for rejection, optional for approval */}
+                    <div style={{ marginBottom: "16px" }}>
+                      <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
+                        Moderator Notes <span style={{ color: "#e74c3c" }}>*</span><span style={{ color: "#94a3b8", fontWeight: "normal" }}> (required to reject)</span>
+                      </label>
+                      <textarea
+                        value={credentialNotes[doc.id] || ""}
+                        onChange={(e) => setCredentialNotes(prev => ({ ...prev, [doc.id]: e.target.value }))}
+                        placeholder="E.g. NHS number verified against national registry. / Unable to verify NHS number — please resubmit with correct details."
+                        rows={3}
+                        style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #bae6fd", fontSize: "0.9rem", resize: "vertical", boxSizing: "border-box", outline: "none", fontFamily: "inherit" }}
+                      />
+                    </div>
+
+                    {/* Approve / Reject action buttons */}
+                    <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                      <button
+                        onClick={() => handleRejectDoctor(doc.id)}
+                        style={{ backgroundColor: "#e74c3c", color: "white", padding: "10px 24px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}>
+                        ✗ Reject Registration
+                      </button>
+                      <button
+                        onClick={() => handleApproveDoctor(doc.id)}
+                        style={{ backgroundColor: "#27ae60", color: "white", padding: "10px 24px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}>
+                        ✓ Approve & Verify
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
         </div>
       </div>
     </div>

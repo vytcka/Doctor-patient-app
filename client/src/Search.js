@@ -34,7 +34,7 @@ const doctor = (doc) => {
     };
 };
 
-export default function Search() {
+export default function Search({ isLoggedIn }) {
     console.log("Search component rendered");
     const [query, setQuery] = useState("")
     // Loaded doctors from the backend, normalized for display
@@ -103,7 +103,6 @@ export default function Search() {
                             console.log(err)
                         }
                         return doc; 
-                        console.log(doc)
                     })
                 );
 
@@ -178,46 +177,53 @@ export default function Search() {
             ];
 
     return(
-        <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <img src={Icon} alt="Description" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-                  <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>{/* App title */}
-                </div>
-                {/* Buttons for: Home, PostaRequest, Reviews, Login and their colours + placements */}
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <Link to="/" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Home</button>
-                  </Link>
-                  <Link to="/post-request" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
-                  </Link>
-                  <Link to="/search" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Search for Doctors</button>
-                  </Link>
-                  <Link to="/login" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-                  </Link>
-                  <Link to="/signup" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-                  </Link>
-                  <Link to="/chat" style={{ textDecoration: "none" }}>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
-                  </Link>
-                </div>
-              </div>
+        <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
 
-              
+            {/* Navbar — consistent with the rest of the app */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
+                <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+                    <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+                    <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+                </Link>
+                <div style={{ display: "flex", gap: "10px" }}>
+                    <Link to="/post-request" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
+                    </Link>
+                    <Link to="/search" style={{ textDecoration: "none" }}>
+                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
+                    </Link>
+                    {isLoggedIn ? (
+                        <>
+                            <Link to="/chat" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+                            </Link>
+                            <Link to="/dashboard" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/login-choice" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+                            </Link>
+                            <Link to="/signup-choice" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+                            </Link>
+                        </>
+                    )}
+                </div>
+            </div>
 
             <div className="review-container">
+                <h1>Doctors Reviews</h1>
+                <h2>Look at reviews for each doctor or leave a review</h2>
+
                 {/* show error if cannot reach backend */}
                 {error && (
                     <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: '#fdecea', color: '#b71c1c' }}>
                         {error}
                     </div>
                 )}
-                <h1>Doctors Reviews</h1>
-                <h2>Look at reviews for each doctor or leave a review</h2>
 
                 {/*Search bar*/}
                 <div className="search-bar">

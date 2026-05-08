@@ -24,7 +24,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
+        <Route path="/" element={<Home isLoggedIn={isLoggedIn} userRole={userRole} />} />
         <Route path="/Check" element={<Check />} />
         <Route path="/post-request" element={<PostRequest isLoggedIn={isLoggedIn} />} />
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
@@ -32,7 +32,11 @@ function App() {
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
         <Route path="/signup" element={<Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
         <Route path="/chat" element={<Chat isLoggedIn={isLoggedIn} />} />
-        <Route path="/Dashboard" element={<Dashboard isLoggedIn={isLoggedIn} />} />
+        <Route path="/Dashboard" element={
+          userRole === 'doctor' 
+            ? <DoctorDashboard /> 
+            : <Dashboard isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+        } />
         <Route path="/Settings" element={<Settings isLoggedIn={isLoggedIn} />} />
         <Route path="/login-choice" element={<LoginChoice />} />
         <Route path="/doctorlogin" element={<DoctorLogin setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />

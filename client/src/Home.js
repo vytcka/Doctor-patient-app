@@ -3,7 +3,7 @@ import myImage1 from './Homepage1.png';
 import myImage2 from './Homepage2.png';
 import Icon from './LogoIcon.png';
 
-function Home({ isLoggedIn }) {
+function Home({ isLoggedIn, userRole }) {
   return (
     <div>
       {/* Navigation header with conditional login/logout buttons */}
@@ -24,7 +24,7 @@ function Home({ isLoggedIn }) {
               <Link to="/chat" style={{ textDecoration: "none" }}>
                 <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
               </Link>
-              <Link to="/dashboard" style={{ textDecoration: "none" }}>
+              <Link to={userRole === 'doctor' ? '/doctor-dashboard' : '/Dashboard'} style={{ textDecoration: "none" }}>
                 <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
               </Link>
             </>
