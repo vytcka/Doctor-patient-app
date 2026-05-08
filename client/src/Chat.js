@@ -214,15 +214,15 @@ export default function Chat({ isLoggedIn }) {
 
 const styles = {
   // Main chat container styling
-  container: { flex: 1, height: "80vh", width: "100%", display: "flex", flexDirection: "column", padding: 20, background: "#f3f4f6" },
+  container: { flex: 1, height: "80vh", width: "100%", display: "flex", flexDirection: "column", padding: 20, background: "#f3f4f6", boxSizing: "border-box" },
   // Messages list container
   messages: { flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", paddingBottom: 20 },
   // Individual message bubble styling
   message: { maxWidth: "60%", padding: "10px 14px", borderRadius: 12, display: "flex", flexDirection: "column", gap: 4 },
   // Input field and buttons row
-  inputRow: { display: "flex", gap: 10 },
+  inputRow: { display: "flex", gap: 10, alignItems: "center" },
   // Text input field
-  input: { flex: 1, padding: 10, borderRadius: 8, border: "1px solid #ccc" },
+  input: { flex: 1, minWidth: 0, padding: 10, borderRadius: 8, border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box" },
   // Action buttons (Send, Report)
-  button: { padding: "10px 16px", borderRadius: 8, background: "#3b82f6", color: "white", border: "none", cursor: "pointer" }
+  button: { padding: "10px 20px", width: "auto", borderRadius: 8, background: "#3b82f6", color: "white", border: "none", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }
 };
