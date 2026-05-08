@@ -6,22 +6,22 @@ import StarRating from './StarRating';
 
 function DoctorDashboard({ isLoggedIn, userData, setIsLoggedIn, setUserData, setUsername }) {
   const navigate = useNavigate();
-  // State for doctor's profile information
   const [doctor, setDoctor] = useState(null);
-  // Lists of patient requests awaiting doctor's response
   const [pendingRequests, setPendingRequests] = useState([]);
-  // Active chat conversations with patients
   const [activeChats, setActiveChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('requests');
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
 
-  // Fetch doctor dashboard data on component mount
-  // Falls back to dummy data if API is unavailable (development/demo purposes)
   useEffect(() => {
     const fetchDoctorData = async () => {
       try {
+        const nhsNumber = userData?.nhs_number;
         const response = await fetch("http://127.0.0.1:5000/doctor/dashboard", {
-          credentials: "include"
+          credentials: "include",
+          headers: { "X-NHS-Number": nhsNumber || "" }
         });
         const data = await response.json();
         if (data.status === 200) {
@@ -30,100 +30,181 @@ function DoctorDashboard({ isLoggedIn, userData, setIsLoggedIn, setUserData, set
           setActiveChats(data.active_chats || []);
         }
       } catch (error) {
-        // Dummy data
         setDoctor({
-          name: "Dr. Sarah Johnson",
-          specialty: "Cardiology",
+          name: userData ? `Dr. ${userData.first_name} ${userData.last_name}` : "Dr. Doctor",
+          specialty: userData?.specialty || "General Practice",
           rating: 4.8,
-          languages: ["English", "Spanish"],
-          location: "London, UK",
+          languages: ["English"],
+          location: userData?.location || "UK",
           availability: ["Monday 9am-5pm", "Wednesday 9am-5pm", "Friday 9am-5pm"],
-          totalPatients: 127,
-          totalReviews: 89,
-          email: "sarah.johnson@treatme.com",
-          phone: "+44 20 7946 0123"
+          totalPatients: 0,
+          totalReviews: 0,
+          email: userData?.username || ""
         });
-        setPendingRequests([
-          { id: 1, patientName: "Anonymous User", age: 32, symptoms: "Chest pain, shortness of breath", submittedAt: "2024-05-03T10:30:00" },
-          { id: 2, patientName: "Anonymous User", age: 45, symptoms: "Irregular heartbeat", submittedAt: "2024-05-03T09:15:00" },
-          { id: 3, patientName: "Anonymous User", age: 28, symptoms: "High blood pressure concerns", submittedAt: "2024-05-02T14:20:00" }
-        ]);
-        setActiveChats([
-          { id: 1, patientName: "John D.", startedAt: "2024-05-02", lastMessage: "Feeling better today", unread: 2 },
-          { id: 2, patientName: "Emma W.", startedAt: "2024-05-01", lastMessage: "When should I take my medication?", unread: 0 }
-        ]);
       } finally {
         setLoading(false);
       }
     };
     fetchDoctorData();
-  }, []);
+  }, [userData]);
 
-  // Accept a patient request and start consultation
-  const handleAcceptRequest = async (requestId) => {
-  try {
-    const response = await fetch("http://127.0.0.1:5000/accept-request", {
+  // load messages when chat selected
+  useEffect(() => {
+    if (!selectedChat || !userData) return;
+    fetch(`http://127.0.0.1:5000/chats/${selectedChat.id}/messages`, {
+      credentials: "include",
+      headers: { "X-Username": userData.username }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 200) setMessages(data.messages);
+      });
+  }, [selectedChat]);
+
+  // poll messages every 3 seconds
+  useEffect(() => {
+    if (!selectedChat || !userData) return;
+    const interval = setInterval(() => {
+      fetch(`http://127.0.0.1:5000/chats/${selectedChat.id}/messages`, {
+        credentials: "include",
+        headers: { "X-Username": userData.username }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 200) setMessages(data.messages);
+        });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [selectedChat]);
+
+  async function sendMessage() {
+    if (!input.trim() || !selectedChat || !userData) return;
+    await fetch(`http://127.0.0.1:5000/chats/${selectedChat.id}/messages/doctor`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ request_id: requestId })
+      headers: {
+        "Content-Type": "application/json",
+        "X-NHS-Number": userData.nhs_number
+      },
+      body: JSON.stringify({ content: input })
     });
-    const data = await response.json();
-    if (data.status === 200) {
-      setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-      toast.success("✓ Request accepted! Patient has been notified.");
-    } else {
-      toast.error(data.message);
-    }
-  } catch (error) {
-    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-    toast.success("✓ Request accepted!");
+    setInput("");
+    fetch(`http://127.0.0.1:5000/chats/${selectedChat.id}/messages`, {
+      credentials: "include",
+      headers: { "X-Username": userData.username }
+    })
+      .then(res => res.json())
+      .then(data => { if (data.status === 200) setMessages(data.messages); });
   }
-};
 
-  // Decline a patient request
+  const handleAcceptRequest = async (requestId) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/accept-request", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",  "X-NHS-Number": userData?.nhs_number || "" },
+        body: JSON.stringify({ request_id: requestId })
+      });
+      const data = await response.json();
+      if (data.status === 200) {
+        setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+        toast.success("✓ Request accepted!");
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+      toast.success("✓ Request accepted!");
+    }
+  };
+
   const handleRejectRequest = async (requestId) => {
-  try {
-    const response = await fetch("http://127.0.0.1:5000/reject-request", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ request_id: requestId })
-    });
-    const data = await response.json();
-    if (data.status === 200) {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/reject-request", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-NHS-Number": userData?.nhs_number || "" },
+        body: JSON.stringify({ request_id: requestId })
+      });
+      const data = await response.json();
+      if (data.status === 200) {
+        setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+        toast.error("✗ Request rejected.");
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
       setPendingRequests(prev => prev.filter(r => r.id !== requestId));
       toast.error("✗ Request rejected.");
-    } else {
-      toast.error(data.message);
     }
-  } catch (error) {
-    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-    toast.error("✗ Request rejected.");
-  }
-};
+  };
 
-  // Log out the doctor and redirect to home
-const handleLogout = () => {
+  const handleLogout = () => {
     setIsLoggedIn(false);
     setUserData(null);
     setUsername('');
     localStorage.clear();
     navigate('/login');
-}
-
+  };
 
   if (loading) {
     return (
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 30px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <p style={{ color: "#607593", fontSize: "1.2rem" }}>Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  // if a chat is selected show full chat view
+  if (selectedChat) {
+    return (
+      <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ backgroundColor: "white", borderBottom: "1px solid #e2e8f0", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <button onClick={() => setSelectedChat(null)} style={{ background: "none", border: "none", fontSize: "1.4rem", cursor: "pointer", color: "#3b82f6" }}>←</button>
+            <div>
+              <h3 style={{ margin: 0, color: "#040f25" }}>{selectedChat.patientName}</h3>
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#15803d" }}>Active</p>
+            </div>
+          </div>
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-            <img src={Icon} alt="Logo" style={{ width: "60px", height: "60px", marginRight: "10px" }} />
-            <div style={{ fontSize: "1.8rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+            <img src={Icon} alt="Logo" style={{ width: "50px", height: "50px", marginRight: "8px" }} />
+            <div style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
           </Link>
         </div>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
-          <div style={{ fontSize: "1.2rem", color: "#607593" }}>Loading dashboard...</div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "10px", minHeight: 0 }}>
+          {messages.length === 0 ? (
+            <p style={{ textAlign: "center", color: "#607593" }}>No messages yet.</p>
+          ) : (
+            messages.map(msg => {
+              const isMe = msg.sender_type === 'doctor';
+              return (
+                <div key={msg.id} style={{
+                  maxWidth: "60%", padding: "10px 14px", borderRadius: 12,
+                  alignSelf: isMe ? "flex-end" : "flex-start",
+                  backgroundColor: isMe ? "#3b82f6" : "#e5e7eb",
+                  color: isMe ? "white" : "black"
+                }}>
+                  <div>{msg.content}</div>
+                  <div style={{ fontSize: "0.7rem", opacity: 0.6, marginTop: "4px", textAlign: "right" }}>
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div style={{ padding: "16px", backgroundColor: "white", borderTop: "1px solid #e2e8f0", display: "flex", gap: "10px" }}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && sendMessage()}
+            placeholder="Type a message..."
+            style={{ flex: 1, minWidth: 0, padding: "12px 16px", borderRadius: 8, border: "1px solid #ccc", fontSize: "1rem" }}
+          />
+          <button onClick={sendMessage} style={{ padding: "12px 24px", borderRadius: 8, backgroundColor: "#3b82f6", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", maxWidth: 200 }}>Send</button>
         </div>
       </div>
     );
@@ -131,7 +212,7 @@ const handleLogout = () => {
 
   return (
     <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-      {/* Header/Navigation with doctor identity */}
+      {/* Navbar */}
       <div style={{ backgroundColor: "white", borderBottom: "1px solid #e2e8f0", padding: "0 30px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: "1400px", margin: "0 auto" }}>
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
@@ -145,10 +226,9 @@ const handleLogout = () => {
         </div>
       </div>
 
-      {/* Main Dashboard Content */}
       <div style={{ maxWidth: "1400px", margin: "30px auto", padding: "0 30px" }}>
-        
-        {/* Dashboard metrics overview cards */}
+
+        {/* Metrics */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", marginBottom: "30px" }}>
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
             <div style={{ fontSize: "0.85rem", color: "#607593", marginBottom: "8px" }}>Total Patients</div>
@@ -164,16 +244,16 @@ const handleLogout = () => {
           </div>
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
             <div style={{ fontSize: "0.85rem", color: "#607593", marginBottom: "8px" }}>Rating</div>
-            <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#f39c12" }}><StarRating rating={doctor?.rating} /> {doctor?.rating}</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#f39c12", display: "flex", alignItems: "center", gap: "8px" }}>
+              <StarRating rating={doctor?.rating} /> {doctor?.rating}
+            </div>
           </div>
         </div>
 
-        {/* Doctor profile + Quick action buttons */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
-          
-          {/* Left Column - Doctor Profile Card */}
+        {/* Profile + Quick Actions */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px", marginBottom: "30px" }}>
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "25px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-            <h3 style={{ color: "#1b4cb6", marginBottom: "20px", fontSize: "1.3rem" }}>Doctor Information</h3>
+            <h3 style={{ color: "#1b4cb6", marginBottom: "20px" }}>Doctor Information</h3>
             <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
               <div style={{ width: "80px", height: "80px", borderRadius: "50%", backgroundColor: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", color: "white" }}>👨‍⚕️</div>
               <div>
@@ -185,35 +265,32 @@ const handleLogout = () => {
               <p style={{ marginBottom: "10px" }}><strong>Location:</strong> {doctor?.location}</p>
               <p style={{ marginBottom: "10px" }}><strong>Languages:</strong> {doctor?.languages?.join(", ")}</p>
               <p style={{ marginBottom: "10px" }}><strong>Email:</strong> {doctor?.email}</p>
-              <p><strong>Availability:</strong></p>
-              <ul style={{ marginTop: "5px", paddingLeft: "20px" }}>
-                {doctor?.availability?.map((slot, i) => <li key={i} style={{ marginBottom: "4px" }}>{slot}</li>)}
-              </ul>
             </div>
           </div>
 
-          {/* Right Column - Quick Actions */}
           <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "25px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-            <h3 style={{ color: "#1b4cb6", marginBottom: "20px", fontSize: "1.3rem" }}>Quick Actions</h3>
+            <h3 style={{ color: "#1b4cb6", marginBottom: "20px" }}>Quick Actions</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "1rem" }}>📋 View All Patients</button>
-              <button style={{ backgroundColor: "#f0f4ff", color: "#1b4cb6", padding: "12px", borderRadius: "8px", border: "1px solid #ccd9ee", cursor: "pointer", fontSize: "1rem" }}>⚙️ Update Availability</button>
-              <button style={{ backgroundColor: "#f0f4ff", color: "#1b4cb6", padding: "12px", borderRadius: "8px", border: "1px solid #ccd9ee", cursor: "pointer", fontSize: "1rem" }}>📊 View Analytics</button>
+              <button onClick={() => setActiveTab('chats')} style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "1rem" }}>💬 View Active Chats</button>
+              <button onClick={() => setActiveTab('requests')} style={{ backgroundColor: "#f0f4ff", color: "#1b4cb6", padding: "12px", borderRadius: "8px", border: "1px solid #ccd9ee", cursor: "pointer", fontSize: "1rem" }}>📋 View Pending Requests</button>
             </div>
           </div>
         </div>
 
-        {/* Tabbed patient management interface */}
-        <div style={{ marginTop: "30px", backgroundColor: "white", borderRadius: "12px", padding: "25px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap" }}>
-            <h3 style={{ color: "#1b4cb6", fontSize: "1.3rem", margin: 0 }}>Pending Requests</h3>
+        {/* Tabs */}
+        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "25px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <h3 style={{ color: "#1b4cb6", margin: 0 }}>Patient Management</h3>
             <div style={{ display: "flex", gap: "10px" }}>
-              <button onClick={() => setActiveTab('requests')} style={{ backgroundColor: activeTab === 'requests' ? "#3b82f6" : "#f0f4ff", color: activeTab === 'requests' ? "white" : "#1b4cb6", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}>Requests ({pendingRequests.length})</button>
-              <button onClick={() => setActiveTab('chats')} style={{ backgroundColor: activeTab === 'chats' ? "#3b82f6" : "#f0f4ff", color: activeTab === 'chats' ? "white" : "#1b4cb6", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}>Active Chats ({activeChats.length})</button>
+              <button onClick={() => setActiveTab('requests')} style={{ backgroundColor: activeTab === 'requests' ? "#3b82f6" : "#f0f4ff", color: activeTab === 'requests' ? "white" : "#1b4cb6", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}>
+                Requests ({pendingRequests.length})
+              </button>
+              <button onClick={() => setActiveTab('chats')} style={{ backgroundColor: activeTab === 'chats' ? "#3b82f6" : "#f0f4ff", color: activeTab === 'chats' ? "white" : "#1b4cb6", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}>
+                Active Chats ({activeChats.length})
+              </button>
             </div>
           </div>
 
-          {/* Requests tab: pending patient requests for acceptance/rejection */}
           {activeTab === 'requests' && (
             pendingRequests.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>No pending requests. Great job!</div>
@@ -222,7 +299,7 @@ const handleLogout = () => {
                 {pendingRequests.map(request => (
                   <div key={request.id} style={{ border: "1px solid #e2e8f0", borderRadius: "10px", padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
                     <div>
-                      <div style={{ display: "flex", gap: "20px", marginBottom: "10px", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: "20px", marginBottom: "10px" }}>
                         <span><strong>Patient:</strong> {request.patientName}</span>
                         <span><strong>Age:</strong> {request.age}</span>
                       </div>
@@ -239,7 +316,6 @@ const handleLogout = () => {
             )
           )}
 
-          {/* Chats tab: active conversations with patients */}
           {activeTab === 'chats' && (
             activeChats.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "#607593" }}>No active chats yet.</div>
@@ -255,7 +331,9 @@ const handleLogout = () => {
                       <p style={{ margin: 0, color: "#607593", fontSize: "0.9rem" }}>Last message: {chat.lastMessage}</p>
                       <p style={{ margin: "5px 0 0 0", fontSize: "0.7rem", color: "#94a3b8" }}>Started: {chat.startedAt}</p>
                     </div>
-                    <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 20px", borderRadius: "6px", border: "none", cursor: "pointer", marginTop: "10px" }}>💬 Open Chat</button>
+                    <button onClick={() => setSelectedChat(chat)} style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 20px", borderRadius: "6px", border: "none", cursor: "pointer", marginTop: "10px" }}>
+                      💬 Open Chat
+                    </button>
                   </div>
                 ))}
               </div>

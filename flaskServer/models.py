@@ -47,6 +47,8 @@ class User(db.Model):
     bio = db.Column(db.String(3000), nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
+    points = db.Column(db.Integer, default=0, nullable=False)
+    badges = db.Column(db.JSON, default=list, nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
     location = db.Column(db.String(100), nullable=False)
     is_banned = db.Column(db.Boolean, default=False, nullable=False)
@@ -119,6 +121,7 @@ class User(db.Model):
         self.is_banned     = is_banned
         self.is_suspended  = is_suspended
         self.suspension_reason = suspension_reason
+        self.points = 0
 
     def set_password(self, password):
         """ Password setter
@@ -454,7 +457,7 @@ class Chat(db.Model):
     id                = db.Column(db.Integer,  primary_key=True)
     sender_id         = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
     receiver_id       = db.Column(db.Integer,  db.ForeignKey('user.id'), nullable=False)
-    status            = db.Column(db.String(20), default="CHAT_STATUS_ACTIVE", nullable=False)
+    status            = db.Column(db.String(50), default="CHAT_STATUS_ACTIVE", nullable=False)
     message_count     = db.Column(db.Integer,  default=0, nullable=False)
     created_at        = db.Column(db.DateTime, default=datetime.now, nullable=False)
     last_activity     = db.Column(db.DateTime, default=datetime.now , nullable=False)

@@ -1,34 +1,99 @@
-import { useState } from "react";
-import { users, initialMessages } from "./dummyData";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Icon from "./LogoIcon.png";
 
-export default function Chat({ isLoggedIn }) {
+export default function Chat({ isLoggedIn, userData }) {
   const navigate = useNavigate();
-  // State for chat messages
-  const [messages, setMessages] = useState(initialMessages);
-  // Current message input text
+  const [chats, setChats] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  // Toggle for user profile slide-out panel
   const [panelOpen, setPanelOpen] = useState(false);
-  // Toggle for report submission modal
   const [reportOpen, setReportOpen] = useState(false);
-  // Form data for report submission
   const [reportForm, setReportForm] = useState({ reason: "", details: "" });
-  // Confirmation state after report submission
   const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const messagesEndRef = useRef(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Current logged-in user data (from dummy data)
-  const currentUser = users.u1;
-  // Additional user profile information
-  const user = {
-    username: "Johndoe1",
-    email: "johndoe@email.com",
-    requestStatus: "Granted",
-    points: 3,
-  };
+  // load chats on mount
+  useEffect(() => {
+    if (!isLoggedIn || !userData) return;
+    fetch("http://127.0.0.1:5000/chats", {
+      credentials: "include",
+      headers: { "X-Username": userData.username }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 200) setChats(data.chats);
+        else console.log("chats error:", data);
+      })
+      .finally(() => setLoading(false));
+  }, [isLoggedIn, userData]);
 
-  // Redirect to login if not logged in
+  // load messages when chat selected
+  useEffect(() => {
+    if (!selectedChat || !userData) return;
+    fetch(`http://127.0.0.1:5000/chats/${selectedChat.id}/messages`, {
+      credentials: "include",
+      headers: { "X-Username": userData.username }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 200) setMessages(data.messages);
+      });
+  }, [selectedChat]);
+
+  // scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // poll for new messages every 3 seconds
+  useEffect(() => {
+    if (!selectedChat || !userData) return;
+    const interval = setInterval(() => {
+      fetch(`http://127.0.0.1:5000/chats/${selectedChat.id}/messages`, {
+        credentials: "include",
+        headers: { "X-Username": userData.username }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 200) setMessages(data.messages);
+        });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [selectedChat]);
+
+  async function sendMessage() {
+    if (!input.trim() || !selectedChat || !userData) return;
+    await fetch(`http://127.0.0.1:5000/chats/${selectedChat.id}/messages`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Username": userData.username
+      },
+      body: JSON.stringify({ content: input })
+    });
+    setInput("");
+    fetch(`http://127.0.0.1:5000/chats/${selectedChat.id}/messages`, {
+      credentials: "include",
+      headers: { "X-Username": userData.username }
+    })
+      .then(res => res.json())
+      .then(data => { if (data.status === 200) setMessages(data.messages); });
+  }
+
+  function submitReport() {
+    setReportSubmitted(true);
+    setTimeout(() => {
+      setReportOpen(false);
+      setReportSubmitted(false);
+      setReportForm({ reason: "", details: "" });
+    }, 2000);
+  }
+
   if (!isLoggedIn) {
     return (
       <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
@@ -38,131 +103,155 @@ export default function Chat({ isLoggedIn }) {
             <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
           </Link>
           <div style={{ display: "flex", gap: "10px" }}>
-            <Link to="/login-choice" style={{ textDecoration: "none" }}>
-              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-            </Link>
-            <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-            </Link>
+            <Link to="/login-choice"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button></Link>
+            <Link to="/signup-choice"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button></Link>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: "16px" }}>
           <p style={{ fontSize: "1.2rem", color: "#607593" }}>You need to be logged in to access chats.</p>
           <Link to="/login-choice">
-            <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px 28px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}>
-              Log In
-            </button>
+            <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px 28px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}>Log In</button>
           </Link>
         </div>
       </div>
     );
   }
 
-  // Send a new message to the chat
-  function sendMessage() {
-    if (!input.trim()) return;
-    const newMsg = {
-      id: crypto.randomUUID(),
-      text: input,
-      senderId: currentUser.id,
-      timestamp: Date.now()
-    };
-    setMessages(prev => [...prev, newMsg]);
-    setInput("");
-  }
-
-  // Submit a report about the chat/conversation
-  function submitReport() {
-    console.log("Report submitted:", reportForm);
-    setReportSubmitted(true);
-    setTimeout(() => {
-      setReportOpen(false);
-      setReportSubmitted(false);
-      setReportForm({ reason: "", details: "" });
-    }, 2000);
-  }
-
   return (
     <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-      {/* Navigation bar with app logo and action buttons */}
+      {/* Navbar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
         </Link>
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/post-request" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
-          </Link>
-          <Link to="/search" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
-          </Link>
-          <Link to="/dashboard" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
-          </Link>
-          <button
-            onClick={() => setPanelOpen(!panelOpen)}
-            style={{ backgroundColor: "#3b82f6", color: "white" }}
-            title="Your Profile"
-          >
-            👤
-          </button>
+          <Link to="/post-request"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
+          <Link to="/search"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button></Link>
+          <Link to="/dashboard"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Profile</button></Link>
+          <button onClick={() => setPanelOpen(!panelOpen)} style={{ backgroundColor: "#3b82f6", color: "white" }}>👤</button>
         </div>
       </div>
 
-      {/* Chat interface + slide-out profile panel container */}
-      <div style={{ display: "flex", position: "relative" }}>
+      <div style={{ display: "flex", height: "calc(100vh - 120px)" }}>
 
-        {/* Main chat messages display area */}
-        <div style={styles.container}>
-          <div style={styles.messages}>
-            {messages.map(msg => {
-              const isMe = msg.senderId === currentUser.id;
-              return (
-                <div
-                  key={msg.id}
-                  style={{
-                    ...styles.message,
-                    alignSelf: isMe ? "flex-end" : "flex-start",
-                    background: isMe ? "#3b82f6" : "#e5e7eb",
-                    color: isMe ? "white" : "black"
-                  }}
-                >
-                  <strong>{users[msg.senderId].name}</strong>
-                  <div>{msg.text}</div>
-                </div>
-              );
-            })}
+        {/* Chat list sidebar */}
+        <div style={{ width: "260px", backgroundColor: "white", borderRight: "1px solid #e2e8f0", overflowY: "auto", flexShrink: 0 }}>
+          <div style={{ padding: "16px", borderBottom: "1px solid #e2e8f0" }}>
+            <h3 style={{ margin: 0, color: "#040f25" }}>Your Chats</h3>
           </div>
-
-          {/* Message input and action buttons row */}
-          <div style={styles.inputRow}>
-            <input
-              style={styles.input}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && sendMessage()}
-              placeholder="Type a message..."
-            />
-            <button style={styles.button} onClick={sendMessage}>Send</button>
-            <button style={{ ...styles.button, background: "#ef4444" }} onClick={() => setReportOpen(true)}>Report</button>
-          </div>
+          {loading ? (
+            <p style={{ padding: "16px", color: "#607593" }}>Loading...</p>
+          ) : chats.length === 0 ? (
+            <p style={{ padding: "16px", color: "#607593" }}>No chats yet.</p>
+          ) : (
+            chats.map(chat => (
+              <div key={chat.id} onClick={() => setSelectedChat(chat)}
+                style={{ padding: "16px", cursor: "pointer", borderBottom: "1px solid #e2e8f0", backgroundColor: selectedChat?.id === chat.id ? "#eff6ff" : "white" }}>
+                <p style={{ margin: 0, fontWeight: "bold", color: "#040f25" }}>{chat.doctor_name || "Unknown Doctor"}</p>
+                <p style={{ margin: "2px 0 0 0", fontSize: "0.75rem", color: "#607593" }}>Chat #{chat.id}</p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: chat.status === "CHAT_STATUS_ACTIVE" ? "#15803d" : "#94a3b8" }}>
+                  {chat.status === "CHAT_STATUS_ACTIVE" ? "Active" : chat.status === "CHAT_STATUS_CLOSED" ? "Closed" : "Withdrawn"}
+                </p>
+                <p style={{ margin: "2px 0 0 0", fontSize: "0.75rem", color: "#94a3b8" }}>{chat.message_count} messages</p>
+              </div>
+            ))
+          )}
         </div>
 
-        {/* Slide-out user profile panel */}
+       {/* Main chat area */}
+<div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+  {!selectedChat ? (
+    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <p style={{ color: "#607593" }}>Select a chat to start messaging</p>
+    </div>
+  ) : (
+    <>
+{/* Chat header */}
+<div style={{ padding: "16px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+  <div>
+    <h3 style={{ margin: 0, color: "#040f25" }}>{selectedChat.doctor_name || "Chat"}</h3>
+    <p style={{ margin: 0, fontSize: "0.8rem", color: selectedChat.status === "CHAT_STATUS_ACTIVE" ? "#15803d" : "#94a3b8" }}>
+      {selectedChat.status === "CHAT_STATUS_ACTIVE" ? "Active" : selectedChat.status === "CHAT_STATUS_CLOSED" ? "Closed" : "Withdrawn"}
+    </p>
+  </div>
+  <div style={{ position: "relative" }}>
+    <button
+      onClick={() => setDropdownOpen(prev => !prev)}
+      style={{ background: "none", border: "none", fontSize: "1.4rem", cursor: "pointer", color: "#607593", padding: "4px 8px" }}>
+      ⋯
+    </button>
+    {dropdownOpen && (
+      <div style={{ position: "absolute", right: 0, top: "100%", backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 100, minWidth: "160px" }}>
+        <button onClick={() => { setReportOpen(true); setDropdownOpen(false); }}
+          style={{ display: "block", width: "100%", padding: "12px 16px", textAlign: "left", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontWeight: "bold", fontSize: "0.9rem" }}>
+          Report this chat
+        </button>
+      </div>
+    )}
+  </div>
+</div>
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "10px", minHeight: 0 }}>
+        {messages.length === 0 ? (
+          <p style={{ color: "#607593", textAlign: "center" }}>No messages yet. Say hello!</p>
+        ) : (
+          messages.map(msg => {
+            const isMe = msg.sender_type === 'user' && msg.sender_id === String(userData?.id);
+            return (
+              <div key={msg.id} style={{
+                maxWidth: "60%", padding: "10px 14px", borderRadius: 12,
+                alignSelf: isMe ? "flex-end" : "flex-start",
+                backgroundColor: isMe ? "#3b82f6" : "#e5e7eb",
+                color: isMe ? "white" : "black"
+              }}>
+                <div>{msg.content}</div>
+                <div style={{ fontSize: "0.7rem", opacity: 0.6, marginTop: "4px", textAlign: "right" }}>
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+{/* Input row */}
+<div style={{ padding: "16px", backgroundColor: "white", borderTop: "1px solid #e2e8f0", flexShrink: 0, display: "flex", gap: "10px" }}>
+  {selectedChat.status === "CHAT_STATUS_ACTIVE" ? (
+    <>
+      <input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => e.key === "Enter" && sendMessage()}
+        placeholder="Type a message..."
+        style={{ flex: 1, minWidth: 0, padding: "12px 16px", borderRadius: 8, border: "1px solid #ccc", fontSize: "1rem" }}
+      />
+      <button onClick={sendMessage} style={{ padding: "12px 24px", borderRadius: 8, backgroundColor: "#3b82f6", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", maxWidth: 200 }}>
+        Send
+      </button>
+    </>
+  ) : (
+    <p style={{ color: "#94a3b8", margin: 0, padding: "10px" }}>
+      This chat is {selectedChat.status === "CHAT_STATUS_CLOSED" ? "closed" : "withdrawn"}, messaging is disabled.
+    </p>
+  )}
+</div>
+    </>
+  )}
+</div>
+
+        {/* Slide-out profile panel */}
         {panelOpen && (
           <div style={{ width: "260px", backgroundColor: "white", borderLeft: "1px solid #ccd9ee", padding: "24px 20px", boxShadow: "-4px 0 12px rgba(0,0,0,0.08)", display: "flex", flexDirection: "column", gap: "12px" }}>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={() => setPanelOpen(false)} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#607593" }}>✕</button>
+              <button onClick={() => setPanelOpen(false)} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
-            <div style={{ width: "60px", height: "60px", borderRadius: "50%", backgroundColor: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem", color: "white", margin: "0 auto" }}>
-              👤
-            </div>
-            <p style={{ textAlign: "center", fontWeight: "bold", fontSize: "1.1rem", textDecorationLine: "underline", color: "#040f25" }}>Your Profile</p>
-            <p style={{ color: "#040f25", fontSize: "0.9rem" }}><span style={{ color: "#607593" }}>Username: </span>{user.username}</p>
-            <p style={{ color: "#040f25", fontSize: "0.9rem" }}><span style={{ color: "#607593" }}>Email: </span>{user.email}</p>
-            <p style={{ color: "#040f25", fontSize: "0.9rem" }}><span style={{ color: "#607593" }}>Request Status: </span>{user.requestStatus}</p>
-            <p style={{ color: "#040f25", fontSize: "0.9rem" }}><span style={{ color: "#607593" }}>Points: </span>{user.points}</p>
+            <div style={{ width: "60px", height: "60px", borderRadius: "50%", backgroundColor: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem", color: "white", margin: "0 auto" }}>👤</div>
+            <p style={{ textAlign: "center", fontWeight: "bold", color: "#040f25" }}>Your Profile</p>
+            <p style={{ color: "#040f25", fontSize: "0.9rem" }}><span style={{ color: "#607593" }}>Name: </span>{userData?.first_name} {userData?.last_name}</p>
+            <p style={{ color: "#040f25", fontSize: "0.9rem" }}><span style={{ color: "#607593" }}>Email: </span>{userData?.username}</p>
+            <p style={{ color: "#040f25", fontSize: "0.9rem" }}><span style={{ color: "#607593" }}>Location: </span>{userData?.location}</p>
             <Link to="/dashboard" style={{ textDecoration: "none", marginTop: "8px" }}>
               <button style={{ width: "100%", backgroundColor: "#3b82f6", color: "white", padding: "8px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "bold" }}>Full Profile</button>
             </Link>
@@ -170,21 +259,18 @@ export default function Chat({ isLoggedIn }) {
         )}
       </div>
 
-      {/* Report submission modal overlay */}
+      {/* Report modal */}
       {reportOpen && (
         <div onClick={() => setReportOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 8, padding: 24, width: 400, maxWidth: "90vw", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 8, padding: 24, width: 400, maxWidth: "90vw" }}>
             {reportSubmitted ? (
               <p>Report submitted. Thank you!</p>
             ) : (
               <>
                 <h2 style={{ marginTop: 0 }}>Submit a Report</h2>
                 <label>Reason</label>
-                <select
-                  value={reportForm.reason}
-                  onChange={e => setReportForm({ ...reportForm, reason: e.target.value })}
-                  style={{ display: "block", width: "100%", marginBottom: 12, padding: 8, borderRadius: 6 }}
-                >
+                <select value={reportForm.reason} onChange={e => setReportForm({ ...reportForm, reason: e.target.value })}
+                  style={{ display: "block", width: "100%", marginBottom: 12, padding: 8, borderRadius: 6 }}>
                   <option value="">Select a reason...</option>
                   <option value="spam">Spam</option>
                   <option value="harassment">Harassment</option>
@@ -192,16 +278,13 @@ export default function Chat({ isLoggedIn }) {
                   <option value="other">Other</option>
                 </select>
                 <label>Details</label>
-                <textarea
-                  value={reportForm.details}
-                  onChange={e => setReportForm({ ...reportForm, details: e.target.value })}
-                  placeholder="Describe the issue..."
-                  rows={4}
-                  style={{ display: "block", width: "100%", marginBottom: 16, padding: 8, borderRadius: 6 }}
-                />
+                <textarea value={reportForm.details} onChange={e => setReportForm({ ...reportForm, details: e.target.value })}
+                  placeholder="Describe the issue..." rows={4}
+                  style={{ display: "block", width: "100%", marginBottom: 16, padding: 8, borderRadius: 6 }} />
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                   <button onClick={() => setReportOpen(false)} style={{ padding: "8px 14px", borderRadius: 6, cursor: "pointer" }}>Cancel</button>
-                  <button onClick={submitReport} disabled={!reportForm.reason} style={{ ...styles.button, background: "#ef4444", opacity: reportForm.reason ? 1 : 0.5 }}>Submit</button>
+                  <button onClick={submitReport} disabled={!reportForm.reason}
+                    style={{ padding: "10px 20px", borderRadius: 8, backgroundColor: "#ef4444", color: "white", border: "none", cursor: "pointer", opacity: reportForm.reason ? 1 : 0.5 }}>Submit</button>
                 </div>
               </>
             )}
@@ -211,18 +294,3 @@ export default function Chat({ isLoggedIn }) {
     </div>
   );
 }
-
-const styles = {
-  // Main chat container styling
-  container: { flex: 1, height: "80vh", width: "100%", display: "flex", flexDirection: "column", padding: 20, background: "#f3f4f6", boxSizing: "border-box" },
-  // Messages list container
-  messages: { flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", paddingBottom: 20 },
-  // Individual message bubble styling
-  message: { maxWidth: "60%", padding: "10px 14px", borderRadius: 12, display: "flex", flexDirection: "column", gap: 4 },
-  // Input field and buttons row
-  inputRow: { display: "flex", gap: 10, alignItems: "center" },
-  // Text input field
-  input: { flex: 1, minWidth: 0, padding: 10, borderRadius: 8, border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box" },
-  // Action buttons (Send, Report)
-  button: { padding: "10px 20px", width: "auto", borderRadius: 8, background: "#3b82f6", color: "white", border: "none", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }
-};

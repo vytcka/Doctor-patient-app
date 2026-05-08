@@ -19,6 +19,8 @@ import DoctorSignup from "./DoctorSignup";
 import DoctorDashboard from "./DoctorDashboard";
 import ModeratorDashboard from './ModeratorDashboard';    
 import DoctorProfile from './DoctorProfile';
+import SymptomChecker from './SymptomChecker';
+
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
@@ -35,20 +37,18 @@ function App() {
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} setUsername={setUsername} setUserData={setUserData} />} />
         <Route path="/signup" element={<Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
-        <Route path="/chat" element={<Chat isLoggedIn={isLoggedIn} />} />
-        <Route path="/Dashboard" element={
-          userRole === 'doctor'
-            ? <DoctorDashboard isLoggedIn={isLoggedIn} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername} />
-            : <Dashboard isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} userData={userData} />
-        } />
+        <Route path="/chat" element={<Chat isLoggedIn={isLoggedIn} userData={userData} />} />
+        <Route path="/dashboard" element={<Dashboard isLoggedIn={isLoggedIn} username={username} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername}/>} />
         <Route path="/Settings" element={<Settings isLoggedIn={isLoggedIn} />} />
         <Route path="/login-choice" element={<LoginChoice />} />
-        <Route path="/doctorlogin" element={<DoctorLogin setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
+<Route path="/doctorlogin" element={
+    <DoctorLogin setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole}setUserData={setUserData}setUsername={setUsername}/>} />
         <Route path="/signup-choice" element={<SignupChoice />} />
         <Route path="/doctorsignup" element={<DoctorSignup />} />
         <Route path="/doctor-dashboard" element={<DoctorDashboard isLoggedIn={isLoggedIn} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername} />} />
         <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
         <Route path="/doctor/:id" element={<DoctorProfile />} />
+        <Route path="/symptomchecker" element={<SymptomChecker isLoggedIn={isLoggedIn} />} />
       </Routes>
       <ToastContainer />
     </BrowserRouter>

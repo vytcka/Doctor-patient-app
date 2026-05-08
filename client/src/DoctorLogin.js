@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
-export default function DoctorLogin({ setIsLoggedIn, setUserRole }) {
+export default function DoctorLogin({ setIsLoggedIn, setUserRole, setUserData, setUsername }) {
     const navigate = useNavigate();
     // Form data for login credentials
     const [formData, setFormData] = useState({
@@ -50,15 +50,22 @@ export default function DoctorLogin({ setIsLoggedIn, setUserRole }) {
 
             const data = await response.json();
 
-            if (data.status === 200) {
-                setIsLoggedIn(true);
-                setUserRole('doctor');
-                setSuccessMessage(data.message);
-                setErrorMessage("");
-                toast.success("Doctor login successful!");
-                setTimeout(() => {
-                    navigate('/doctor-dashboard');
-                }, 1000);
+        if (data.status === 200) {
+            setIsLoggedIn(true);
+            setUserRole('doctor');
+            setUserData(data.user);        // ← add this
+            setUsername(data.user.username); // ← add this
+
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userRole', 'doctor');
+            localStorage.setItem('username', data.user.username);
+            localStorage.setItem('userData', JSON.stringify(data.user));
+
+            setSuccessMessage(data.message);
+            setErrorMessage("");
+            toast.success("Doctor login successful!");
+            setTimeout(() => navigate('/doctor-dashboard'), 1000);
+
             } else {
                 setErrorMessage(data.message);
                 setSuccessMessage("");
