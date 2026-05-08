@@ -7,5 +7,6 @@ from flaskServer import create_app, db
 @pytest.fixture
 def client():
     app = create_app()
-    with app.test_client() as client:
-        yield client
+    app.config['TESTING'] = True
+    with app.app_context():
+        yield app.test_client()

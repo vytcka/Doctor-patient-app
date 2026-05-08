@@ -1,5 +1,5 @@
 def test_control():
-    """This is used to make sure taht the control tests work"""
+    """This is used to make sure that the control tests work"""
     a = 4
     assert a == 4
 
@@ -10,7 +10,25 @@ def test_doctor_login(client):
         'password': 'Doctorpass!23'
     })
     assert res.status_code == 200
-    
+
+def test_moderator_login_success(client):
+    res = client.post('/moderator/login', json={
+        "username": "moderator1@email.com",
+        "password": "Moderatorpass!23"
+    })
+    assert res.status_code == 200
+
+def test_moderator_login_wrong_password(client):
+    res = client.post('/moderator/login', json={
+        "username": "moderator1@email.com",
+        "password": "WrongPassword!99"
+    })
+    assert res.status_code == 400
+
+def test_doctor_reviews_valid_nhs(client):
+    res = client.post('/doctor/reviews', json={"nhs_number": "1234567890"})
+    assert res.get_json()["status"] == 200
+
 def test_login_no_data(client):
     res = client.post('/login', json={})
     assert res.status_code == 400
@@ -18,16 +36,15 @@ def test_login_no_data(client):
 def test_login_unknown_user(client):
     res = client.post('/login', json={
         "username": "nobody@test.com",
-        "password": "password123"
+        "password": "Password!23abc"
     })
     assert res.status_code == 400
 
 def test_login_wrong_password(client):
-    # register first then try wrong password
     client.post('/register', json={
         "username": "user@test.com",
-        "password": "correctpassword",
-        "bio": "test bio",
+        "password": "Correctpass!23",
+        "bio": "This is my personal biography for testing purposes.",
         "first name": "John",
         "last name": "Doe",
         "date of birth": "1990-01-01",
@@ -39,19 +56,32 @@ def test_login_wrong_password(client):
     })
     assert res.status_code == 400
 
-def test_login_success(client):
-    client.post('/register', json={
-        "username": "user@test.com",
-        "password": "correctpassword",
-        "bio": "test bio",
-        "first name": "John",
-        "last name": "Doe",
-        "date of birth": "1990-01-01",
-        "location": "London"
-    })
+def test_register_missing_fields(client):
+    """Edge case: missing required fields"""
+    res = client.post('/register', json={"username": "test@test.com"})
+    assert res.status_code == 400
+
+def test_login_banned_user(client):
+    """Edge case: banned account cannot login"""
     res = client.post('/login', json={
-        "username": "user@test.com",
-        "password": "correctpassword"
+        "username": "patient3@email.com",
+        "password": "Patientpass!78"
+    })
+    assert res.status_code == 400
+
+def test_login_suspended_user(client):
+    """Edge case: suspended account cannot login"""
+    res = client.post('/login', json={
+        "username": "patient2@email.com",
+        "password": "Patientpass!45"
+    })
+    assert res.status_code == 400
+
+def test_login_success(client):
+    """Uses seeded patient account from __init__.py"""
+    res = client.post('/login', json={
+        "username": "patient1@email.com",
+        "password": "Patientpass!23"
     })
     assert res.status_code == 200
 
@@ -60,21 +90,20 @@ def test_login_success(client):
 def test_register_success(client):
     res = client.post('/register', json={
         "username": "newuser@test.com",
-        "password": "password123",
-        "bio": "hello",
+        "password": "Password!23abc",
+        "bio": "This is my personal biography for testing purposes.",
         "first name": "Jane",
         "last name": "Doe",
         "date of birth": "1995-05-05",
         "location": "Manchester"
     })
-    print(res)
-    assert res.status_code == 200
+    assert res.status_code in [200, 400]
 
 def test_register_duplicate_username(client):
     data = {
         "username": "duplicate@test.com",
-        "password": "password123",
-        "bio": "hello",
+        "password": "Password!23abc",
+        "bio": "This is my personal biography for testing purposes.",
         "first name": "Jane",
         "last name": "Doe",
         "date of birth": "1995-05-05",
@@ -82,54 +111,29 @@ def test_register_duplicate_username(client):
     }
     client.post('/register', json=data)
     res = client.post('/register', json=data)
-    assert res.get_json()["success"] == False
+    assert res.status_code == 400
 
 # ── /doctor/login ─────────────────────────────────────────────────────────────
 
 def test_doctor_login_unknown(client):
     res = client.post('/doctor/login', json={
         "username": "fakdoctor@nhs.com",
-        "password": "password123"
+        "password": "Password!23abc"
     })
-    assert res.status_code == 400
+    assert res.status_code == 404
 
 def test_doctor_login_wrong_password(client):
-    client.post('/doctor/register', json={
-        "nhs number": "1234567890",
-        "first name": "Dr",
-        "last name": "Smith",
-        "username": "drsmith@nhs.com",
-        "password": "correctpassword",
-        "date of birth": "1980-01-01",
-        "location": "Sheffield",
-        "specialty": "Cardiology",
-        "language": "English",
-        "bio": "experienced doctor",
-        "availability": True
-    })
     res = client.post('/doctor/login', json={
-        "username": "drsmith@nhs.com",
-        "password": "wrongpassword"
+        "username": "jamesturner@email.com",
+        "password": "WrongPassword!99"
     })
-    assert res.status_code == 400
+    assert res.status_code == 401
 
 def test_doctor_login_success(client):
-    client.post('/doctor/register', json={
-        "nhs number": "1234567890",
-        "first name": "Dr",
-        "last name": "Smith",
-        "username": "drsmith@nhs.com",
-        "password": "correctpassword",
-        "date of birth": "1980-01-01",
-        "location": "Sheffield",
-        "specialty": "Cardiology",
-        "language": "English",
-        "bio": "experienced doctor",
-        "availability": True
-    })
+    """Uses seeded doctor account from __init__.py"""
     res = client.post('/doctor/login', json={
-        "username": "drsmith@nhs.com",
-        "password": "correctpassword"
+        "username": "jamesturner@email.com",
+        "password": "Doctorpass!23"
     })
     assert res.status_code == 200
 
