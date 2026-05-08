@@ -1,5 +1,5 @@
 import traceback
-from datetime import datetime
+from datetime import datetime, date
 from flask import request, render_template, redirect, url_for, session, Blueprint, flash, abort
 from sqlalchemy import text
 from flaskServer import db
@@ -53,33 +53,6 @@ def certainMethod():
 main = Blueprint('main', __name__)
 logger = logging.getLogger()
 
-
-def get_current_user():
-    """Return the logged-in User object from the session, or None.
-
-    Returns:
-        User | None: the User matching session['user'], or None.
-    """
-    data = request.get_json()
-
-    if data is None:
-        return None
-    username = data.get("username")
-    return User.query.filter_by(username=username).first()
-    
-
-def get_current_doctor():
-    """Return the logged-in Doctor object from the session, or None.
-
-    Returns:
-        Doctor | None: the Doctor matching session['user'], or None.
-    """
-    if session.get('role') != 'doctor':
-        return None
-    return Doctor.query.filter_by(username=session['user']).first()
-
-
-
 @main.route('/login', methods=['POST'])
 def login():
     """Login route is responsible for authenticating patient (user) accounts.
@@ -97,10 +70,11 @@ def login():
         return jsonify({
             "status": 400,
             "message": "No data provided"}), 400
+        
 
     username = data.get("username")
     password = data.get("password")
-
+    print("working")
     forms = validation_form()
     forms.username.data = username
     forms.password.data = password
@@ -148,7 +122,16 @@ def login():
 
         return jsonify({
             "status": 200,
-            "message": "Login successful"
+            "message": "Login successful",
+            "username": user.username,
+            "user": {
+                "username":      user.username,
+                "first_name":    user.first_name,
+                "last_name":     user.last_name,
+                "location":      user.location,
+                "role":          user.role,
+                "date_of_birth": str(user.date_of_birth)
+            }
         }), 200
 
     return jsonify({
@@ -156,7 +139,7 @@ def login():
         "message": "Suspicious attempt"
     }), 400
 
-@main.route('/register', methods=['GET', 'POST'])
+@main.route('/register', methods=['POST'])
 def register():
     """Register route is responsible for creating new patient (user) accounts.
     The role is always set to 'user'. Bio is sanitised with bleach before
@@ -172,76 +155,94 @@ def register():
     
     if form.validate():"""
     data = request.get_json()
-    
-    forms = registration_form()
-    
-    forms.username.data = data["username"]
-    forms.password.data = data["password"]
-    forms.bio.data = data["bio"]
-    forms.first_name.data = data["first name"]
-    forms.last_name.data = data["last name"]
-    forms.date_of_birth = data["date of birth"]
-    forms.location.data = data["location"]
-    
-        
-    if request.method == 'POST':
-        
-        if forms.validate_on_submit():
-            session.permanent = True
-            role   = "user"
-            
-            logging.info(sanitisationForLogs(f"forms validated during registration for the user: {forms.username.data} from the ip {request.remote_addr} "))
+    if not data:
+        return jsonify({"status": 400, "message": "No data provided"}), 400
 
-            check_query = text('SELECT username FROM "user" WHERE username = :username')
-            result = db.session.execute(check_query, {"username": forms.username.data})
-            row = result.first()
+    username   = data.get("username")
+    password   = data.get("password")
+    first_name = data.get("first name")
+    last_name  = data.get("last name")
+    dob        = data.get("date of birth")
+    location   = data.get("location")
+    bio        = data.get("bio")
 
-            session.clear()
-            if row:
-                flash('There already is a user registered with that username... \n Please register with a different username.')
-                logging.info(sanitisationForLogs(f"user tried to create an account with the username {forms.username.data} from the ip {request.remote_addr} "))
-                return jsonify({"status" : 400, "message" : "There already is a user registered with that username... Please register with a different username."}), 400
+    errors = []
 
-            safe_bio = bleach.clean(forms.bio.data, 
-                                 tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
-                                 attributes={'a' : ['href', 'title']},
-                                 strip=True)
+    if not username or len(username) < 6:
+        errors.append("username : must be at least 6 characters")
+    if not password or len(password) < 10:
+        errors.append("password : must be at least 10 characters")
+    if not first_name or len(first_name) < 2:
+        errors.append("first_name : First name is required")
+    if not last_name or len(last_name) < 2:
+        errors.append("last_name : Last name is required")
+    if not bio or len(bio) < 20:
+        errors.append("bio : Bio must be at least 20 characters")
+    if not location or location.strip() == "":
+        errors.append("location : Location is required")
 
-            db_user = User(
-                username=forms.username.data, password=forms.password.data, role=role, bio=safe_bio,
-                first_name=forms.first_name.data, last_name=forms.last_name.data,
-                date_of_birth=forms.date_of_birth.data, location=forms.location.data
-            )
+    try:
+        dob_parsed = datetime.strptime(dob, "%Y-%m-%d").date()
+        if dob_parsed > date.today():
+            errors.append("date_of_birth : Date of birth cannot be in the future")
+    except (ValueError, TypeError):
+        errors.append("date_of_birth : Invalid date format, use YYYY-MM-DD")
 
-            query = text("""
-                INSERT INTO "user" (username, password, role, bio, first_name, last_name, date_of_birth, location, points)
-                VALUES (:username, :password, :role, :bio, :first_name, :last_name, :date_of_birth, :location, 0)
-            """)
-            db.session.execute(query, {
-                "username":      db_user.username,
-                "password":      db_user.password,
-                "role":          "user",
-                "bio":           db_user.bio,
-                "first_name":    db_user.first_name,
-                "last_name":     db_user.last_name,
-                "date_of_birth": db_user.date_of_birth,
-                "location":      db_user.location,
-            })
-            db.session.commit()
+    if errors:
+        return jsonify({"status": 400, "errors": errors}), 400
 
-            logging.info(sanitisationForLogs(f"user has been registered with the name {forms.username.data} from the ip {request.remote_addr}"))
-            return jsonify({"success" : True}), 200
-    else:
-        listOfErrors = []
-        for fieldName, errorMessages in forms.errors.items():
-            for err in errorMessages:
-                listOfErrors.append(f"{fieldName} : {err}")
 
-        return jsonify({
-            "status": 400,
-            "errors": listOfErrors
-        })
-    return jsonify({"message" : "Please input some data."})
+    row = db.session.execute(
+        text('SELECT username FROM "user" WHERE username = :username'),
+        {"username": username}
+    ).first()
+    if row:
+        return jsonify({"status": 400, "message": "Username already taken"}), 400
+
+    safe_bio = bleach.clean(bio, tags=['b','i','u','em','strong','a','p','ol','li','br'],
+                            attributes={'a': ['href','title']}, strip=True)
+
+    db_user = User(
+        username=username,
+        password=password,
+        role="user",
+        bio=safe_bio,
+        first_name=first_name,
+        last_name=last_name,
+        date_of_birth=dob_parsed,
+        location=location,
+        is_banned= False,
+        is_suspended=False,
+        suspension_reason=None
+    )
+    db.session.add(db_user)
+    db.session.commit()
+
+    return jsonify({"success": True}), 200
+
+@main.route('/dashboard', methods=['GET'])
+def dashboard():
+    print("hello world")
+    if 'username' not in session:
+        print("username not in session")
+        return jsonify({"status": 400, "message": "Not logged in"}), 400
+
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        print("user does not exist")
+        return jsonify({"status": 400, "message": "User not found"}), 400
+
+    return jsonify({
+        "status": 200,
+        "user": {
+            "username":      user.username,
+            "first_name":    user.first_name,
+            "last_name":     user.last_name,
+            "location":      user.location,
+            "date_of_birth": str(user.date_of_birth),
+            "role":          user.role
+        }
+    }), 200
 
 @main.route('/moderator/login', methods=['POST'])
 def moderator_login():
@@ -598,7 +599,7 @@ def new_request():
         return jsonify({"status" : 400, "message" : "You need to be logged in as a patient."}), 403
 
     form = request_form()
-    user = get_current_user()
+    user = session["username"]
 
     if form.validate_on_submit():
         new_request = Request(
@@ -756,7 +757,7 @@ def accept_request(request_id):
     if session.get('role') != 'doctor':
         return jsonify({"status" : 400, "message" : "you need to be logged in as a doctor to perform this action"})
 
-    doctor = get_current_doctor()
+    doctor = session["username"]
     medical_request = db.session.get(Request, request_id)
 
     if not medical_request or medical_request.status != "REQUEST_STATUS_PENDING":
@@ -1252,7 +1253,7 @@ def edit_review(review_id):
         return jsonify({"status" : 403, "message" : "You need to be logged in as a patient."}), 403
 
     review = db.session.get(Review, review_id)
-    user = get_current_user()
+    user = session["username"]
 
     if not review or review.user_id != user.id:
         flash('Review not found.')
@@ -1285,7 +1286,7 @@ def get_notifications():
     if session.get('role') != 'user':
         return jsonify({"status" : 403, "message" : "You need to be logged in as a patient."}), 403
 
-    user = get_current_user()
+    user = session["username"]
     user_notifications = Notification.query.filter_by(user_id=user.id).all()
 
     return render_template('notifications.html', notifications=user_notifications)

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import Icon from './LogoIcon.png';
 import StarRating from './StarRating';
 
-function DoctorDashboard() {
+function DoctorDashboard({ isLoggedIn, userData, setIsLoggedIn, setUserData, setUsername }) {
   const navigate = useNavigate();
   // State for doctor's profile information
   const [doctor, setDoctor] = useState(null);
@@ -70,13 +71,13 @@ function DoctorDashboard() {
     const data = await response.json();
     if (data.status === 200) {
       setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-      alert("✓ Request accepted! Patient has been notified.");
+      toast.success("✓ Request accepted! Patient has been notified.");
     } else {
-      alert(data.message);
+      toast.error(data.message);
     }
   } catch (error) {
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-    alert("✓ Request accepted!");
+    toast.success("✓ Request accepted!");
   }
 };
 
@@ -92,26 +93,25 @@ function DoctorDashboard() {
     const data = await response.json();
     if (data.status === 200) {
       setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-      alert("✗ Request rejected.");
+      toast.error("✗ Request rejected.");
     } else {
-      alert(data.message);
+      toast.error(data.message);
     }
   } catch (error) {
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-    alert("✗ Request rejected.");
+    toast.error("✗ Request rejected.");
   }
 };
 
   // Log out the doctor and redirect to home
-  const handleLogout = async () => {
-  try {
-    await fetch("http://127.0.0.1:5000/logout", {
-      credentials: "include"
-    });
-  } finally {
-    navigate('/');
-  }
-};
+const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserData(null);
+    setUsername('');
+    localStorage.clear();
+    navigate('/login');
+}
+
 
   if (loading) {
     return (

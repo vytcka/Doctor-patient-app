@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
@@ -88,6 +89,7 @@ export default function DoctorSignup() {
             if (data.status === 200 || data.status === 201) {
                 setSuccessMessage("Account created! Redirecting to login...");
                 setErrorMessage("");
+                toast.success("Doctor account created successfully!");
                 setTimeout(() => navigate('/doctorlogin'), 1500);
             } else {
                 setErrorMessage(data.message);

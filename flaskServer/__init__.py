@@ -251,5 +251,6 @@ def create_app():
                 db.session.add(moderator)
             db.session.commit()
 
-    CORS(app, supports_credentials=True)
+    CORS(app, supports_credentials=True,
+         origins=["http://localhost:3000"])
     return app

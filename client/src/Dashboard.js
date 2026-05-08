@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from './LogoIcon.png';
 
-function Dashboard({ isLoggedIn, setIsLoggedIn }) {
+function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
   const navigate = useNavigate();
 
   const [user] = useState({
-    username: "Johndoe1",
-    email: "johndoe@email.com",
+    username: userData?.username || "Johndoe1",
+    email: userData?.username || "johndoe@email.com",
     requestStatus: "Granted",
     points: 3,
   });
@@ -21,20 +21,14 @@ function Dashboard({ isLoggedIn, setIsLoggedIn }) {
             <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
           </Link>
           <div style={{ display: "flex", gap: "10px" }}>
-            <Link to="/login-choice" style={{ textDecoration: "none" }}>
-              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
-            </Link>
-            <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
-            </Link>
+            <Link to="/login-choice"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button></Link>
+            <Link to="/signup-choice"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button></Link>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: "16px" }}>
           <p style={{ fontSize: "1.2rem", color: "#607593" }}>You need to be logged in to view your profile.</p>
           <Link to="/login-choice">
-            <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px 28px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}>
-              Log In
-            </button>
+            <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px 28px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}>Log In</button>
           </Link>
         </div>
       </div>
@@ -62,15 +56,9 @@ function Dashboard({ isLoggedIn, setIsLoggedIn }) {
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
         </Link>
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/post-request" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
-          </Link>
-          <Link to="/search" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
-          </Link>
-          <Link to="/chat" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
-          </Link>
+          <Link to="/post-request"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
+          <Link to="/search"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button></Link>
+          <Link to="/chat"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button></Link>
         </div>
       </div>
 
@@ -85,12 +73,18 @@ function Dashboard({ isLoggedIn, setIsLoggedIn }) {
             <div style={{ width: "88px", height: "88px", borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6, #1b4cb6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.4rem", color: "white", margin: "0 auto 14px auto", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>
               👤
             </div>
-            <p style={{ fontSize: "1.5rem", fontWeight: "700", color: "#1e293b", margin: "0 0 4px 0" }}>{user.username}</p>
-            <p style={{ fontSize: "0.88rem", color: "#94a3b8", margin: 0 }}>{user.email}</p>
+            <p style={{ fontSize: "1.5rem", fontWeight: "700", color: "#1e293b", margin: "0 0 4px 0" }}>
+              {userData?.first_name ? `${userData.first_name} ${userData.last_name}` : user.username}
+            </p>
+            <p style={{ fontSize: "0.88rem", color: "#94a3b8", margin: 0 }}>{userData?.username || user.email}</p>
           </div>
 
           {/* Info rows */}
           <div style={{ backgroundColor: "#f8fafc", borderRadius: "12px", padding: "16px 20px", marginBottom: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0", marginBottom: "12px" }}>
+              <span style={{ fontSize: "0.85rem", color: "#94a3b8", fontWeight: "500" }}>Location</span>
+              <span style={{ fontSize: "0.88rem", fontWeight: "600", color: "#1e293b" }}>{userData?.location || "Not set"}</span>
+            </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0", marginBottom: "12px" }}>
               <span style={{ fontSize: "0.85rem", color: "#94a3b8", fontWeight: "500" }}>Request Status</span>
               <span style={{ fontSize: "0.88rem", fontWeight: "600", color: "#16a34a", backgroundColor: "#dcfce7", padding: "3px 10px", borderRadius: "20px" }}>{user.requestStatus}</span>
@@ -125,7 +119,7 @@ function Dashboard({ isLoggedIn, setIsLoggedIn }) {
             <p style={{ fontSize: "0.75rem", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px" }}>Badges</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
               {badges.map((badge, i) => (
-                <div key={i} style={{ backgroundColor: badge.color, borderRadius: "12px", padding: "12px 8px", textAlign: "center", opacity: badge.earned ? 1 : 0.5, transition: "transform 0.15s", cursor: badge.earned ? "default" : "not-allowed" }}>
+                <div key={i} style={{ backgroundColor: badge.color, borderRadius: "12px", padding: "12px 8px", textAlign: "center", opacity: badge.earned ? 1 : 0.5 }}>
                   <div style={{ fontSize: "1.6rem", marginBottom: "5px" }}>{badge.icon}</div>
                   <div style={{ fontSize: "0.72rem", fontWeight: "700", color: badge.textColor, marginBottom: "2px" }}>{badge.label}</div>
                   <div style={{ fontSize: "0.62rem", color: badge.textColor, opacity: 0.75 }}>{badge.desc}</div>
@@ -137,12 +131,19 @@ function Dashboard({ isLoggedIn, setIsLoggedIn }) {
           {/* Action buttons */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <Link to="/Settings" style={{ textDecoration: "none" }}>
-              <button style={{ width: "100%", backgroundColor: "#3b82f6", color: "white", padding: "12px", borderRadius: "10px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.95rem", letterSpacing: "0.01em" }}>
-                Settings
+              <button style={{ width: "100%", backgroundColor: "#3b82f6", color: "white", padding: "12px", borderRadius: "10px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.95rem" }}>
+                ⚙️ Settings
               </button>
             </Link>
             <button
-              onClick={() => { setIsLoggedIn(false); navigate('/login-choice'); }}
+              onClick={() => {
+                setIsLoggedIn(false);
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userData');
+                navigate('/login-choice');
+              }}
               style={{ width: "100%", backgroundColor: "white", color: "#ef4444", padding: "12px", borderRadius: "10px", border: "1.5px solid #fca5a5", cursor: "pointer", fontWeight: "600", fontSize: "0.95rem" }}>
               Log Out
             </button>

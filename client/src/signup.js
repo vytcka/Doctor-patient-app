@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
@@ -17,6 +18,7 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
     });
 
     const [errorMessage, setErrorMessage] = useState('');
+    const [errorList, setErrorList] = useState([]);
     const [successMessage, setSuccessMessage] = useState('');
 
     const handleChange = (e) => {
@@ -25,18 +27,18 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorList([]);
+        setErrorMessage('');
 
         if (!formData.username || !formData.password || !formData.confirmPassword ||
             !formData.firstName || !formData.lastName || !formData.dateOfBirth ||
             !formData.location || !formData.bio) {
             setErrorMessage('Please fill in all fields');
-            setSuccessMessage('');
             return;
         }
 
         if (formData.password !== formData.confirmPassword) {
             setErrorMessage('Passwords do not match');
-            setSuccessMessage('');
             return;
         }
 
@@ -62,21 +64,20 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
                 setIsLoggedIn(true);
                 setUserRole('user');
                 setSuccessMessage('Account created! Redirecting...');
-                setErrorMessage('');
-                setTimeout(() => navigate('/dashboard'), 1500);
+                toast.success("Account created successfully!");
+                setTimeout(() => navigate('/dashboard'), 100);
+            } else if (data.errors && data.errors.length > 0) {
+                setErrorList(data.errors);
             } else {
                 setErrorMessage(data.message || 'Signup failed. Please try again.');
-                setSuccessMessage('');
             }
         } catch (error) {
             setErrorMessage("Server connection failed");
-            setSuccessMessage('');
         }
     };
 
     return (
         <div>
-            {/* Navbar */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px" }}>
                 <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
                     <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
@@ -125,14 +126,10 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
                     <div className="form-group">
                         <textarea name="bio" placeholder="Short bio (min 20 characters)"
                             value={formData.bio} onChange={handleChange} required
-                            style={{ 
-                                width: "100%", 
-                                padding: "10px",
-                                margin: "7px",
-                                fontSize: "14px", 
-                                color: "#2F5D96",
-                                borderRadius: "0",
-                                border: "1px solid #ccc",
+                            style={{
+                                width: "100%", padding: "10px", margin: "7px",
+                                fontSize: "14px", color: "#2F5D96",
+                                borderRadius: "0", border: "1px solid #ccc",
                                 boxSizing: "border-box"
                             }} />
                     </div>
@@ -147,7 +144,18 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
                             value={formData.confirmPassword} onChange={handleChange} required />
                     </div>
 
+                    {/* single error message */}
                     {errorMessage && <p className="error">{errorMessage}</p>}
+
+                    {/* backend validation error list */}
+                    {errorList.length > 0 && (
+                        <ul style={{ color: "red", textAlign: "left", paddingLeft: "20px" }}>
+                            {errorList.map((err, i) => (
+                                <li key={i}>{err}</li>
+                            ))}
+                        </ul>
+                    )}
+
                     {successMessage && <p className="success">{successMessage}</p>}
 
                     <button type="submit">Create Account</button>

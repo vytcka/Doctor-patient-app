@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './reviews.css'; 
 import StarRating from "./StarRating";
 import Icon from "./LogoIcon.png";
@@ -130,10 +131,12 @@ export default function DoctorReview({ isLoggedIn }){
             setError("");
             setNewReview({ rating: 0, comment: "" });
             setEditedReviewId(null);
+            toast.success("Review submitted successfully!");
             await loadReviews(); // refresh the approved review list after submission
         } catch (err) {
             console.log(err)
             setError(err.message || "Failed to submit review.");
+            toast.error("Failed to submit review.");
         }
     }
 
@@ -174,11 +177,13 @@ export default function DoctorReview({ isLoggedIn }){
             setSubmitMessage(data.message || "Review updated successfully.");
             setError("");
             setEditedReviewId(null);
+            toast.success("Review updated successfully!");
             await loadReviews(); // reload reviews after edit
         } catch (err) {
             console.log(err)
             setError(err.message || "Failed to save review edit.");
             setEditedReviewId(null);
+            toast.error("Failed to save review edit.");
         }
     }
 
@@ -402,7 +407,7 @@ export default function DoctorReview({ isLoggedIn }){
                             </div>
                         </div>
                     </div>
-                </div>
+               </div>
             </div>
         </div>
     );
