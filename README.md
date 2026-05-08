@@ -67,28 +67,12 @@ git clone https://github.com/vytcka/Doctor-patient-app.git
 cd Doctor-patient-app
 ```
 
-## Usage
-
-Start the backend:
+### run docker
 ```bash
-cd flaskServer
-pip install -r requirements.txt
-python -m flaskServer.run
-```
-
-Start the frontend:
-```bash
-cd client
-npm install
-npm start
-```
+docker-compose up --build
 
 Open: http://localhost:3000
  
-### Run with Docker
-```bash
-docker-compose up --build
-```
  
 ## Test Accounts (Seed Data)
  

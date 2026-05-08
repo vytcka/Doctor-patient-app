@@ -1,13 +1,42 @@
-from flaskServer import create_app
 import os
+import time
+import pytest
 
-#can be set to production if needed in the env file
-env = os.getenv('FLASK_ENV')
+env = os.getenv('FLASK_ENV', 'development')
+db_url = os.getenv('DATABASE_URL')
+print(f"Connecting to: {db_url}")
 
-app = create_app()
+def run_tests():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    tests_dir = os.path.join(base_dir, 'flaskServer', 'tests')
+    if not os.path.exists(tests_dir):
+        tests_dir = os.path.join(base_dir, 'tests')
+    print(f"Running tests from {tests_dir}")
+    result = pytest.main([tests_dir, '-v', '--tb=short'])
+    if result != 0:
+        print("Tests failed — starting anyway.")
+    else:
+        print("All tests passed!")
 
 if __name__ == '__main__':
-    if(env == 'development'):
-        app.run(debug=True)
+    import sqlalchemy as sa
+    db_url = os.getenv('DATABASE_URL')
+    for i in range(10):
+        try:
+            engine = sa.create_engine(db_url)
+            conn = engine.connect()
+            conn.close()
+            print("DB connected!")
+            break
+        except Exception:
+            time.sleep(2)
+
+    from flaskServer import create_app
+    app = create_app()
+
+    run_tests()
+
+    if env == 'development':
+        app.run(host='0.0.0.0', port=5000, debug=True)
     else:
-       app.run(debug=False)
+        app.run(host='0.0.0.0', port=5000, debug=False)

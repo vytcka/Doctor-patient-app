@@ -2,6 +2,15 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Icon from "./LogoIcon.png";
 
+const navStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "10px",
+  backgroundColor: "white",
+  borderBottom: "1px solid #e2e8f0"
+};
+
 export default function Chat({ isLoggedIn, userData }) {
   const navigate = useNavigate();
   const [chats, setChats] = useState([]);

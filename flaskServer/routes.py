@@ -533,56 +533,27 @@ def change_password():
         renders change_password.html on GET or failed POST, redirects to dashboard on success.
     """
 
-    if session.get('role') not in ['user', 'doctor']:
-        logger.warning(sanitisationForLogs(f"Unauthorized access attempt to change password by user {session.get('user')} from {request.remote_addr}"))
-        return jsonify({"status" : 400, "message" : "you need to be logged in to change your password"})
+    username = session.get('username') or request.headers.get('X-Username')
+    if not username:
+        return jsonify({"status": 400, "message": "Not logged in"}), 400
 
-    if request.method == 'POST':
-           
-        form = password_form() 
-        
-        if form.validate_on_submit():
-            username = session['user']
-            role = session.get('role')
-            current_password = form.current_password.data
-            new_password = form.new_password.data
+    data = request.get_json()
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
 
-            logger.warning(sanitisationForLogs(f"Password change attempt for {username}"))
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"status": 400, "message": "User not found"}), 400
 
-            if role == 'doctor':
-                query = text('SELECT * FROM "doctor" WHERE username = :username LIMIT 1')
-                row = db.session.execute(query, {"username": username}).mappings().first()
-                if not row:
-                    session.clear()
-                    return jsonify({"status" : 400, "message" : "user not found"})
-                account          = db.session.get(Doctor, row['nhs_number'])
-                password_correct = account.check_password(current_password) if account else False
-            else:
-                query   = text('SELECT * FROM "user" WHERE username = :username LIMIT 1')
-                row     = db.session.execute(query, {"username": username}).mappings().first()
-                if not row:
-                    session.clear()
-                    return jsonify({"status" : 400, "message" : "user not found"})
-                account          = db.session.get(User, row['id'])
-                password_correct = account.check_hash(current_password) if account else False
+    if not user.check_hash(current_password):
+        return jsonify({"status": 400, "message": "Current password is incorrect"}), 400
 
-            if not account or not password_correct:
-                flash('Current password is incorrect')
-                logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
-                return jsonify({"status" : 400, "message" : "current password is incorrect"})
+    if new_password == current_password:
+        return jsonify({"status": 400, "message": "New password must be different"}), 400
 
-            if new_password == current_password:
-                flash('New password must be different from the current password')
-                return jsonify({"status" : 400, "message" : "new password must be different from the current password"})
-
-            account.set_password(new_password)
-            db.session.commit()
-            return jsonify({"status" : 200, "message" : "password changed successfully"})
-        else:
-            return jsonify({"status" : 400, "message" : "invalid data provided"})
-
-    return jsonify({"status" : 400, "message" : "invalid request method"})
-
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({"status": 200, "message": "Password updated successfully"}), 200
 
 @main.route('/logout', methods=['GET'])
 def logout():
@@ -1125,43 +1096,37 @@ def restore_chat(chat_id):
 
 
 
-@main.route('/delete_account', methods=['GET', 'POST'])
+@main.route('/delete_account', methods=['POST'])
 def delete_account():
-    if request.method == "POST":
+    username = session.get('username') or request.headers.get('X-Username')
+    if not username:
+        return jsonify({"status": 400, "message": "You need to be logged in."}), 403
 
-        if 'user' not in session:
-            logger.warning(sanitisationForLogs(f"user has tried to delete an account without being logged in from the ip address {request.remote_addr}"))
-            return jsonify({"status" : 400, "message" : "you need to be logged in to view this page."}), 403
-        
-        form = password_form()
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": 400, "message": "No data provided."}), 400
 
-        if form.validate_on_submit():
-            username = session['user']
-            logger.warning(sanitisationForLogs(f"Account deletion attempt for {username}"))
-            current_password = form.current_password.data
+    current_password = data.get('password')
+    if not current_password:
+        return jsonify({"status": 400, "message": "Password is required."}), 400
 
-            query = text("SELECT * FROM user WHERE username = :username LIMIT 1")
-            row = db.session.execute(query, {"username": username}).mappings().first()
+    query = text('SELECT * FROM "user" WHERE username = :username LIMIT 1')
+    row = db.session.execute(query, {"username": username}).mappings().first()
 
-            if not row:
-                session.clear()
-                return jsonify({"status" : 400, "message" : "Account not found."}), 400
+    if not row:
+        return jsonify({"status": 400, "message": "Account not found."}), 400
 
-            user = db.session.get(User, row['id'])
+    user = db.session.get(User, row['id'])
 
-            if not user or not user.check_hash(current_password):
-                flash('Current password is incorrect')
-                logging.warning(sanitisationForLogs(f"Incorrect current password provided for {username} from {request.remote_addr}"))
-                return jsonify({"status" : 400, "message" : "Current password is incorrect."}), 400
+    if not user or not user.check_hash(current_password):
+        logger.warning(sanitisationForLogs(f"Incorrect password for account deletion: {username}"))
+        return jsonify({"status": 400, "message": "Current password is incorrect."}), 400
 
-            db.session.delete(user)
-            db.session.commit() 
-            session.clear()
-            return jsonify({"status" : 200, "message" : "Account deleted successfully."}), 200
-        else:
-            session.clear()
-            return jsonify({"status" : 400, "message" : "Invalid data provided."}), 400
-
+    db.session.delete(user)
+    db.session.commit()
+    session.clear()
+    logger.warning(sanitisationForLogs(f"Account deleted: {username}"))
+    return jsonify({"status": 200, "message": "Account deleted successfully."}), 200
 
 @main.route('/approve_review', methods=['POST'])
 def approveReview():

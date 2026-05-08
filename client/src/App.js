@@ -20,7 +20,7 @@ import DoctorDashboard from "./DoctorDashboard";
 import ModeratorDashboard from './ModeratorDashboard';    
 import DoctorProfile from './DoctorProfile';
 import SymptomChecker from './SymptomChecker';
-import MyRequests from './MyRequests';
+import MyRequests from './myRequests';
 
 
 function App() {
@@ -40,7 +40,7 @@ function App() {
         <Route path="/signup" element={<Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
         <Route path="/chat" element={<Chat isLoggedIn={isLoggedIn} userData={userData} />} />
         <Route path="/dashboard" element={<Dashboard isLoggedIn={isLoggedIn} username={username} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername}/>} />
-        <Route path="/Settings" element={<Settings isLoggedIn={isLoggedIn} />} />
+        <Route path="/Settings" element={<Settings isLoggedIn={isLoggedIn} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername} />} />
         <Route path="/login-choice" element={<LoginChoice />} />
 <Route path="/doctorlogin" element={
     <DoctorLogin setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole}setUserData={setUserData}setUsername={setUsername}/>} />

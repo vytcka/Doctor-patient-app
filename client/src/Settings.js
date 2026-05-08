@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from './LogoIcon.png';
 
-function Settings({ isLoggedIn }) {
+function Settings({ isLoggedIn, userData, setIsLoggedIn, setUserData, setUsername }) {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('account');
 
@@ -25,25 +25,48 @@ function Settings({ isLoggedIn }) {
     setTimeout(() => setUsernameMsg(""), 2000);
   };
 
-  const handlePasswordChange = async (e) => {
+const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmNewPassword) { setPasswordMsg("Please fill in all fields."); return; }
     if (newPassword !== confirmNewPassword) { setPasswordMsg("New passwords do not match."); return; }
     const response = await fetch("http://127.0.0.1:5000/change-password", {
-      method: "POST", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Username": userData?.username || "" 
+        },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
     });
     const data = await response.json();
     setPasswordMsg(data.status === 200 ? "Password updated successfully!" : data.message);
-  };
+};
 
   const confirmDelete = async () => {
-    const response = await fetch("http://127.0.0.1:5000/delete_account", { method: "POST", credentials: "include" });
+    if (!deletePassword) {
+        setDeleteMsg("Please enter your password.");
+        return;
+    }
+    const response = await fetch("http://127.0.0.1:5000/delete_account", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Username": userData?.username || ""
+        },
+        body: JSON.stringify({ password: deletePassword })
+    });
     const data = await response.json();
-    if (data.status === 200) { setShowConfirm(false); navigate('/'); }
-  };
-
+    if (data.status === 200) {
+        setIsLoggedIn(false);
+        setUserData(null);
+        setUsername('');
+        localStorage.clear();
+        navigate('/');
+    } else {
+        setDeleteMsg(data.message);
+    }
+};
   const inputStyle = { width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "0.9rem", marginBottom: "12px", boxSizing: "border-box", outline: "none" };
   const saveBtnStyle = { backgroundColor: "#3b82f6", color: "white", padding: "10px 28px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "0.95rem" };
   const sidebarItems = [
@@ -173,18 +196,26 @@ function Settings({ isLoggedIn }) {
         </div>
       </div>
 
-      {showConfirm && (
-        <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
-          <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "30px", maxWidth: "340px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+{showConfirm && (
+    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "30px", maxWidth: "340px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
             <p style={{ fontSize: "1.1rem", fontWeight: "bold", marginBottom: "10px" }}>Are you sure?</p>
-            <p style={{ fontSize: "0.9rem", color: "#607593", marginBottom: "20px" }}>This will permanently delete your account. This action cannot be undone.</p>
+            <p style={{ fontSize: "0.9rem", color: "#607593", marginBottom: "16px" }}>This will permanently delete your account.</p>
+            <input
+                type="password"
+                placeholder="Enter your password to confirm"
+                value={deletePassword}
+                onChange={e => setDeletePassword(e.target.value)}
+                style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "12px", boxSizing: "border-box" }}
+            />
+            {deleteMsg && <p style={{ color: "#ef4444", fontSize: "0.85rem", marginBottom: "12px" }}>{deleteMsg}</p>}
             <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-              <button onClick={() => setShowConfirm(false)} style={{ backgroundColor: "white", color: "#374151", padding: "8px 20px", borderRadius: "6px", border: "1px solid #e2e8f0", cursor: "pointer", fontWeight: "bold" }}>Cancel</button>
-              <button onClick={confirmDelete} style={{ backgroundColor: "#ef4444", color: "white", padding: "8px 20px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "bold" }}>Delete</button>
+                <button onClick={() => { setShowConfirm(false); setDeletePassword(""); setDeleteMsg(""); }} style={{ backgroundColor: "white", color: "#374151", padding: "8px 20px", borderRadius: "6px", border: "1px solid #e2e8f0", cursor: "pointer", fontWeight: "bold" }}>Cancel</button>
+                <button onClick={confirmDelete} style={{ backgroundColor: "#ef4444", color: "white", padding: "8px 20px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "bold" }}>Delete</button>
             </div>
-          </div>
         </div>
-      )}
+    </div>
+)}
     </div>
   );
 }
