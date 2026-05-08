@@ -1,6 +1,12 @@
 import pgeocode
 geo = pgeocode.Nominatim('GB')
 
+from datetime import date
+
+def calculate_age(dob):
+    today = date.today()
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
 BADGE_RULES = {
     "first_consult":   lambda u, chats, reviews: chats >= 1,
     "quick_responder": lambda u, chats, reviews: chats >= 1,

@@ -37,7 +37,8 @@ function App() {
         <Route path="/post-request" element={<PostRequest isLoggedIn={isLoggedIn} userData={userData} />} />
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} setUsername={setUsername} setUserData={setUserData} />} />
-        <Route path="/signup" element={<Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
+<Route path="/signup" element={
+    <Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole}setUserData={setUserData}setUsername={setUsername}/>} />
         <Route path="/chat" element={<Chat isLoggedIn={isLoggedIn} userData={userData} />} />
         <Route path="/dashboard" element={<Dashboard isLoggedIn={isLoggedIn} username={username} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername}/>} />
         <Route path="/Settings" element={<Settings isLoggedIn={isLoggedIn} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername} />} />

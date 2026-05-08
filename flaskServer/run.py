@@ -19,18 +19,6 @@ def run_tests():
         print("All tests passed!")
 
 if __name__ == '__main__':
-    import sqlalchemy as sa
-    db_url = os.getenv('DATABASE_URL')
-    for i in range(10):
-        try:
-            engine = sa.create_engine(db_url)
-            conn = engine.connect()
-            conn.close()
-            print("DB connected!")
-            break
-        except Exception:
-            time.sleep(2)
-
     from flaskServer import create_app
     app = create_app()
 

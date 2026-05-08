@@ -18,7 +18,7 @@ from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
-from .utility import award_badges
+from .utility import award_badges, calculate_age
 
 #using fernet lib to provide symmetrical encryption
 
@@ -75,7 +75,6 @@ def login():
 
     username = data.get("username")
     password = data.get("password")
-    print("working")
     forms = validation_form()
     forms.username.data = username
     forms.password.data = password
@@ -194,7 +193,7 @@ def register():
             errors.append("date_of_birth : Date of birth cannot be in the future")
     except (ValueError, TypeError):
         errors.append("date_of_birth : Invalid date format, use YYYY-MM-DD")
-
+        age = calculate_age(dob_parsed)
     if errors:
         return jsonify({"status": 400, "errors": errors}), 400
 
@@ -217,6 +216,7 @@ def register():
         first_name=first_name,
         last_name=last_name,
         date_of_birth=dob_parsed,
+        age= age,
         location=location,
         is_banned= False,
         is_suspended=False,
@@ -225,7 +225,20 @@ def register():
     db.session.add(db_user)
     db.session.commit()
 
-    return jsonify({"success": True}), 200
+    return jsonify({
+    "success": True,
+    "user": {
+        "id":            db_user.id,
+        "username":      db_user.username,
+        "first_name":    db_user.first_name,
+        "last_name":     db_user.last_name,
+        "location":      db_user.location,
+        "role":          db_user.role,
+        "date_of_birth": str(db_user.date_of_birth),
+        "points":        0,
+        "badges":        []
+    }
+}), 200
 
 @main.route('/dashboard', methods=['GET'])
 def dashboard():
@@ -361,83 +374,90 @@ def doctor_login():
 
     return jsonify({"status": 400, "message": "Invalid credentials format."}), 400
 
-@main.route('/doctor/register', methods=[ 'POST'])
+@main.route('/doctor/register', methods=['POST'])
 def doctor_register():
-    """Doctor register route is responsible for creating new doctor accounts.
-    The role is always set to 'doctor'. Bio is sanitised with bleach before
-    being encrypted and stored.
-
-    Returns:
-        renders doctor_register.html on GET or failed POST, redirects to doctor_login on success.
-    """
     data = request.get_json()
-    forms = DoctorRegistrationForm()
-    forms.nhs_number.data = data["nhs number"]
-    forms.first_name.data = data["first name"]
-    forms.last_name.data = data["last name"]
-    forms.username.data = data["username"]
-    forms.password.data = data["password"]
-    forms.date_of_birth.data = data["date of birth"]
-    forms.location.data = data["location"]
-    forms.specialty.data = data["specialty"]
-    forms.language.data = data["language"]
-    forms.bio.data = data["bio"]
-    forms.availability.data = data["availability"]
-    
-    if forms.validate_on_submit():
+    if not data:
+        return jsonify({"status": 400, "message": "No data provided"}), 400
 
+    # 1. Convert Date String to Date Object for comparison
+    dob_str = data.get("date of birth")
+    dob_date = None
+    if dob_str:
+        try:
+            dob_date = datetime.strptime(dob_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            dob_date = dob_str 
 
-            logger.info(sanitisationForLogs(f"Doctor registration attempt for {forms.usernmae.data} from {request.remote_addr}"))
+    form_payload = {
+        "nhs_number": data.get("nhs number"),
+        "first_name": data.get("first name"),
+        "last_name": data.get("last name"),
+        "username": data.get("username"),
+        "password": data.get("password"),
+        "date_of_birth": dob_date,
+        "location": data.get("location"),
+        "specialty": data.get("specialty"),
+        "language": data.get("language"),
+        "bio": data.get("bio"),
+        "availability": data.get("availability", True)
+    }
 
-            nhs_check = text('SELECT nhs_number FROM "doctor" WHERE nhs_number = :nhs_number')
-            if db.session.execute(nhs_check, {"nhs_number": forms.nhs_number.data}).first():
-                return jsonify({"status" : 400, "message" : "There already exists a doctor with that NHS number."}), 400
+    forms = DoctorRegistrationForm(formdata=None, data=form_payload)
 
-            username_check = text('SELECT username FROM "doctor" WHERE username = :username')
-            if db.session.execute(username_check, {"username": forms.username.data}).first():
-                return jsonify({"status" : 400, "message" : "That username is taken. Please use a different username."}), 400
+    if forms.validate():
+        logger.info(sanitisationForLogs(f"Doctor registration attempt for {forms.username.data} from {request.remote_addr}"))
 
-            session.clear()
+        nhs_check = text('SELECT nhs_number FROM "doctor" WHERE nhs_number = :nhs_number')
+        if db.session.execute(nhs_check, {"nhs_number": forms.nhs_number.data}).first():
+            return jsonify({"status": 400, "message": "There already exists a doctor with that NHS number."}), 400
 
-            safe_bio = bleach.clean(forms.bio.data,
-                                    tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
-                                    attributes={'a': ['href', 'title']},
-                                    strip=True)
+        username_check = text('SELECT username FROM "doctor" WHERE username = :username')
+        if db.session.execute(username_check, {"username": forms.username.data}).first():
+            return jsonify({"status": 400, "message": "That username is taken."}), 400
 
-            db_doctor = Doctor(
-                nhs_number=forms.nhs_number.data, first_name=forms.first_name.data, last_name=forms.last_name.data,
-                username=forms.username.data, password=forms.password.data, date_of_birth=forms.date_of_birth.data,
-                location=forms.location.data, specialty=forms.specialty.data, language=forms.language.data,
-                bio=forms.safe_bio.data, availability=forms.availability.data
+        safe_bio = bleach.clean(forms.bio.data,
+                                tags=['b', 'i', 'u', 'em', 'strong', 'a', 'p', 'ol', 'li', 'br'],
+                                attributes={'a': ['href', 'title']},
+                                strip=True)
+
+        try:
+            new_doctor = Doctor(
+                nhs_number=forms.nhs_number.data,
+                first_name=forms.first_name.data,
+                last_name=forms.last_name.data,
+                username=forms.username.data,
+                password=forms.password.data,
+                date_of_birth=forms.date_of_birth.data,
+                location=forms.location.data,
+                specialty=forms.specialty.data,
+                language=forms.language.data,
+                bio=safe_bio,
+                availability=forms.availability.data
             )
-
-            query = text("""
-                INSERT INTO "doctor" (nhs_number, first_name, last_name, username, password, role,
-                                    date_of_birth, location, specialty, language, bio, availability)
-                VALUES (:nhs_number, :first_name, :last_name, :username, :password, :role,
-                        :date_of_birth, :location, :specialty, :language, :bio, :availability)
-            """)
-            db.session.execute(query, {
-                "nhs_number":    db_doctor.nhs_number,
-                "first_name":    db_doctor.first_name,
-                "last_name":     db_doctor.last_name,
-                "username":      db_doctor.username,
-                "password":      db_doctor.password,
-                "role":          "doctor",
-                "date_of_birth": db_doctor.date_of_birth,
-                "location":      db_doctor.location,
-                "specialty":     db_doctor.specialty,
-                "language":      db_doctor.language,
-                "bio":           db_doctor.bio,
-                "availability":  db_doctor.availability,
-            })
+            
+            db.session.add(new_doctor)
             db.session.commit()
+                
+            logger.info(sanitisationForLogs(f"Doctor registered: {forms.username.data}"))
+            return jsonify({"status": 200, "message": "Doctor registered successfully"}), 200
 
-            logger.info(sanitisationForLogs(f"Doctor registered: {db_doctor.username} from {request.remote_addr}"))
-            return jsonify({"status" : 200})
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error: {str(e)}")
+            return jsonify({"status": 500, "message": "Internal server error"}), 500
+
     else:
-        return jsonify({"status" : 400, "message" : "invalid data types provided"})
-
+        error_messages = []
+        for field, errors in forms.errors.items():
+            field_label = field.replace('_', ' ').capitalize()
+            for error in errors:
+                error_messages.append(f"{field_label}: {error}")
+        
+        return jsonify({
+            "status": 400, 
+            "message": " | ".join(error_messages) if error_messages else "Invalid data provided"
+        }), 400
 
 #--------------------------------------------
 
@@ -571,7 +591,6 @@ def logout():
 
 @main.route('/filter', methods=['POST'])
 def getDoctor():
-    logger.info("hello world1")
     data = request.get_json()
     filterValues = ["location", "language", "specialty", "gender", "min_rating"]
     if not any(key in request.args for key in filterValues):
@@ -1682,3 +1701,22 @@ def widthdraw_chat():
 
     logger.info(sanitisationForLogs(f"Chat {session.get('chat_id')} withdrawn by user {username} from {request.remote_addr}"))
     return jsonify({"status": 200, "message": "You have withdrawn from the chat. The appointment is now ended."})
+
+
+@main.route('/update_points', methods=['POST'])
+def update_points():
+    username = session.get('username') or request.headers.get('X-Username')
+    if not username:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    pts_to_add = data.get('points_to_add')
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    user.points = (user.points or 0) + pts_to_add
+    db.session.commit()
+
+    return jsonify({ 'points': user.points }), 200

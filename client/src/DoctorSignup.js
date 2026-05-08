@@ -48,9 +48,6 @@ export default function DoctorSignup() {
                     <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
                 </Link>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <Link to="/post-request" style={{ textDecoration: "none" }}>
-                        <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Post a Request</button>
-                    </Link>
                     <Link to="/search" style={{ textDecoration: "none" }}>
                         <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Find a Doctor</button>
                     </Link>

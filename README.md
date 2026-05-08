@@ -2,6 +2,11 @@
 
 An application that connects healthcare professionals with patients seeking non-urgent medical advice.
 
+
+## github repository:
+
+https://github.com/vytcka/Doctor-patient-app
+
 ## Description
 
 TreatMe is a digital healthcare platform designed to connect patients with qualified healthcare professionals for non-urgent medical advice.
@@ -37,16 +42,18 @@ Our application is an easier solution for patients in rural areas and we provide
 ## Visuals
 
 ### Homepage
-! [Homepage Screenshot](./docs/homepage.jpeg)
+! [Homepage Screenshot](./docs/home.png)
+
+! [Homepage Screenshot](./docs/home1.png)
 
 ### Login Page
 ! [Login Page Screenshot](./docs/login.jpeg)
 
 ### Request Form
-! [Request Form Screenshot](./docs/requestform.jpeg)
+! [Request Form Screenshot](./docs/newMedicalRequest.png)
 
 ### Doctor Profile Page
-! [Doctor Profile Page Screenshot](./docs/doctorprofile.jpeg)
+! [Doctor Profile Page Screenshot](./docs/doctor.jpeg)
 
 ## Installation
 

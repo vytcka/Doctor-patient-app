@@ -50,6 +50,7 @@ class User(db.Model):
     points = db.Column(db.Integer, default=0, nullable=False)
     badges = db.Column(db.JSON, default=list, nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
+    age = db.Column(db.Integer, nullable= True)
     location = db.Column(db.String(100), nullable=False)
     is_banned = db.Column(db.Boolean, default=False, nullable=False)
     is_suspended = db.Column(db.Boolean, default=False, nullable=False)
@@ -261,7 +262,7 @@ class Doctor(db.Model):
         return fernet.decrypt(encrypted_text.encode('utf-8')).decode('utf-8')
 
     def __init__(self, nhs_number, first_name, last_name, username, password,
-                 date_of_birth, location, specialty, gender, language, bio,
+                 date_of_birth, location, specialty, language, bio,
                  availability=True, rating=None):
         """Constructor for creating a Doctor object. Role is always set to 'doctor'.
         Password is hashed and bio is encrypted on creation.
@@ -290,10 +291,11 @@ class Doctor(db.Model):
         self.location      = location
         self.rating        = rating
         self.specialty     = specialty
-        self.gender        = gender
         self.language      = language
         self.availability  = availability
         self.bio           = self._encrypt(bio)
+        self.is_banned = False
+        self.is_suspended = False
 
     def set_password(self, new_password: str):
         """Set password setter updates the doctor's password. The new password is hashed
@@ -437,7 +439,7 @@ class Moderator(db.Model):
 
 class Request(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    age = db.Column(db.Integer, nullable=False)
+    age = db.Column(db.Integer, nullable=True)
     symptoms = db.Column(db.Text, nullable=False)
     symptoms_details = db.Column(db.Text)
     family_issues = db.Column(db.Boolean, default=False)

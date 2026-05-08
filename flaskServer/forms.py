@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import (StringField, PasswordField, TextAreaField, IntegerField,
                      SubmitField, BooleanField, SelectField, FloatField, DateField)
 from wtforms.validators import (NumberRange, Optional, input_required,
-                                 Length, ValidationError, Email)
+                                 Length, ValidationError, Email, DataRequired)
 from flask import session
 from datetime import date
 from flaskServer.models import VALID_SPECIALTIES
@@ -262,40 +262,40 @@ class DoctorRegistrationForm(FlaskForm):
     """
 
     first_name = StringField('First name', validators=[
-        input_required(message="First name is required."),
+        DataRequired(message="First name is required."),
         Length(min=2, max=50, message="First name must be between 2 and 50 characters."),
     ])
     last_name = StringField('Last name', validators=[
-        input_required(message="Last name is required."),
+        DataRequired(message="Last name is required."),
         Length(min=2, max=50, message="Last name must be between 2 and 50 characters."),
     ])
     username = StringField('Username (e-mail)', validators=[
-        input_required(message="Username (e-mail) is required."),
+        DataRequired(message="Username (e-mail) is required."),
         Email(message="Username must be a valid e-mail address."),
         Length(min=6, max=80, message="Username must be between 6 and 80 characters."),
     ])
     password = PasswordField('Password', validators=[
-        input_required(message="Password is required."),
+        DataRequired(message="Password is required."),
         Length(min=10, max=40, message="Password must be between 10 and 40 characters."),
     ])
     nhs_number = StringField('NHS Number', validators=[
-        input_required(message="NHS number is required."),
+        DataRequired(message="NHS number is required."),
         Length(min=10, max=10, message="NHS number must be exactly 10 digits."),
     ])
     date_of_birth = DateField('Date of birth', validators=[
-        input_required(message="Date of birth is required."),
+        DataRequired(message="Date of birth is required."),
     ])
     location = StringField('Location', validators=[
-        input_required(message="Location is required."),
+        DataRequired(message="Location is required."),
         Length(min=2, max=100, message="Location must be between 2 and 100 characters."),
     ])
     specialty = SelectField(
         'Specialty',
         choices=[(s, s) for s in VALID_SPECIALTIES],
-        validators=[input_required(message="Please select a specialty.")]
+        validators=[DataRequired(message="Please select a specialty.")]
     )
     language = StringField('Primary language', validators=[
-        input_required(message="Language is required."),
+        DataRequired(message="Language is required."),
         Length(min=2, max=60, message="Language must be between 2 and 60 characters."),
     ])
     rating = FloatField('Rating (1–5)', validators=[
@@ -304,7 +304,7 @@ class DoctorRegistrationForm(FlaskForm):
     ])
     availability = BooleanField('Available for appointments', default=True)
     bio = TextAreaField('Biography', validators=[
-        input_required(message="Biography is required."),
+        DataRequired(message="Biography is required."),
         Length(min=20, max=500, message="Biography must be between 20 and 500 characters."),
     ])
 

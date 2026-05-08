@@ -135,7 +135,7 @@ export default function Chat({ isLoggedIn, userData }) {
           <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
         </Link>
         <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/post-request"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
+          <Link to="/symptom-checker"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
           <Link to="/search"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button></Link>
           <Link to="/dashboard"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Profile</button></Link>
 

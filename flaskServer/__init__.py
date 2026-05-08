@@ -8,6 +8,7 @@ import re
 import os
 from flask_cors import CORS
 from datetime import date
+from .utility import calculate_age
 
 db = SQLAlchemy()
 #definining sanitisation for logs
@@ -72,27 +73,14 @@ def create_app():
         "suspension_reason": None
     },
     {
-        "username": "doctor1@email.com",
-        "password": "Doctorpass!23",
-        "role": "doctor",
+        "username": "Alex@email.com",
+        "password": "PatientPass1212",
+        "role": "patient",
         "bio": "Experienced GP with a focus on preventative healthcare.",
         "first_name": "Sarah",
         "last_name": "Mitchell",
         "date_of_birth": date(1982, 11, 3),
         "location": "Manchester, UK",
-        "is_banned": False,
-        "is_suspended": False,
-        "suspension_reason": None
-    },
-    {
-        "username": "admin1@email.com",
-        "password": "Adminpass!23",
-        "role": "admin",
-        "bio": "System administrator responsible for maintaining platform integrity.",
-        "first_name": "Michael",
-        "last_name": "Reed",
-        "date_of_birth": date(1975, 7, 21),
-        "location": "London, UK",
         "is_banned": False,
         "is_suspended": False,
         "suspension_reason": None
@@ -109,19 +97,6 @@ def create_app():
         "is_banned": False,
         "is_suspended": True,
         "suspension_reason": "Violation of community guidelines"
-    },
-    {
-        "username": "doctor2@email.com",
-        "password": "Doctorpass!56",
-        "role": "doctor",
-        "bio": "Cardiologist with 12 years of clinical experience.",
-        "first_name": "James",
-        "last_name": "Turner",
-        "date_of_birth": date(1979, 9, 17),
-        "location": "Birmingham, UK",
-        "is_banned": False,
-        "is_suspended": False,
-        "suspension_reason": None
     },
     {
         "username": "patient3@email.com",

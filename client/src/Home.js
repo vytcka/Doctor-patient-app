@@ -194,11 +194,6 @@ function Home({ isLoggedIn, userRole }) {
           <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
         </Link>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <Link to="/post-request" style={{ textDecoration: "none" }}>
-            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer", borderRadius: "6px" }}>
-              Post a Request
-            </button>
-          </Link>
           <Link to="/search" style={{ textDecoration: "none" }}>
             <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer", borderRadius: "6px" }}>
               Find a Doctor
@@ -251,27 +246,15 @@ function Home({ isLoggedIn, userRole }) {
             instantly.
           </h1>
           <p style={{ fontSize: "1.05rem", color: "#475569", lineHeight: "1.7", marginBottom: "32px", margin: "0 0 32px 0", textAlign: "left", opacity: 1 }}>
-            TreatMe connects you with verified NHS doctors for secure, anonymous consultations — no waiting rooms, no long queues.
+            TreatMe connects you with verified NHS doctors for secure consultations.
           </p>
 
-          {/* Search bar style CTA */}
-          <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "8px 8px 8px 20px", display: "flex", alignItems: "center", boxShadow: "0 4px 24px rgba(27,75,182,0.12)", marginBottom: "20px", border: "1.5px solid #e2eaf8" }}>
-            <span style={{ fontSize: "1.1rem", marginRight: "10px" }}>🔍</span>
-            <span style={{ flex: 1, color: "#94a3b8", fontSize: "0.95rem" }}>Search by specialty, language, or location...</span>
-            <Link to="/search" style={{ textDecoration: "none" }}>
-              <button style={{ backgroundColor: "#1b4cb6", color: "white", border: "none", borderRadius: "10px", padding: "12px 24px", fontSize: "0.9rem", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }}>
-                Find a Doctor
-              </button>
-            </Link>
-          </div>
-
           <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-            <Link to="/post-request" style={{ textDecoration: "none" }}>
+            <Link to="/signup-choice" style={{ textDecoration: "none" }}>
               <button style={{ backgroundColor: "#3b82f6", color: "white", border: "none", borderRadius: "10px", padding: "12px 24px", fontSize: "0.9rem", fontWeight: "700", cursor: "pointer", boxShadow: "0 2px 8px rgba(59,130,246,0.3)" }}>
-                Post a Request
+                Sign Up
               </button>
             </Link>
-            <span style={{ fontSize: "0.82rem", color: "#64748b" }}>Free • Anonymous • Secure</span>
           </div>
         </div>
 
@@ -343,11 +326,6 @@ function Home({ isLoggedIn, userRole }) {
         <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "1rem", marginBottom: "32px", opacity: 1, textAlign: "center" }}>
           Post an anonymous request and get matched with an NHS doctor in minutes.
         </p>
-        <Link to="/post-request" style={{ textDecoration: "none" }}>
-          <button style={{ backgroundColor: "white", color: "#1b4cb6", border: "none", borderRadius: "50px", padding: "16px 40px", fontSize: "1rem", fontWeight: "800", cursor: "pointer", boxShadow: "0 4px 20px rgba(0,0,0,0.2)", letterSpacing: "0.01em" }}>
-            Post a request now 
-          </button>
-        </Link>
       </div>
 
     </div>

@@ -193,9 +193,6 @@ export default function Search({ isLoggedIn }) {
                     <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
                 </Link>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <Link to="/post-request" style={{ textDecoration: "none" }}>
-                        <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Post a Request</button>
-                    </Link>
                     {isLoggedIn ? (
                         <>
                             <Link to="/chat" style={{ textDecoration: "none" }}>
@@ -206,7 +203,11 @@ export default function Search({ isLoggedIn }) {
                             </Link>
                         </>
                     ) : (
-                        <>
+                        <>  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <Link to="/" style={{ textDecoration: "none" }}>
+                                <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Home</button>
+                            </Link>
+                            </div>
                             <Link to="/login-choice" style={{ textDecoration: "none" }}>
                                 <button style={{ border: "1.5px solid #c7d9f5", background: "white", color: "#1b4cb6", borderRadius: "50px", padding: "9px 20px", fontSize: "0.88rem", fontWeight: "600", cursor: "pointer" }}>Log In</button>
                             </Link>

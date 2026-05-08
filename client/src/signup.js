@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import './form.css';
 import Icon from "./LogoIcon.png";
 
-export default function Signup({ setIsLoggedIn, setUserRole }) {
+export default function Signup({ setIsLoggedIn, setUserRole, setUserData, setUsername }) {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({ username: '', password: '', confirmPassword: '', firstName: '', lastName: '', dateOfBirth: '', location: '', bio: '' });
     const [errorMessage, setErrorMessage] = useState('');
@@ -25,11 +25,21 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
             });
             const data = await response.json();
             if (data.success === true) {
-                setIsLoggedIn(true); setUserRole('user');
+                setIsLoggedIn(true);
+                setUserRole('user');
+                setUserData(data.user);          
+                setUsername(data.user.username); 
+
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userRole', 'user');
+                localStorage.setItem('username', data.user.username);
+                localStorage.setItem('userData', JSON.stringify(data.user));
+
                 setSuccessMessage('Account created! Redirecting...');
                 toast.success("Account created successfully!");
                 setTimeout(() => navigate('/dashboard'), 100);
-            } else if (data.errors && data.errors.length > 0) {
+            }
+                else if (data.errors && data.errors.length > 0) {
                 setErrorList(data.errors);
             } else { setErrorMessage(data.message || 'Signup failed. Please try again.'); }
         } catch (error) { setErrorMessage("Server connection failed"); }
@@ -43,9 +53,6 @@ export default function Signup({ setIsLoggedIn, setUserRole }) {
                     <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
                 </Link>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <Link to="/post-request" style={{ textDecoration: "none" }}>
-                        <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Post a Request</button>
-                    </Link>
                     <Link to="/search" style={{ textDecoration: "none" }}>
                         <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Find a Doctor</button>
                     </Link>

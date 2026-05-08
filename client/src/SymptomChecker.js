@@ -101,7 +101,7 @@ export default function SymptomChecker({ isLoggedIn, userData }) {
       </div>
 
       <div style={{ maxWidth: "900px", margin: "40px auto", padding: "0 20px" }}>
-        <h1 style={{ textAlign: "center", color: "#040f25" }}>🩺 Symptom Checker</h1>
+        <h1 style={{ textAlign: "center", color: "#040f25" }}>🩺 Easy Request</h1>
         <p style={{ textAlign: "center", color: "#607593", marginBottom: "40px" }}>Click on a body region to select your symptoms</p>
 
         {submitted ? (

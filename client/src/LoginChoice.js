@@ -18,17 +18,17 @@ export default function LoginChoice() {
           <img src={Icon} alt="Logo" style={{ width: "44px", height: "44px" }} />
           <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
         </Link>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <Link to="/post-request" style={{ textDecoration: "none" }}>
-            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Post a Request</button>
-          </Link>
-          <Link to="/search" style={{ textDecoration: "none" }}>
-            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Find a Doctor</button>
-          </Link>
-          <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#1b4cb6", color: "white", border: "none", borderRadius: "50px", padding: "10px 22px", fontSize: "0.88rem", fontWeight: "700", cursor: "pointer" }}>Sign Up</button>
-          </Link>
-        </div>
+<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+  <Link to="/" style={{ textDecoration: "none" }}>
+    <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Home</button>
+  </Link>
+  <Link to="/search" style={{ textDecoration: "none" }}>
+    <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Find a Doctor</button>
+  </Link>
+  <Link to="/signup-choice" style={{ textDecoration: "none" }}>
+    <button style={{ backgroundColor: "#1b4cb6", color: "white", border: "none", borderRadius: "50px", padding: "10px 22px", fontSize: "0.88rem", fontWeight: "700", cursor: "pointer" }}>Sign Up</button>
+  </Link>
+</div>
       </div>
 
       {/* Main Content */}
