@@ -34,6 +34,30 @@ Our application also enables doctors to sign up and provide medical guidance to 
   
   The platform is designed to be accessible to all users without cost, improving healthcare accessibility.
 
+-  **Request & Approval Notification Flow**
+
+    Patients do not just "message" doctors; they submit a medical request. This creates a notification-style workflow where:
+   A Patient sends a request (symptoms/details).
+  A Doctor reviews the pending requests in their dashboard.
+  Once Approved, a secure chat channel is initiated, notifying both parties that the consultation has begun.
+
+-  **Gamified Health Quiz**
+
+    To promote health literacy, signed-in users have access to an interactive Health Quiz.
+    Earn Points: Gain points based on question difficulty.
+   Level Up: Progress through five mastery levels (Novice to Master).
+   Unlock Badges: Earn visual badges for achievements like "First Consult" or "Quick Responder."
+
+-  **CI-Protected Workflow**
+    To maintain high code quality, our main branch is protected. We have implemented CI (Continuous Integration) workflows that automatically run the Pytest suite whenever a Pull Request is made. Code cannot be merged unless it passes all functional tests.
+
+## 🛠 Technologies Used
+Frontend: React.js (Component-based UI with gamification features).
+Backend: Flask (Python-based micro-framework).
+Data Layer: SQLAlchemy ORM (Used to enforce strict schemas and ensure clean, validated data movement between the app and the DB).
+Deployment: Docker & Docker Compose (Simplifies launching and scaling).
+Security: Bcrypt (hashing) and Fernet (Symmetric encryption for sensitive medical bios).
+
 ## Rationale
 
 The purpose of our application is to improve healthare accessbility and reduce pressure on traditional healthcare services. 
@@ -42,21 +66,43 @@ Our application is an easier solution for patients in rural areas and we provide
 ## Visuals
 
 ### Homepage
-! [Homepage Screenshot](./docs/home.png)
+![Homepage Screenshot](./docs/home.png)
 
-
-! [Homepage Screenshot](./docs/home1.png)
+![Homepage Screenshot](./docs/home1.png)
 
 ### Login Page
-! [Login Page Screenshot](./docs/login.png)
+![Login Page Screenshot](./docs/login.png)
 
 ### Request Form
-! [Request Form Screenshot](./docs/newMedicalRequest.png)
+![Request Form Screenshot](./docs/requestform.png)
 
 ### Doctor Profile Page
-! [Doctor Profile Page Screenshot](./docs/doctor.jpeg)
+![Doctor Profile Page Screenshot](./docs/doctorProfile.png)
 
-## Installation
+### Profile page
+![User Profile page screenshot](./docs/Profile.png)
+![User Profile page screenshot](./docs/Profile2.png)
+
+
+### Chat message mode
+![Chat interaction](./docs/Chats.png)
+
+### doctor list
+![List of doctors, when seraching to make an appointment](./docs/ListOfDoctors.png)
+
+### Settings
+
+![Settings page screenshot](./docs/security.png)
+
+### Quick form submission
+
+![Easy form for people people with difficulties](./docs/humanSvg.png)
+
+### Users requests page
+
+![User requests page](./docs/requests.png)
+
+
 
 ### Requirements
 Before running the project, ensure you have installed:
