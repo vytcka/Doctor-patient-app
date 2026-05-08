@@ -13,6 +13,14 @@ TreatMe is a digital healthcare platform designed to connect patients with quali
 Patients begin by signing up and then completing a health questionnaire covering their symptoms and relevant medical history. Based on this input, the system matches them with a suitable heathcare professional. This ensures that advice is relevant and personalised. 
 Our application also enables doctors to sign up and provide medical guidance to patients seeking assistance. Doctors are required to submit relevant qualifications during registration to ensure patients receive legitimate healthcare advice.
 
+### Launching the project
+
+navigate to the root directory and run these commands
+```bash
+docker compose down -v
+docker compose build --no-cache
+docker compose up
+```
 ## Key Features
 
 - **Secure Messaging System**
@@ -101,6 +109,8 @@ Our application is an easier solution for patients in rural areas and we provide
 ### Users requests page
 
 ![User requests page](./docs/requests.png)
+
+![User requests page](./docs/filledRequests.png)
 
 
 

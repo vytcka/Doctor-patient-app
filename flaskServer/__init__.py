@@ -122,7 +122,6 @@ def create_app():
             "date_of_birth": date(1980, 1, 1),
             "location": "Newcastle, UK",
             "specialty": "Cardiology",
-            "gender": "Male",
             "language": "English,Spanish,French",
             "bio": "My name is James Turner and I've been working as a cardiologist for 10 years.",
             "availability": True,
@@ -140,7 +139,6 @@ def create_app():
             "date_of_birth": date(1985, 5, 15),
             "location": "Liverpool, UK",
             "specialty": "Pediatrics",
-            "gender": "Female",
             "language": "English,Spanish",
             "bio": "Hi! I'm Jane Smith. I'm a pediatrician working for 12 years.",
             "availability": True,
@@ -192,7 +190,6 @@ def create_app():
                     date_of_birth=doc_data["date_of_birth"],
                     location=doc_data["location"],
                     specialty=doc_data["specialty"],
-                    gender=doc_data["gender"],
                     language=doc_data["language"],
                     bio=doc_data["bio"],
                     availability=doc_data["availability"]

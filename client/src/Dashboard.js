@@ -428,6 +428,7 @@ const handleAwardPoints = async (pts) => {
           <div style={{ fontSize:"1.8rem", color:"#1b4cb6", fontWeight:"800" }}>TreatMe</div>
         </Link>
         <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap", justifyContent:"flex-end" }}>
+          <Link to="/my-requests"><button style={{ backgroundColor:"#3b82f6", color:"white", padding:"8px 12px", borderRadius:"6px", border:"none", cursor:"pointer", fontWeight:"600", fontSize:"0.85rem", whiteSpace:"nowrap" }}>Pending Requests</button></Link>
           <Link to="/post-request"><button style={{ backgroundColor:"#3b82f6", color:"white", padding:"8px 12px", borderRadius:"6px", border:"none", cursor:"pointer", fontWeight:"600", fontSize:"0.85rem", whiteSpace:"nowrap" }}>Custom Request</button></Link>
           <Link to="/search"><button style={{ backgroundColor:"#3b82f6", color:"white", padding:"8px 12px", borderRadius:"6px", border:"none", cursor:"pointer", fontWeight:"600", fontSize:"0.85rem", whiteSpace:"nowrap" }}>Find a Doctor</button></Link>
           <Link to="/chat"><button style={{ backgroundColor:"#3b82f6", color:"white", padding:"8px 12px", borderRadius:"6px", border:"none", cursor:"pointer", fontWeight:"600", fontSize:"0.85rem", whiteSpace:"nowrap" }}>Chats</button></Link>

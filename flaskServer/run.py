@@ -5,6 +5,8 @@ import pytest
 env = os.getenv('FLASK_ENV', 'development')
 
 if __name__ == '__main__':
+    print("ENV DATABASE_URL:", os.getenv("DATABASE_URL"))
+    print("FLASK_ENV:", os.getenv("FLASK_ENV"))
     if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         base_dir = os.path.dirname(os.path.abspath(__file__))
         tests_dir = os.path.join(base_dir, 'flaskServer', 'tests')
