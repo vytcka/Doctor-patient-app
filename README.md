@@ -44,10 +44,11 @@ Our application is an easier solution for patients in rural areas and we provide
 ### Homepage
 ! [Homepage Screenshot](./docs/home.png)
 
+
 ! [Homepage Screenshot](./docs/home1.png)
 
 ### Login Page
-! [Login Page Screenshot](./docs/login.jpeg)
+! [Login Page Screenshot](./docs/login.png)
 
 ### Request Form
 ! [Request Form Screenshot](./docs/newMedicalRequest.png)

@@ -193,7 +193,6 @@ def register():
             errors.append("date_of_birth : Date of birth cannot be in the future")
     except (ValueError, TypeError):
         errors.append("date_of_birth : Invalid date format, use YYYY-MM-DD")
-        age = calculate_age(dob_parsed)
     if errors:
         return jsonify({"status": 400, "errors": errors}), 400
 
@@ -216,7 +215,6 @@ def register():
         first_name=first_name,
         last_name=last_name,
         date_of_birth=dob_parsed,
-        age= age,
         location=location,
         is_banned= False,
         is_suspended=False,
