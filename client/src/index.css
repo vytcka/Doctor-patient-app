@@ -82,4 +82,21 @@ button:active {
 
 button:hover {
   opacity: 0.92;
+  opacity: 0.9;
+}
+
+.Toastify__close-button {
+  padding: 0;
+  min-width: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+}
+
+.Toastify__close-button:hover,
+.Toastify__close-button:focus {
+  opacity: 0.85;
+  background: transparent;
 }

@@ -17,28 +17,50 @@ h2 {
 }
 
 body {
-    background: #FAFCFF;
-    color: #2F5D96;
-}
-
-.centered-page {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background: #ffffff;
+    color: #1e3a6e;
+    font-family: 'Nunito', sans-serif;
     min-height: 100vh;
+    margin: 0;
 }
 
+h1, h2 {
+    text-align: center;
+    color: #1b4cb6;
+}
+
+h1 {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    letter-spacing: -0.5px;
+}
+
+h2 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #5a7dbf;
+    margin: 0 0 24px;
+    opacity: 1;
+}
+
+/* ── Card wrapper ── */
 .form-container {
-    max-width: 360px;
-    margin: auto;
-    padding: 10px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(27, 76, 182, 0.12), 0 1px 4px rgba(27, 76, 182, 0.06);
+    max-width: 420px;
+    width: calc(100% - 32px);
+    margin: 40px auto;
+    padding: 36px 32px;
+    animation: cardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .form {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    padding: 10px;
+    gap: 10px;
+    padding: 0;
     width: 100%;
 }
 
@@ -47,21 +69,21 @@ body {
     align-items: center;
     margin: 0;
     padding: 0;
-    font-size: 20px;
 }
 
+/* ── Inputs ── */
 input {
     width: 100%;
-    padding: 10px;
-    margin: 7px;
+    padding: 11px 14px;
+    margin: 0;
     font-size: 14px;
     color: #2F5D96;
     border-radius: 8px;
 }
 
 input::placeholder {
-    color: #2F5D96;
-    opacity: 0.6;
+    color: #8aabce;
+    font-weight: 400;
 }
 
 /* Only apply light button style inside form containers */
@@ -88,25 +110,57 @@ input::placeholder {
     display: block;
     text-align: center;
     margin-top: 10px;
-    color: #2F5D96;
-    opacity: 0.8;
+    color: #5a7dbf;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+}
+
+.guest:hover {
+    opacity: 1;
 }
 
 p {
     text-align: center;
-    color: #2F5D96;
-    font-size: 14px;
-    opacity: 0.8;
+    color: #5a7dbf;
+    font-size: 13px;
+    opacity: 1;
+    margin: 2px 0;
 }
 
+p a {
+    color: #1b4cb6;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+p a:hover {
+    text-decoration: underline;
+}
+
+/* ── Messages ── */
 .error {
-    color: red;
+    color: #dc2626;
     text-align: center;
     font-size: 13px;
+    font-weight: 600;
+    background: #fff5f5;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 0;
 }
 
 .success {
-    color: green;
+    color: #16a34a;
     text-align: center;
     font-size: 13px;
+    font-weight: 600;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 0;
 }
