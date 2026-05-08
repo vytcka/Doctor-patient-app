@@ -16,3 +16,10 @@ psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE treatme TO admin;"
 
 It will ask for your postgres password (the one you set during install)
 
+
+psql -U admin -d treatme 
+ALTER TABLE "user" ADD COLUMN points INTEGER DEFAULT 0 NOT NULL;
+ALTER TABLE "user" ADD COLUMN badges JSON DEFAULT '[]' NOT NULL;
+
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;

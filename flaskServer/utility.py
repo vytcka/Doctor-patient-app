@@ -1,6 +1,40 @@
 import pgeocode
-
 geo = pgeocode.Nominatim('GB')
+
+BADGE_RULES = {
+    "first_consult":   lambda u, chats, reviews: chats >= 1,
+    "quick_responder": lambda u, chats, reviews: chats >= 1,
+    "kind_person":     lambda u, chats, reviews: reviews >= 1,
+    "loyal_patient":   lambda u, chats, reviews: chats >= 5,
+    "top_reviewer":    lambda u, chats, reviews: reviews >= 3,
+    "verified_member": lambda u, chats, reviews: all([u.first_name, u.last_name, u.location, u.bio])
+}
+
+def award_badges(user, db):
+    from sqlalchemy import text
+
+    chat_count = db.session.execute(
+        text("SELECT COUNT(*) FROM chat WHERE sender_id = :id"), {"id": user.id}
+    ).scalar() or 0
+
+    review_count = db.session.execute(
+        text("SELECT COUNT(*) FROM review WHERE user_id = :id"), {"id": user.id}
+    ).scalar() or 0
+
+    earned = list(user.badges) if user.badges else []
+    changed = False
+
+    for badge_id, rule in BADGE_RULES.items():
+        if badge_id not in earned and rule(user, chat_count, review_count):
+            earned.append(badge_id)
+            changed = True
+
+    if changed:
+        user.badges = earned
+        db.session.commit()
+
+    return earned
+
 
 def get_coordinates(postcode):
     result = geo.query_postal_code(postcode)
@@ -23,3 +57,4 @@ def distance_between(postcode1, postcode2):
     if None in (lat1, lon1, lat2, lon2):
         return None
     return haversine_distance(lat1, lon1, lat2, lon2)
+

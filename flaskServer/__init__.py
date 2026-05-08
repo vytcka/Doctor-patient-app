@@ -23,6 +23,7 @@ def create_app():
     app.config.from_object(Config)
 
     app.config["WTF_CSRF_ENABLED"] = False
+    CORS(app, supports_credentials=True,origins=["http://localhost:3000"])
 
     Talisman(app, content_security_policy=csp, force_https=False)
     db.init_app(app)
@@ -185,7 +186,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-        from .models import User, Doctor, Review, Moderator
+        from .models import User, Doctor, Review, Moderator, Chat, Message
 
         if User.query.count() == 0:
             for user_data in users:
@@ -249,8 +250,106 @@ def create_app():
                     bio=mod_data["bio"]
                 )
                 db.session.add(moderator)
+                db.session.commit()
+            
+        if Chat.query.count() == 0:
+            patient1 = User.query.filter_by(username="patient1@email.com").first()
+            patient2 = User.query.filter_by(username="patient2@email.com").first()
+            patient3 = User.query.filter_by(username="patient3@email.com").first()
+
+            if patient1:
+                # Chat 1 - Active chest pain consultation
+                chat1 = Chat(sender_id=patient1.id, receiver_id=patient1.id, status="CHAT_STATUS_ACTIVE")
+                db.session.add(chat1)
+                db.session.flush()
+                for sender_id, sender_type, content in [
+                    (str(patient1.id), "user",   "Hello Dr. Turner, I've been having sharp chest pains for the past 3 days."),
+                    ("1234567890",     "doctor", "Hello John! I'm sorry to hear that. Can you describe the pain? Is it sharp, dull, or burning?"),
+                    (str(patient1.id), "user",   "It's sharp, mostly on the left side. Gets worse when I breathe deeply."),
+                    ("1234567890",     "doctor", "That's concerning. Are you experiencing any shortness of breath or dizziness?"),
+                    (str(patient1.id), "user",   "Yes, especially when climbing stairs. I feel out of breath quite quickly."),
+                    ("1234567890",     "doctor", "I'd like you to come in for an ECG. Are you free tomorrow morning?"),
+                    (str(patient1.id), "user",   "Yes I can do 9am. Should I be worried?"),
+                    ("1234567890",     "doctor", "Try not to worry. It's likely muscular but we need to rule out cardiac causes. Avoid strenuous activity until then."),
+                    (str(patient1.id), "user",   "Okay thank you doctor. I'll see you tomorrow."),
+                    ("1234567890",     "doctor", "See you then John. If the pain becomes severe or you feel faint, go to A&E immediately."),
+                ]:
+                    db.session.add(Message(chat_id=chat1.id, sender_id=sender_id, sender_type=sender_type, content=content))
+                    chat1.increment_message_count()
+
+                # Chat 2 - Active headache/migraine consultation
+                chat2 = Chat(sender_id=patient1.id, receiver_id=patient1.id, status="CHAT_STATUS_ACTIVE")
+                db.session.add(chat2)
+                db.session.flush()
+                for sender_id, sender_type, content in [
+                    (str(patient1.id), "user",   "Hi Dr. Smith, I've been getting terrible headaches every morning for a week."),
+                    ("0987654321",     "doctor", "Good morning! Are the headaches on one side or both sides of your head?"),
+                    (str(patient1.id), "user",   "Mostly one side, the right side. Sometimes I see flashing lights before it starts."),
+                    ("0987654321",     "doctor", "That sounds like it could be migraines. Do you feel nauseous during these episodes?"),
+                    (str(patient1.id), "user",   "Yes very nauseous, and light makes it much worse. I have to lie in a dark room."),
+                    ("0987654321",     "doctor", "Classic migraine symptoms. How long do they typically last?"),
+                    (str(patient1.id), "user",   "Usually 4-6 hours. Sometimes up to a whole day."),
+                    ("0987654321",     "doctor", "I'd like to prescribe sumatriptan for the acute attacks. Have you tried any pain relief so far?"),
+                    (str(patient1.id), "user",   "Just ibuprofen but it barely touches it."),
+                    ("0987654321",     "doctor", "Ibuprofen isn't effective for migraines unfortunately. I'll send a prescription to your pharmacy. Also keep a headache diary so we can identify triggers."),
+                    (str(patient1.id), "user",   "Thank you so much! What kind of triggers should I look out for?"),
+                    ("0987654321",     "doctor", "Common ones are stress, dehydration, caffeine, irregular sleep, and certain foods like chocolate or red wine. Try to track what you did before each attack."),
+                ]:
+                    db.session.add(Message(chat_id=chat2.id, sender_id=sender_id, sender_type=sender_type, content=content))
+                    chat2.increment_message_count()
+
+                # Chat 3 - Closed follow up consultation
+                chat3 = Chat(sender_id=patient1.id, receiver_id=patient1.id, status="CHAT_STATUS_CLOSED")
+                db.session.add(chat3)
+                db.session.flush()
+                for sender_id, sender_type, content in [
+                    (str(patient1.id), "user",   "Hi doctor, just following up on my blood test results from last week."),
+                    ("1234567890",     "doctor", "Hi John! Yes I have your results here. Your cholesterol is slightly elevated at 5.8 mmol/L."),
+                    (str(patient1.id), "user",   "Is that dangerous? Should I be worried?"),
+                    ("1234567890",     "doctor", "Not dangerous yet but we should address it. I'd recommend dietary changes first before considering medication."),
+                    (str(patient1.id), "user",   "What changes should I make?"),
+                    ("1234567890",     "doctor", "Reduce saturated fats — less red meat, butter, cheese. Increase oily fish, nuts, and fibre. Exercise at least 30 minutes 5 times a week."),
+                    (str(patient1.id), "user",   "Okay I can do that. Should I come back for another test?"),
+                    ("1234567890",     "doctor", "Yes, let's retest in 3 months. If levels haven't improved we'll discuss statins. Any other questions?"),
+                    (str(patient1.id), "user",   "No that's great, thank you doctor!"),
+                    ("1234567890",     "doctor", "Take care John. Remember small consistent changes make a big difference over time. Goodbye!"),
+                ]:
+                    db.session.add(Message(chat_id=chat3.id, sender_id=sender_id, sender_type=sender_type, content=content))
+                    chat3.increment_message_count()
+
+                # Chat 4 - Withdrawn early (patient changed mind)
+                chat4 = Chat(sender_id=patient1.id, receiver_id=patient1.id, status="CHAT_STATUS_WITHDRAWN")
+                chat4.withdrawn = True
+                chat4.withdrawn_early = True
+                db.session.add(chat4)
+                db.session.flush()
+                for sender_id, sender_type, content in [
+                    (str(patient1.id), "user",   "Hi, I have a question about a rash on my arm."),
+                    ("0987654321",     "doctor", "Of course! Can you describe it? Is it red, raised, itchy?"),
+                    (str(patient1.id), "user",   "Actually it seems to have cleared up on its own. Sorry to bother you!"),
+                ]:
+                    db.session.add(Message(chat_id=chat4.id, sender_id=sender_id, sender_type=sender_type, content=content))
+                    chat4.increment_message_count()
+
+            if patient2:
+                # Chat 5 - Active back pain consultation for patient2
+                chat5 = Chat(sender_id=patient2.id, receiver_id=patient2.id, status="CHAT_STATUS_ACTIVE")
+                db.session.add(chat5)
+                db.session.flush()
+                for sender_id, sender_type, content in [
+                    (str(patient2.id), "user",   "Hello, I've had lower back pain for 2 weeks now. It started after I moved house."),
+                    ("1234567890",     "doctor", "Hello Emma! Back pain after heavy lifting is very common. Is the pain constant or does it come and go?"),
+                    (str(patient2.id), "user",   "It's worse in the morning and after sitting for long periods."),
+                    ("1234567890",     "doctor", "Does the pain radiate down your leg at all?"),
+                    (str(patient2.id), "user",   "Sometimes a tingling down my left leg yes."),
+                    ("1234567890",     "doctor", "That could indicate some nerve involvement. I'd recommend an X-ray to rule out a slipped disc."),
+                    (str(patient2.id), "user",   "That sounds scary. Is it serious?"),
+                    ("1234567890",     "doctor", "It's quite common and very treatable. In the meantime take ibuprofen with food, apply heat, and avoid heavy lifting."),
+                ]:
+                    db.session.add(Message(chat_id=chat5.id, sender_id=sender_id, sender_type=sender_type, content=content))
+                    chat5.increment_message_count()
+
             db.session.commit()
 
-    CORS(app, supports_credentials=True,
-         origins=["http://localhost:3000"])
+
     return app

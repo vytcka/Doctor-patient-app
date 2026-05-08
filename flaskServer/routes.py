@@ -18,6 +18,7 @@ from cryptography.fernet import InvalidToken
 from flaskServer import sanitisationForLogs
 import logging
 from flask import jsonify
+from .utility import award_badges
 
 #using fernet lib to provide symmetrical encryption
 
@@ -119,18 +120,24 @@ def login():
         session.clear()
         session["username"] = user.username
         session.permanent = True
+        print("SESSION SET TO:", dict(session))
+        print("COOKIE WILL BE SET:", session.modified)
+        
+        badges = award_badges(user, db)
 
         return jsonify({
             "status": 200,
-            "message": "Login successful",
             "username": user.username,
             "user": {
+                "id" : user.id,
                 "username":      user.username,
                 "first_name":    user.first_name,
                 "last_name":     user.last_name,
                 "location":      user.location,
                 "role":          user.role,
-                "date_of_birth": str(user.date_of_birth)
+                "date_of_birth": str(user.date_of_birth),
+                "points":        user.points, 
+                "badges":        badges
             }
         }), 200
 
@@ -339,7 +346,18 @@ def doctor_login():
         session['user_id']    = doctor.nhs_number
 
         logger.info(sanitisationForLogs(f"Doctor logged in: {doctor.username} from {request.remote_addr}"))
-        return jsonify({"status": 200, "message": "Login successful."}), 200
+        return jsonify({
+            "status": 200,
+            "user": {
+                "nhs_number":  doctor.nhs_number,
+                "username":    doctor.username,
+                "first_name":  doctor.first_name,
+                "last_name":   doctor.last_name,
+                "location":    doctor.location,
+                "role":        doctor.role,
+                "specialty":   doctor.specialty,
+            }
+        }), 200
 
     return jsonify({"status": 400, "message": "Invalid credentials format."}), 400
 
@@ -426,6 +444,57 @@ def doctor_register():
 """do we need this? on second thought we do"""
 
 #--------------------------------------------
+
+@main.route('/doctor/dashboard', methods=['GET'])
+def doctor_dashboard():
+    nhs_number = session.get('nhs_number') or request.headers.get('X-NHS-Number')
+    if not nhs_number:
+        return jsonify({"status": 400, "message": "Not logged in"}), 400
+
+    doctor = Doctor.query.filter_by(nhs_number=nhs_number).first()
+    if not doctor:
+        return jsonify({"status": 400, "message": "Doctor not found"}), 400
+
+    pending_requests = Request.query.filter_by(
+        status="REQUEST_STATUS_PENDING"
+    ).all()
+
+    active_chats = Chat.query.filter_by(
+        status="CHAT_STATUS_ACTIVE"
+    ).all()
+
+    return jsonify({
+        "status": 200,
+        "doctor": {
+            "name":          f"Dr. {doctor.first_name} {doctor.last_name}",
+            "specialty":     doctor.specialty,
+            "rating":        doctor.rating,
+            "languages":     doctor.language.split(","),
+            "location":      doctor.location,
+            "availability":  ["Monday 9am-5pm", "Wednesday 9am-5pm", "Friday 9am-5pm"],
+            "totalPatients": Chat.query.count(),
+            "totalReviews":  Review.query.filter_by(doctor_id=nhs_number).count(),
+            "email":         doctor.username,
+        },
+        "pending_requests": [
+            {
+                "id":          r.id,
+                "patientName": "Anonymous Patient",
+                "age":         r.age,
+                "symptoms":    r.symptoms,
+                "submittedAt": r.created_at.isoformat()
+            } for r in pending_requests
+        ],
+        "active_chats": [
+            {
+                "id":          c.id,
+                "patientName": f"Patient #{c.sender_id}",
+                "startedAt":   c.created_at.strftime("%Y-%m-%d"),
+                "lastMessage": Message.query.filter_by(chat_id=c.id).order_by(Message.timestamp.desc()).first().content if Message.query.filter_by(chat_id=c.id).first() else "No messages",
+                "unread":      0
+            } for c in active_chats
+        ]
+    }), 200
 
 
 @main.route('/doctor/dashboardChats')
@@ -895,6 +964,93 @@ def chat(chat_id):
     return jsonify({"status" : 200, "messages" : messages}), 200
 
 
+@main.route('/chats', methods=['GET'])
+def get_chats():
+    username = session.get('username') or request.headers.get('X-Username')  # ← fix
+    if not username:
+        return jsonify({"status": 400, "message": "Not logged in"}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"status": 400, "message": "User not found"}), 400
+
+    chats = Chat.query.filter_by(sender_id=user.id).all()
+    result = []
+    for c in chats:
+        # get doctor from messages
+        doctor_msg = Message.query.filter_by(chat_id=c.id, sender_type='doctor').first()
+        doctor_name = "Unknown Doctor"
+        if doctor_msg:
+            doctor = Doctor.query.filter_by(nhs_number=doctor_msg.sender_id).first()
+            if doctor:
+                doctor_name = f"Dr. {doctor.first_name} {doctor.last_name}"
+        result.append({
+            "id":            c.id,
+            "status":        c.status,
+            "message_count": c.message_count,
+            "last_activity": c.last_activity.isoformat(),
+            "doctor_name":   doctor_name
+        })
+
+    return jsonify({"status": 200, "chats": result}), 20
+
+@main.route('/chats/<int:chat_id>/messages', methods=['GET'])
+def get_messages(chat_id):
+    username = session.get('username') or request.headers.get('X-Username')
+    if not username:
+        return jsonify({"status": 400, "message": "Not logged in"}), 400
+
+    messages = Message.query.filter_by(chat_id=chat_id).order_by(Message.timestamp).all()
+    return jsonify({
+        "status": 200,
+        "messages": [
+            {
+                "id":          m.id,
+                "content":     m.content,
+                "sender_id":   m.sender_id,
+                "sender_type": m.sender_type,
+                "timestamp":   m.timestamp.isoformat()
+            } for m in messages
+        ]
+    }), 200
+
+@main.route('/chats/<int:chat_id>/messages', methods=['POST'])
+def send_message(chat_id):
+    username = session.get('username') or request.headers.get('X-Username')
+    if not username:
+        return jsonify({"status": 400, "message": "Not logged in"}), 400
+
+    user = User.query.filter_by(username=username).first()  
+    data = request.get_json()
+
+    msg = Message(
+        chat_id     = chat_id,
+        sender_id   = str(user.id),
+        sender_type = 'user',
+        content     = data.get('content')
+    )
+    db.session.add(msg)
+    db.session.commit()
+
+    return jsonify({"status": 200, "message": "sent"}), 200
+
+@main.route('/chats/<int:chat_id>/messages/doctor', methods=['POST'])
+def send_message_doctor(chat_id):
+    nhs_number = session.get('nhs_number') or request.headers.get('X-NHS-Number')
+    if not nhs_number:
+        return jsonify({"status": 400, "message": "Not logged in"}), 400
+
+    data = request.get_json()
+    msg = Message(
+        chat_id     = chat_id,
+        sender_id   = nhs_number,
+        sender_type = 'doctor',
+        content     = data.get('content')
+    )
+    db.session.add(msg)
+    db.session.commit()
+    return jsonify({"status": 200, "message": "sent"}), 200
+
 
 
 @main.route('/restore-chat/', methods=['POST'])
@@ -1039,7 +1195,7 @@ def requestAppointment():
         redirects to dashboard.
     """
     data = request.get_json()
-    if 'user_id' not in session:
+    if 'username' not in session:
         return jsonify({"status" : 400, "message" : "you need to be logged in to view this page."}), 403
 
     request_obj = Request(
@@ -1057,7 +1213,7 @@ def requestAppointment():
     db.session.commit()
 
     flash("Appointment request submitted")
-    return redirect(url_for('main.dashboard'))
+    return jsonify({"status": 200, "message": "Appointment request submitted"}), 200
 
 
 @main.route('/approveAppointment', methods=['POST'])

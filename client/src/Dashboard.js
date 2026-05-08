@@ -2,15 +2,38 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from './LogoIcon.png';
 
-function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
+const BADGE_DEFS = [
+    { id: "first_consult",   icon: "🩺", label: "First consult",   desc: "1st chat with a doctor",  color: "#dbeafe", textColor: "#1d4ed8" },
+    { id: "quick_responder", icon: "⚡", label: "Quick responder", desc: "Replied within 5 min",     color: "#dcfce7", textColor: "#15803d" },
+    { id: "kind_person",     icon: "❤️", label: "Kind person",     desc: "Left a positive review",   color: "#fce7f3", textColor: "#9d174d" },
+    { id: "loyal_patient",   icon: "🏆", label: "Loyal patient",   desc: "5 chats completed",        color: "#fef9c3", textColor: "#854d0e" },
+    { id: "top_reviewer",    icon: "⭐", label: "Top reviewer",    desc: "3 reviews submitted",      color: "#fae8ff", textColor: "#7e22ce" },
+    { id: "verified_member", icon: "✅", label: "Verified member", desc: "Profile fully set up",     color: "#dcfce7", textColor: "#15803d" },
+];
+
+function Dashboard({ isLoggedIn, username, userData, setIsLoggedIn, setUserData, setUsername }) {
   const navigate = useNavigate();
 
-  const [user] = useState({
-    username: userData?.username || "Johndoe1",
-    email: userData?.username || "johndoe@email.com",
-    requestStatus: "Granted",
-    points: 3,
-  });
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserData(null);
+    setUsername('');
+    localStorage.clear();
+    navigate('/');
+  };
+
+  const points = userData?.points ?? 0;
+  const earnedBadges = userData?.badges || [];
+
+  const badges = BADGE_DEFS.map(b => ({
+    ...b,
+    earned: earnedBadges.includes(b.id),
+    icon: earnedBadges.includes(b.id) ? b.icon : "🔒",
+    color: earnedBadges.includes(b.id) ? b.color : "#f1f5f9",
+    textColor: earnedBadges.includes(b.id) ? b.textColor : "#94a3b8"
+  }));
+
+  const earnedCount = badges.filter(b => b.earned).length;
 
   if (!isLoggedIn) {
     return (
@@ -35,36 +58,26 @@ function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
     );
   }
 
-  const badges = [
-    { icon: "🩺", label: "First consult", desc: "1st chat with a doctor", earned: true, color: "#dbeafe", textColor: "#1d4ed8" },
-    { icon: "⚡", label: "Quick responder", desc: "Replied within 5 min", earned: true, color: "#dcfce7", textColor: "#15803d" },
-    { icon: "❤️", label: "Kind person", desc: "Left a positive review", earned: true, color: "#fce7f3", textColor: "#9d174d" },
-    { icon: "🔒", label: "Loyal patient", desc: "5 chats completed", earned: false, color: "#f1f5f9", textColor: "#94a3b8" },
-    { icon: "🔒", label: "Top reviewer", desc: "3 reviews submitted", earned: false, color: "#f1f5f9", textColor: "#94a3b8" },
-    { icon: "🔒", label: "Verified member", desc: "Profile fully set up", earned: false, color: "#f1f5f9", textColor: "#94a3b8" },
-  ];
-
-  const earnedCount = badges.filter(b => b.earned).length;
+  if (!userData) {
+    return <div style={{ textAlign: "center", marginTop: "100px" }}>Loading...</div>;
+  }
 
   return (
-    <div style={{ backgroundColor: "#f0f4ff", minHeight: "100vh", fontFamily: "'Segoe UI', sans-serif" }}>
-
+    <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
       {/* Navbar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 40px", height: "68px", backgroundColor: "white", borderBottom: "1px solid #e8edf5", boxShadow: "0 1px 8px rgba(27,75,182,0.06)", position: "sticky", top: 0, zIndex: 100 }}>
-        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "10px" }}>
-          <img src={Icon} alt="Logo" style={{ width: "44px", height: "44px" }} />
-          <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
+        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+          <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
+          <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
         </Link>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <Link to="/post-request" style={{ textDecoration: "none" }}>
-            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Post a Request</button>
-          </Link>
-          <Link to="/search" style={{ textDecoration: "none" }}>
-            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Find a Doctor</button>
-          </Link>
-          <Link to="/chat" style={{ textDecoration: "none" }}>
-            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Chats</button>
-          </Link>
+        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <Link to="/post-request"><button style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>Post a Request</button></Link>
+          <Link to="/search"><button style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>Find a Doctor</button></Link>
+          <Link to="/chat"><button style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>Chats</button></Link>
+          <Link to="/symptomchecker"><button style={{ backgroundColor: "#3b82f6", color: "white", padding: "8px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>🩺 Symptoms</button></Link>
+          <button onClick={handleLogout} style={{ backgroundColor: "#ef4444", color: "white", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap" }}>Logout</button>
+        </div>
         </div>
       </div>
 
@@ -82,9 +95,9 @@ function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
               </svg>
             </div>
             <p style={{ fontSize: "1.5rem", fontWeight: "700", color: "#1e293b", margin: "0 0 4px 0" }}>
-              {userData?.first_name ? `${userData.first_name} ${userData.last_name}` : user.username}
+              {userData?.first_name ? `${userData.first_name} ${userData.last_name}` : userData.username}
             </p>
-            <p style={{ fontSize: "0.88rem", color: "#94a3b8", margin: 0 }}>{userData?.username || user.email}</p>
+            <p style={{ fontSize: "0.88rem", color: "#94a3b8", margin: 0 }}>{userData?.username}</p>
           </div>
 
           {/* Info rows */}
@@ -95,11 +108,11 @@ function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0", marginBottom: "12px" }}>
               <span style={{ fontSize: "0.85rem", color: "#94a3b8", fontWeight: "500" }}>Request Status</span>
-              <span style={{ fontSize: "0.88rem", fontWeight: "600", color: "#16a34a", backgroundColor: "#dcfce7", padding: "3px 10px", borderRadius: "20px" }}>{user.requestStatus}</span>
+              <span style={{ fontSize: "0.88rem", fontWeight: "600", color: "#16a34a", backgroundColor: "#dcfce7", padding: "3px 10px", borderRadius: "20px" }}>Active</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.85rem", color: "#94a3b8", fontWeight: "500" }}>Member since</span>
-              <span style={{ fontSize: "0.88rem", fontWeight: "600", color: "#1e293b" }}>May 2026</span>
+              <span style={{ fontSize: "0.85rem", color: "#94a3b8", fontWeight: "500" }}>Date of Birth</span>
+              <span style={{ fontSize: "0.88rem", fontWeight: "600", color: "#1e293b" }}>{userData?.date_of_birth || "Not set"}</span>
             </div>
           </div>
 
@@ -107,13 +120,13 @@ function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
           <div style={{ backgroundColor: "#eff6ff", borderRadius: "12px", padding: "16px 20px", marginBottom: "24px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                <span style={{ fontSize: "2rem", fontWeight: "800", color: "#1b4cb6" }}>{user.points}</span>
+                <span style={{ fontSize: "2rem", fontWeight: "800", color: "#1b4cb6" }}>{userData.points}</span>
                 <span style={{ fontSize: "0.88rem", color: "#607593" }}>points</span>
               </div>
               <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{earnedCount} / {badges.length} badges</span>
             </div>
             <div style={{ height: "8px", backgroundColor: "#bfdbfe", borderRadius: "99px", overflow: "hidden", marginBottom: "6px" }}>
-              <div style={{ height: "100%", width: `${(user.points / 10) * 100}%`, background: "linear-gradient(90deg, #3b82f6, #1b4cb6)", borderRadius: "99px", transition: "width 0.4s ease" }} />
+              <div style={{ height: "100%", width: `${(userData.points / 10) * 100}%`, background: "linear-gradient(90deg, #3b82f6, #1b4cb6)", borderRadius: "99px", transition: "width 0.4s ease" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>0</span>
@@ -143,19 +156,12 @@ function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
                 Settings
               </button>
             </Link>
-            <button
-              onClick={() => {
-                setIsLoggedIn(false);
-                localStorage.removeItem('isLoggedIn');
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('username');
-                localStorage.removeItem('userData');
-                navigate('/login-choice');
-              }}
+            <button onClick={handleLogout}
               style={{ width: "100%", backgroundColor: "white", color: "#ef4444", padding: "12px", borderRadius: "10px", border: "1.5px solid #fca5a5", cursor: "pointer", fontWeight: "600", fontSize: "0.95rem" }}>
               Log Out
             </button>
           </div>
+
         </div>
       </div>
     </div>
