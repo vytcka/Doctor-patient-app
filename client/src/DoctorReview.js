@@ -199,35 +199,42 @@ export default function DoctorReview({ isLoggedIn }){
     return(
         <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
 
-            {/* Navbar — consistent with the rest of the app */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
-                <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-                    <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-                    <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+            {/* Navbar */}
+            <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "0 40px", height: "68px",
+                backgroundColor: "white",
+                borderBottom: "1px solid #e8edf5",
+                boxShadow: "0 1px 8px rgba(27,75,182,0.06)",
+                position: "sticky", top: 0, zIndex: 100
+            }}>
+                <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "10px" }}>
+                    <img src={Icon} alt="Logo" style={{ width: "44px", height: "44px" }} />
+                    <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
                 </Link>
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                     <Link to="/post-request" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
+                        <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Post a Request</button>
                     </Link>
                     <Link to="/search" style={{ textDecoration: "none" }}>
-                        <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
+                        <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Find a Doctor</button>
                     </Link>
                     {isLoggedIn ? (
                         <>
                             <Link to="/chat" style={{ textDecoration: "none" }}>
-                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+                                <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Chats</button>
                             </Link>
-                            <Link to="/dashboard" style={{ textDecoration: "none" }}>
-                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
+                            <Link to="/Dashboard" style={{ textDecoration: "none" }}>
+                                <button style={{ backgroundColor: "#1b4cb6", color: "white", border: "none", borderRadius: "50px", padding: "10px 22px", fontSize: "0.88rem", fontWeight: "700", cursor: "pointer" }}>My Profile</button>
                             </Link>
                         </>
                     ) : (
                         <>
                             <Link to="/login-choice" style={{ textDecoration: "none" }}>
-                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+                                <button style={{ border: "1.5px solid #c7d9f5", background: "white", color: "#1b4cb6", borderRadius: "50px", padding: "9px 20px", fontSize: "0.88rem", fontWeight: "600", cursor: "pointer" }}>Log In</button>
                             </Link>
                             <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-                                <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+                                <button style={{ backgroundColor: "#1b4cb6", color: "white", border: "none", borderRadius: "50px", padding: "10px 22px", fontSize: "0.88rem", fontWeight: "700", cursor: "pointer" }}>Sign Up</button>
                             </Link>
                         </>
                     )}

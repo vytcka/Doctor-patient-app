@@ -9,13 +9,13 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
+  background: linear-gradient(135deg, #eef4ff 0%, #f0f6ff 60%, #e8f0fe 100%);
+  background-attachment: fixed;
   color: #1e293b;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -31,16 +31,17 @@ a {
 
 a:hover {
   color: #2563eb;
-  text-decoration: underline;
 }
 
 input, textarea, select {
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border: 1.5px solid #c7d9f5;
+  border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.95rem;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #ffffff;
+  color: #1e293b;
 }
 
 input:focus, textarea:focus, select:focus {
@@ -48,14 +49,37 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
+/* Modern soft button base */
 button {
   cursor: pointer;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 0.95rem;
-  transition: background-color 0.2s, opacity 0.2s;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  transition: all 0.18s ease;
+  letter-spacing: 0.01em;
+}
+
+/* Primary blue buttons */
+button[style*="backgroundColor: \"#3b82f6\""],
+button[style*='backgroundColor: "#3b82f6"'] {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.25);
+}
+
+button[style*="backgroundColor: \"#3b82f6\""]:hover,
+button[style*='backgroundColor: "#3b82f6"']:hover {
+  background-color: #2563eb !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
 }
 
 button:hover {
-  opacity: 0.9;
+  opacity: 0.92;
 }

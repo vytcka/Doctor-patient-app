@@ -1,17 +1,17 @@
 h1, h2 {
     text-align: center;
-    color:#2F5D96;
+    color: #2F5D96;
 }
 
-h1{
-    font-size:30px;
+h1 {
+    font-size: 30px;
     font-weight: bold;
 }
 
-h2{
+h2 {
     font-weight: normal;
     font-size: 16px;
-    color:#2F5D96;
+    color: #2F5D96;
     margin-bottom: 20px;
     opacity: 0.8;
 }
@@ -34,8 +34,8 @@ body {
     padding: 10px;
 }
 
-.form{
-    display:flex;
+.form {
+    display: flex;
     flex-direction: column;
     gap: 5px;
     padding: 10px;
@@ -56,7 +56,7 @@ input {
     margin: 7px;
     font-size: 14px;
     color: #2F5D96;
-    border-radius: 0;
+    border-radius: 8px;
 }
 
 input::placeholder {
@@ -64,23 +64,27 @@ input::placeholder {
     opacity: 0.6;
 }
 
-button{
-    display: block; 
+/* Only apply light button style inside form containers */
+.form button {
+    display: block;
     margin: 8px auto;
-    background: #BAD9FF;
-    color: #2F5D96;
+    background: #3b82f6;
+    color: white;
     cursor: pointer;
     border: 0;
-    border-radius: 0;
-    padding: 7px 30px;
+    border-radius: 8px;
+    padding: 10px 30px;
     font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s, box-shadow 0.2s;
 }
 
-button:hover {
-    background: #a3ccff;
+.form button:hover {
+    background: #2563eb;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.guest{
+.guest {
     display: block;
     text-align: center;
     margin-top: 10px;
@@ -106,5 +110,3 @@ p {
     text-align: center;
     font-size: 13px;
 }
-
-

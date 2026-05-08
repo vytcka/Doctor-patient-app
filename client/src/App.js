@@ -35,7 +35,7 @@ function App() {
         <Route path="/search" element={<Search isLoggedIn={isLoggedIn} />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} setUsername={setUsername} setUserData={setUserData} />} />
         <Route path="/signup" element={<Signup setIsLoggedIn={setIsLoggedIn} setUserRole={setUserRole} />} />
-        <Route path="/chat" element={<Chat isLoggedIn={isLoggedIn} />} />
+        <Route path="/chat" element={<Chat isLoggedIn={isLoggedIn} userData={userData} />} />
         <Route path="/Dashboard" element={
           userRole === 'doctor'
             ? <DoctorDashboard isLoggedIn={isLoggedIn} userData={userData} setIsLoggedIn={setIsLoggedIn} setUserData={setUserData} setUsername={setUsername} />

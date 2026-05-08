@@ -30,8 +30,7 @@ function Settings({ isLoggedIn }) {
     if (!currentPassword || !newPassword || !confirmNewPassword) { setPasswordMsg("Please fill in all fields."); return; }
     if (newPassword !== confirmNewPassword) { setPasswordMsg("New passwords do not match."); return; }
     const response = await fetch("http://127.0.0.1:5000/change-password", {
-      method: "POST",
-      credentials: "include",
+      method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
     });
@@ -40,49 +39,42 @@ function Settings({ isLoggedIn }) {
   };
 
   const confirmDelete = async () => {
-    const response = await fetch("http://127.0.0.1:5000/delete_account", {
-      method: "POST",
-      credentials: "include"
-    });
+    const response = await fetch("http://127.0.0.1:5000/delete_account", { method: "POST", credentials: "include" });
     const data = await response.json();
-    if (data.status === 200) {
-      setShowConfirm(false);
-      navigate('/');
-    }
+    if (data.status === 200) { setShowConfirm(false); navigate('/'); }
   };
 
   const inputStyle = { width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "0.9rem", marginBottom: "12px", boxSizing: "border-box", outline: "none" };
   const saveBtnStyle = { backgroundColor: "#3b82f6", color: "white", padding: "10px 28px", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "0.95rem" };
-
   const sidebarItems = [
     { id: 'account', label: 'Account', desc: 'Change your username' },
     { id: 'security', label: 'Security', desc: 'Update your password' },
     { id: 'delete', label: 'Delete Account', desc: 'Permanently remove account' },
   ];
 
+  const navStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 40px", height: "68px", backgroundColor: "white", borderBottom: "1px solid #e8edf5", boxShadow: "0 1px 8px rgba(27,75,182,0.06)", position: "sticky", top: 0, zIndex: 100 };
+
   if (!isLoggedIn) {
     return (
-      <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
-          <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-            <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-            <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+      <div style={{ backgroundColor: "#f0f4ff", minHeight: "100vh" }}>
+        <div style={navStyle}>
+          <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "10px" }}>
+            <img src={Icon} alt="Logo" style={{ width: "44px", height: "44px" }} />
+            <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
           </Link>
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             <Link to="/login-choice" style={{ textDecoration: "none" }}>
-              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Login</button>
+              <button style={{ border: "1.5px solid #c7d9f5", background: "white", color: "#1b4cb6", borderRadius: "50px", padding: "9px 20px", fontSize: "0.88rem", fontWeight: "600", cursor: "pointer" }}>Log In</button>
             </Link>
             <Link to="/signup-choice" style={{ textDecoration: "none" }}>
-              <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Signup</button>
+              <button style={{ backgroundColor: "#1b4cb6", color: "white", border: "none", borderRadius: "50px", padding: "10px 22px", fontSize: "0.88rem", fontWeight: "700", cursor: "pointer" }}>Sign Up</button>
             </Link>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: "16px" }}>
           <p style={{ fontSize: "1.2rem", color: "#607593" }}>You need to be logged in to access settings.</p>
           <Link to="/login-choice">
-            <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px 28px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}>
-              Log In
-            </button>
+            <button style={{ backgroundColor: "#3b82f6", color: "white", padding: "12px 28px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "1rem" }}>Log In</button>
           </Link>
         </div>
       </div>
@@ -90,33 +82,29 @@ function Settings({ isLoggedIn }) {
   }
 
   return (
-    <div style={{ backgroundColor: "#f5f7fa", minHeight: "100vh" }}>
-      {/* Navbar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0" }}>
-        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-          <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-          <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+    <div style={{ backgroundColor: "#f0f4ff", minHeight: "100vh" }}>
+      <div style={navStyle}>
+        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "10px" }}>
+          <img src={Icon} alt="Logo" style={{ width: "44px", height: "44px" }} />
+          <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
         </Link>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <Link to="/post-request" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button>
+            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Post a Request</button>
           </Link>
           <Link to="/search" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button>
+            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Find a Doctor</button>
           </Link>
           <Link to="/chat" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button>
+            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Chats</button>
           </Link>
-          <Link to="/dashboard" style={{ textDecoration: "none" }}>
-            <button style={{ backgroundColor: "#3b82f6", color: "white" }}>User Profile</button>
+          <Link to="/Dashboard" style={{ textDecoration: "none" }}>
+            <button style={{ backgroundColor: "#1b4cb6", color: "white", border: "none", borderRadius: "50px", padding: "10px 22px", fontSize: "0.88rem", fontWeight: "700", cursor: "pointer" }}>My Profile</button>
           </Link>
         </div>
       </div>
 
-      {/* Two column layout */}
       <div style={{ display: "flex", maxWidth: "900px", margin: "30px auto", padding: "0 20px", gap: "24px" }}>
-
-        {/* Left sidebar */}
         <div style={{ width: "220px", flexShrink: 0 }}>
           <p style={{ fontWeight: "bold", fontSize: "1.3rem", color: "#1e293b", marginBottom: "16px" }}>Settings</p>
           {sidebarItems.map(item => (
@@ -126,13 +114,11 @@ function Settings({ isLoggedIn }) {
             </div>
           ))}
           <div style={{ marginTop: "16px" }}>
-            <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "0.9rem", fontWeight: "600", padding: 0 }}>← Back</button>
+            <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "0.9rem", fontWeight: "600", padding: 0 }}>Back</button>
           </div>
         </div>
 
-        {/* Right content */}
         <div style={{ flex: 1, backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-
           {activeSection === 'account' && (
             <div>
               <p style={{ fontSize: "1.4rem", fontWeight: "bold", color: "#1e293b", marginBottom: "4px" }}>Account</p>

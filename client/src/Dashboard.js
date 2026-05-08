@@ -50,15 +50,21 @@ function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
     <div style={{ backgroundColor: "#f0f4ff", minHeight: "100vh", fontFamily: "'Segoe UI', sans-serif" }}>
 
       {/* Navbar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 24px", backgroundColor: "white", borderBottom: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-          <img src={Icon} alt="Logo" style={{ width: "100px", height: "100px", marginRight: "10px" }} />
-          <div style={{ fontSize: "2rem", color: "#1b4cb6", fontWeight: "bold" }}>TreatMe</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 40px", height: "68px", backgroundColor: "white", borderBottom: "1px solid #e8edf5", boxShadow: "0 1px 8px rgba(27,75,182,0.06)", position: "sticky", top: 0, zIndex: 100 }}>
+        <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "10px" }}>
+          <img src={Icon} alt="Logo" style={{ width: "44px", height: "44px" }} />
+          <span style={{ fontSize: "1.4rem", color: "#1b4cb6", fontWeight: "800", letterSpacing: "-0.3px" }}>TreatMe</span>
         </Link>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <Link to="/post-request"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Post a Request</button></Link>
-          <Link to="/search"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Find a Doctor</button></Link>
-          <Link to="/chat"><button style={{ backgroundColor: "#3b82f6", color: "white" }}>Chats</button></Link>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <Link to="/post-request" style={{ textDecoration: "none" }}>
+            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Post a Request</button>
+          </Link>
+          <Link to="/search" style={{ textDecoration: "none" }}>
+            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Find a Doctor</button>
+          </Link>
+          <Link to="/chat" style={{ textDecoration: "none" }}>
+            <button style={{ background: "none", border: "none", color: "#334155", fontWeight: "500", fontSize: "0.9rem", padding: "8px 14px", cursor: "pointer" }}>Chats</button>
+          </Link>
         </div>
       </div>
 
@@ -70,8 +76,10 @@ function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
 
           {/* Avatar + name */}
           <div style={{ textAlign: "center", marginBottom: "28px" }}>
-            <div style={{ width: "88px", height: "88px", borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6, #1b4cb6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.4rem", color: "white", margin: "0 auto 14px auto", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>
-              👤
+            <div style={{ width: "88px", height: "88px", borderRadius: "50%", backgroundColor: "#dbeafe", border: "3px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px auto", boxShadow: "0 4px 12px rgba(59,130,246,0.15)" }}>
+              <svg width="52" height="52" viewBox="0 0 24 24" fill="#1b4cb6" stroke="none">
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+              </svg>
             </div>
             <p style={{ fontSize: "1.5rem", fontWeight: "700", color: "#1e293b", margin: "0 0 4px 0" }}>
               {userData?.first_name ? `${userData.first_name} ${userData.last_name}` : user.username}
@@ -132,7 +140,7 @@ function Dashboard({ isLoggedIn, setIsLoggedIn, userData }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <Link to="/Settings" style={{ textDecoration: "none" }}>
               <button style={{ width: "100%", backgroundColor: "#3b82f6", color: "white", padding: "12px", borderRadius: "10px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "0.95rem" }}>
-                ⚙️ Settings
+                Settings
               </button>
             </Link>
             <button
